@@ -352,6 +352,20 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 .ro-box{padding:12px 14px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--sunk)}
 .kv{display:grid;grid-template-columns:140px 1fr;gap:8px 16px;font-size:13px}
 .kv dt{color:var(--sub)}.kv dd{margin:0}
+
+/* ops: 초기 설정 단계와 배정표 */
+.setup-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+.steps{display:flex;flex-direction:column;gap:10px}
+.step{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-left:3px solid var(--line2);border-radius:var(--r-sm)}
+.step b{font-size:13px;font-weight:600}
+.step>span{grid-column:1;color:var(--sub);font-size:12px}
+.step .btn{grid-row:1/3;grid-column:2}
+.step.done{border-left-color:var(--s-done)}
+.step.done b::after{content:" 완료";color:var(--s-done);font-weight:500;font-size:12px}
+.mx td,.mx th{vertical-align:middle}
+.mx .cell{display:flex;flex-direction:column;gap:4px;min-width:150px}
+.mx .cell .sel{height:30px;min-height:30px;padding:3px 8px;font-size:12px}
+.mx .ck{font-size:11px;color:var(--faint)}
 .stack>*+*{margin-top:18px}
 
 @media (max-width:1180px){.work{grid-template-columns:200px minmax(0,1fr)}.work .side-panel{grid-column:1/-1;border-left:0;border-top:1px solid var(--line)}.dash{grid-template-columns:1fr}}
@@ -369,6 +383,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
   .grid2,.grid3{grid-template-columns:1fr}
   .login{grid-template-columns:1fr}.login-l{border-right:0;border-bottom:1px solid var(--line);padding:32px 24px}.login-l h1{font-size:30px;margin-top:24px}.login-r{padding:32px 24px}
   .kv{grid-template-columns:1fr}
+  .setup-grid{grid-template-columns:1fr}
 }
 
 /* ===== design layer v2 ===== */
@@ -518,6 +533,8 @@ const ST = {
   ask: { l: '확인 요청', c: 'ask' }, done: { l: '검수 완료', c: 'done' }, appr: { l: '승인 대기', c: 'appr' }, approved: { l: '승인 완료', c: 'done' }
 };
 const ROLE_L = { requester: '요청자', reviewer: '검수자', lead: '대표 검수자', approver: '승인자', admin: '관리자' };
+/* 관리 역할은 프로젝트 역할과 구분해 표시한다 (기획서 5.1) */
+const MROLE_L = { admin: '고객사 관리자', ops: '솔루션 운영 담당자' };
 const EXT_UNIT = { pdf: '페이지', doc: '페이지', docx: '페이지', hwp: '페이지', hwpx: '페이지', xls: '행', xlsx: '행', ppt: '슬라이드', pptx: '슬라이드', txt: '줄', png: '장', jpg: '장', jpeg: '장' };
 
 /* ========== seed ========== */
@@ -526,20 +543,22 @@ function seed() {
     me: null, cid: 'c1', pid: 'p1',
     sim: { saveFail: false },
     customers: [
-      { id: 'c1', name: '한빛카드', approval: true, domain: 'hanbitcard.co.kr', ops: { notifyChannel: '제품 내 알림', dueSoonDays: 2 } },
-      { id: 'c2', name: '도담생명', approval: false, domain: 'dodamlife.com', ops: { notifyChannel: '제품 내 알림', dueSoonDays: 2 } }
+      { id: 'c1', name: '한빛카드', approval: true, domain: 'hanbitcard.co.kr', active: true, created: at(-120), by: 'u5', ops: { notifyChannel: '제품 내 알림', dueSoonDays: 2 } },
+      { id: 'c2', name: '도담생명', approval: false, domain: 'dodamlife.com', active: true, created: at(-74), by: 'u5', ops: { notifyChannel: '제품 내 알림', dueSoonDays: 2 } }
     ],
     users: [
       { id: 'u1', name: '김서연', dept: '카드마케팅팀', email: 'seoyeon.kim@hanbitcard.co.kr', cid: 'c1', active: true, color: '#3C6E71' },
       { id: 'u2', name: '박지훈', dept: '콘텐츠검수팀', email: 'jihoon.park@hanbitcard.co.kr', cid: 'c1', active: true, color: '#8C5E3C' },
       { id: 'u3', name: '이도현', dept: '콘텐츠검수팀', email: 'dohyun.lee@hanbitcard.co.kr', cid: 'c1', active: true, color: '#4B5D9A' },
       { id: 'u4', name: '최민아', dept: '마케팅본부', email: 'mina.choi@hanbitcard.co.kr', cid: 'c1', active: true, color: '#7A4A8C' },
-      { id: 'u5', name: '정우진', dept: '서비스운영', email: 'woojin.jung@txtms.io', cid: null, admin: ['c1', 'c2'], active: true, color: '#2F3B52' },
+      { id: 'u5', name: '정우진', dept: '서비스운영', email: 'woojin.jung@txtms.io', cid: null, ops: true, active: true, color: '#2F3B52' },
       { id: 'u6', name: '한가을', dept: '콘텐츠검수팀', email: 'gaeul.han@hanbitcard.co.kr', cid: 'c1', active: true, color: '#A0473F' },
       { id: 'u7', name: '오세린', dept: '리스크관리팀', email: 'serin.oh@hanbitcard.co.kr', cid: 'c1', active: true, color: '#5E7F3A' },
       { id: 'u8', name: '윤태오', dept: '고객소통파트', email: 'taeo.yoon@dodamlife.com', cid: 'c2', active: true, color: '#3A6E8F' },
       { id: 'u9', name: '문지아', dept: '계약관리팀', email: 'jia.moon@dodamlife.com', cid: 'c2', active: true, color: '#9A6B2F' },
-      { id: 'u10', name: '신하준', dept: '고객소통파트', email: 'hajun.shin@dodamlife.com', cid: 'c2', active: true, color: '#6A6F7A' }
+      { id: 'u10', name: '신하준', dept: '고객소통파트', email: 'hajun.shin@dodamlife.com', cid: 'c2', active: true, color: '#6A6F7A' },
+      { id: 'u11', name: '강민호', dept: '경영지원팀', email: 'minho.kang@hanbitcard.co.kr', cid: 'c1', admin: ['c1'], active: true, color: '#45606B' },
+      { id: 'u12', name: '서아람', dept: '디지털기획팀', email: 'aram.seo@dodamlife.com', cid: 'c2', admin: ['c2'], active: true, color: '#8A5F7A' }
     ],
     projects: [
       { id: 'p1', cid: 'c1', name: '카드 혜택 알림', active: true, lead: 'u3', members: { u1: ['requester'], u2: ['reviewer'], u3: ['reviewer'], u6: ['reviewer'], u4: ['approver'] },
@@ -548,7 +567,7 @@ function seed() {
       { id: 'p3', cid: 'c2', name: '계약 유지 안내', active: true, lead: 'u8', members: { u9: ['requester'], u8: ['reviewer'], u10: ['reviewer'] },
         tpls: [{ code: 'DD_PAY_01', name: '보험료 납입 안내' }], senders: ['1577-1234'] }
     ],
-    vars: [], requests: [], notifs: [], notices: [], datasets: [], bundles: [], feedback: [], proposals: [], audit: [], grants: [],
+    vars: [], requests: [], notifs: [], notices: [], datasets: [], bundles: [], feedback: [], proposals: [], audit: [], grants: [], assign: [], seedLog: [],
     types: [{ k: '알림톡', active: true, mock: true }, { k: '문자', active: true, mock: true }, { k: 'RCS', active: true, mock: true }, { k: '자유입력형', active: true, mock: false }],
     guides: {}, guideLog: [], seq: 120
   };
@@ -576,9 +595,15 @@ function seed() {
   DS('자유입력형', 1, 'deployed', [['하였습니다', '했습니다', '간결한 표현']], -50);
   S.datasets.filter(d => d.status === 'deployed').forEach(d => { const b = { id: 'DB-' + (100 + S.bundles.length), dsId: d.id, type: d.type, v: d.v, at: d.at, by: d.by, rules: clone(d.rules), noticeId: null }; S.bundles.push(b); d.bundle = b.id; });
 
+  /* 고객사 x 유형 유효 데이터셋 배정 (E-7.1, E-8.1). 조합마다 하나만 연결한다 */
+  const dsOf = (type, v) => S.datasets.find(d => d.type === type && d.v === v);
+  const AS = (cid, type, v, d, ck) => S.assign.push({ id: uid('as'), cid, type, dsId: dsOf(type, v).id, at: at(d), by: 'u5', checkedAt: ck ? at(ck) : null, checkedBy: ck ? 'u5' : null });
+  AS('c1', '공통', 2, -20, -19); AS('c1', '알림톡', 3, -6, -6); AS('c1', '문자', 1, -50, -50); AS('c1', 'RCS', 1, -50, -50); AS('c1', '자유입력형', 1, -50, -50);
+  AS('c2', '공통', 1, -60, -60); AS('c2', '알림톡', 2, -45, -45); AS('c2', '문자', 1, -50, null); AS('c2', 'RCS', 1, -50, null);
+
   S.notices = [
-    { id: 'n1', scope: 'customer', cid: 'c1', pid: null, title: '10월 정기 점검 시간 안내', body: '10월 3일(토) 02:00부터 04:00까지 서비스를 이용할 수 없습니다. 이 시간에는 자동 저장도 멈춥니다.', by: 'u5', at: at(-2, 9), log: [], withdrawn: false },
-    { id: 'n2', scope: 'project', cid: 'c1', pid: 'p1', title: '추석 연휴 검수 일정', body: '9월 24일부터 26일까지는 긴급 요청만 배정합니다. 일반 요청의 확정 납기는 연휴 이후로 조정됩니다.', by: 'u5', at: at(-4, 11), log: [], withdrawn: false },
+    { id: 'n1', scope: 'customer', cid: 'c1', pid: null, title: '10월 정기 점검 시간 안내', body: '10월 3일(토) 02:00부터 04:00까지 서비스를 이용할 수 없습니다. 이 시간에는 자동 저장도 멈춥니다.', by: 'u11', at: at(-2, 9), log: [], withdrawn: false },
+    { id: 'n2', scope: 'project', cid: 'c1', pid: 'p1', title: '추석 연휴 검수 일정', body: '9월 24일부터 26일까지는 긴급 요청만 배정합니다. 일반 요청의 확정 납기는 연휴 이후로 조정됩니다.', by: 'u11', at: at(-4, 11), log: [], withdrawn: false },
     { id: 'n3', scope: 'common', cid: null, pid: null, title: '업무 알림 표시 방식 변경', body: '읽은 알림과 처리를 마친 알림을 구분해 표시합니다.', by: 'u5', at: at(-9, 15), log: [], withdrawn: false },
     { id: 'n4', scope: 'standard', cid: null, pid: null, title: '알림톡 교정 기준 v3 배포', body: '고객사 기준 표현 1건이 추가되었습니다. 이후 실행하는 텍스트 교정부터 적용됩니다.', by: 'u5', at: at(-6, 16), log: [], withdrawn: false, bundle: null }
   ];
@@ -704,6 +729,8 @@ const Rq = id => S.requests.find(r => r.id === id);
 const me = () => U(S.me);
 const custOf = r => Cu(P(r.pid).cid);
 const isAdmin = (cid) => (me().admin || []).includes(cid);
+/* 솔루션 운영 담당자는 고객사 운영을 맡지만 콘텐츠 접근은 별도 허가로만 얻는다 (기획서 5.1~5.2) */
+const isOps = () => !!me().ops;
 function roles(uidv, pid) {
   const p = P(pid); if (!p) return [];
   const r = [...(p.members[uidv] || [])];
@@ -713,10 +740,16 @@ function roles(uidv, pid) {
 const hasRole = (pid, role) => roles(S.me, pid).includes(role);
 const isMember = (pid, u = S.me) => !!P(pid)?.members[u];
 function activeGrant(pid) { return S.grants.find(g => g.uid === S.me && g.pid === pid && g.until >= NOW && !g.revoked); }
-function canView(r) { if (!r) return false; if (!U(S.me).active) return false; return isMember(r.pid) || !!activeGrant(r.pid); }
+function canView(r) {
+  if (!r) return false; if (!U(S.me).active) return false;
+  /* 작성 중 요청은 작성한 요청자만 본다. 관리자 예외는 협의 18 결정 전까지 두지 않는다 (기획서 5.2) */
+  if (r.status === 'draft' && r.by !== S.me) return false;
+  /* 고객사 관리자는 소속 고객사 전체 프로젝트를, 운영 담당자는 허가 기간에만 조회한다 */
+  return isMember(r.pid) || isAdmin(P(r.pid).cid) || !!activeGrant(r.pid);
+}
 const approvers = pid => Object.entries(P(pid).members).filter(([u, rs]) => rs.includes('approver') && U(u).active).map(([u]) => u);
 const reviewersOf = pid => Object.entries(P(pid).members).filter(([u, rs]) => rs.includes('reviewer') && U(u).active).map(([u]) => u);
-const myProjects = () => S.projects.filter(p => p.cid === S.cid && (isMember(p.id) || isAdmin(p.cid)));
+const myProjects = () => S.projects.filter(p => p.cid === S.cid && (isMember(p.id) || isAdmin(p.cid) || !!activeGrant(p.id)));
 const isFinal = r => r.status === 'done' || r.status === 'approved';
 const dueSoon = r => !isFinal(r) && r.status !== 'draft' && r.due && r.due >= NOW && r.due - NOW <= (custOf(r).ops.dueSoonDays) * DAY;
 const overdue = r => !isFinal(r) && r.status !== 'draft' && r.due && r.due < NOW;
@@ -745,13 +778,17 @@ function canEditContent(r) {
 }
 
 /* ========== correction engine ========== */
-function effectiveRules(type) {
-  const latest = t => S.datasets.filter(d => d.type === t && d.status === 'deployed').sort((a, b) => b.v - a.v)[0];
-  const c = latest('공통'), t = latest(type);
+const latestDS = t => S.datasets.filter(d => d.type === t && d.status === 'deployed').sort((a, b) => b.v - a.v)[0];
+const assignOf = (cid, type) => S.assign.find(a => a.cid === cid && a.type === type);
+const assignedDS = (cid, type) => { const a = assignOf(cid, type); return a ? S.datasets.find(d => d.id === a.dsId) : null; };
+/* 고객사 x 유형 조합에 배정된 유효 데이터셋으로 검사한다. 배정이 없으면 최근 배포본으로 대체하고 그 사실을 표시한다 */
+function effectiveRules(type, cid = S.cid) {
+  const c = assignedDS(cid, '공통') || latestDS('공통'), t = assignedDS(cid, type) || latestDS(type);
   const map = new Map();
   (c?.rules || []).forEach(r => map.set(r.p, { ...r, src: '공통 v' + c.v }));
   (t?.rules || []).forEach(r => map.set(r.p, { ...r, src: type + ' v' + t.v }));
-  return { rules: [...map.values()], label: `공통 v${c?.v || '-'} + ${type} v${t?.v || '-'}` };
+  const missing = !assignOf(cid, '공통') || !assignOf(cid, type);
+  return { rules: [...map.values()], label: `공통 v${c?.v || '-'} + ${type} v${t?.v || '-'}${missing ? ' (배정 전 기본값)' : ''}`, missing, common: c, typeDS: t };
 }
 function textFields(type, f) {
   const out = [];
@@ -764,7 +801,8 @@ function textFields(type, f) {
 const hashOf = (type, f) => JSON.stringify(textFields(type, f));
 function runCheck(r, c, f) {
   f = f || c.f;
-  const { rules } = effectiveRules(r.type);
+  const eff = effectiveRules(r.type, P(r.pid).cid);
+  const rules = eff.rules;
   const vars = S.vars.filter(v => v.pid === r.pid && v.active).map(v => v.key);
   const issues = [];
   for (const [key, txt] of textFields(r.type, f)) {
@@ -776,7 +814,7 @@ function runCheck(r, c, f) {
   if (r.type === '알림톡') (f.btns || []).forEach((b, i) => { if (b.l && !/^https:\/\//.test(b.l)) issues.push({ key: `btns.${i}.l`, start: 0, end: b.l.length, from: b.l, to: 'https://' + b.l.replace(/^https?:\/\//, ''), reason: '버튼 링크는 https로 시작해야 합니다', src: '연결값 점검' }); });
   if (r.type === '문자' && /\(광고\)/.test(f.body || '') && !f.optout) issues.push({ key: 'body', start: 0, end: 4, from: '(광고)', to: '수신거부 안내 포함', reason: '광고성 문자에는 수신거부 안내가 필요합니다', src: '구조 점검' });
   issues.sort((a, b) => a.key.localeCompare(b.key) || a.start - b.start);
-  return { issues, hash: hashOf(r.type, f), at: now(), label: effectiveRules(r.type).label };
+  return { issues, hash: hashOf(r.type, f), at: now(), label: eff.label };
 }
 
 /* ========== mutations ========== */
@@ -817,7 +855,9 @@ const IC = {
   plus: I('<path d="M12 5v14M5 12h14"/>'), x: I('<path d="M6 6l12 12M18 6L6 18"/>'), menu: I('<path d="M4 7h16M4 12h16M4 17h16"/>'),
   copy: I('<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>'),
   down: I('<path d="M12 4v12M7 11l5 5 5-5M4 20h16"/>'), ext: I('<path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/>'), list: I('<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/>'),
-  search: I('<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>')
+  search: I('<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>'),
+  cust: I('<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V4h6v3M3 12h18M12 12v3"/>'),
+  seed: I('<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/>')
 };
 
 const st = s => `<span class="st ${ST[s].c}">${ST[s].l}</span>`;
@@ -845,13 +885,16 @@ const ROUTES = {
   vars: { t: '변수 관리', ic: 'brace', ok: () => isAdmin(S.cid), admin: 1 },
   users: { t: '사용자·권한 관리', ic: 'users', ok: () => isAdmin(S.cid), admin: 1 },
   customer: { t: '고객사 설정', ic: 'build', ok: () => isAdmin(S.cid), admin: 1 },
-  standards: { t: '가이드·교정 기준', ic: 'book', ok: () => isAdmin(S.cid), admin: 1 },
   noticeAdmin: { t: '공지 관리', ic: 'mega', ok: () => isAdmin(S.cid), admin: 1 },
+  opsCust: { t: '고객사 관리', ic: 'cust', ok: () => isOps(), ops: 1 },
+  opsSeed: { t: '초기 설정·시드', ic: 'seed', ok: () => isOps(), ops: 1 },
+  standards: { t: '유형·교정 기준', ic: 'book', ok: () => isOps(), ops: 1 },
   request: { t: '요청', ok: () => true }, content: { t: '콘텐츠', ok: () => true },
   spec: { t: '기능 대응표', ok: () => true }, profile: { t: '내 설정', ok: () => true }
 };
 const WORK_MENU = ['home', 'requests', 'review', 'approval', 'contents', 'perf', 'notices'];
-const ADMIN_MENU = ['projects', 'vars', 'users', 'customer', 'standards', 'noticeAdmin'];
+const ADMIN_MENU = ['projects', 'vars', 'users', 'customer', 'noticeAdmin'];
+const OPS_MENU = ['opsCust', 'opsSeed', 'standards'];
 
 /* ========== shell ========== */
 function vSide() {
@@ -863,17 +906,19 @@ function vSide() {
   };
   const item = k => { const R = ROUTES[k]; if (!R.ok()) return ''; return `<button class="${active?.route === k ? 'on' : ''}" data-a="nav" data-r="${k}">${IC[R.ic]}<span>${R.t}</span>${cnt[k] ? `<span class="cnt">${cnt[k]}</span>` : ''}</button>`; };
   const admin = ADMIN_MENU.map(item).join('');
+  const ops = OPS_MENU.map(item).join('');
   return `<div class="brand"><span class="brand-mark">TX</span><b>TMS</b><small>프로토타입</small></div>
-  <nav class="nav" aria-label="주 메뉴"><h6>업무</h6>${WORK_MENU.map(item).join('')}${admin ? `<h6>관리</h6>${admin}` : ''}</nav>
-  <div class="side-foot"><button data-a="nav" data-r="spec">기능 대응표 51</button></div>`;
+  <nav class="nav" aria-label="주 메뉴"><h6>업무</h6>${WORK_MENU.map(item).join('')}${admin ? `<h6>고객사 관리</h6>${admin}` : ''}${ops ? `<h6>운영 관리</h6>${ops}` : ''}</nav>
+  <div class="side-foot"><button data-a="nav" data-r="spec">기능 대응표 99</button></div>`;
 }
 function vTop() {
   const projs = myProjects();
-  const custs = S.customers.filter(c => isAdmin(c.id) || me().cid === c.id);
+  const custs = S.customers.filter(c => isAdmin(c.id) || me().cid === c.id || isOps());
   const unread = S.notifs.filter(n => n.uid === S.me && !n.read).length;
-  const rs = roles(S.me, S.pid).map(r => ROLE_L[r]); if (isAdmin(S.cid)) rs.push('관리자');
+  const rs = roles(S.me, S.pid).map(r => ROLE_L[r]); if (isAdmin(S.cid)) rs.push(MROLE_L.admin); if (isOps()) rs.push(MROLE_L.ops);
+  if (activeGrant(S.pid)) rs.push('지원 접근');
   return `<button class="iconbtn menu-btn" data-a="menu" aria-label="메뉴">${IC.menu}</button>
-  <div class="ctx"><select data-i="cust" aria-label="고객사">${custs.map(c => `<option value="${c.id}" ${c.id === S.cid ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
+  <div class="ctx"><select data-i="cust" aria-label="고객사">${custs.map(c => `<option value="${c.id}" ${c.id === S.cid ? 'selected' : ''}>${esc(c.name)}${c.active === false ? ' (비활성)' : ''}</option>`).join('')}</select>
   <span class="slash">/</span><select data-i="proj" aria-label="프로젝트">${projs.map(p => `<option value="${p.id}" ${p.id === S.pid ? 'selected' : ''}>${esc(p.name)}${p.active ? '' : ' (중지)'}</option>`).join('') || '<option>참여 프로젝트 없음</option>'}</select>
   <span class="tag fill" title="고객사 설정">${Cu(S.cid).approval ? '승인 단계 사용' : '승인 단계 미사용'}</span></div>
   <div class="grow"></div>
@@ -893,7 +938,8 @@ function tabTitle(t) {
 /* ========== login ========== */
 function vLogin() {
   const P_ = [['u1', '요청자', '한빛카드, 카드 혜택 알림'], ['u2', '검수자 (회수 처리 주담당)', '한빛카드'], ['u3', '검수자 + 대표 검수자', '한빛카드, 배정과 실적'], ['u6', '검수자 (편집 잠금 보유)', '한빛카드'],
-    ['u4', '승인자', '한빛카드, 승인 단계 사용'], ['u5', '관리자', '한빛카드, 도담생명 운영'], ['u9', '요청자', '도담생명, 승인 단계 미사용'], ['u8', '검수자 + 대표 검수자', '도담생명']];
+    ['u4', '승인자', '한빛카드, 승인 단계 사용'], ['u11', '고객사 관리자', '한빛카드, 프로젝트·사용자·공지'], ['u5', '솔루션 운영 담당자', '고객사 등록, 초기 설정, 교정 기준'],
+    ['u9', '요청자', '도담생명, 승인 단계 미사용'], ['u8', '검수자 + 대표 검수자', '도담생명']];
   return `<div class="login">
   <section class="login-l"><div class="row"><span class="brand-mark">TX</span><b style="font-size:16px">TMS</b></div>
     <h1>보내기 전의 문안을<br>한곳에서 검수하고<br>완료합니다</h1>
@@ -910,13 +956,13 @@ function vLogin() {
     <div class="fld"><label for="lg-e">이메일</label><input id="lg-e" class="in" placeholder="name@company.com" autocomplete="username"></div>
     <div class="fld"><label for="lg-p">비밀번호</label><input id="lg-p" class="in" type="password" autocomplete="current-password"></div>
     <div class="row" style="margin-bottom:26px"><button class="btn pri" data-a="loginForm">로그인</button><button class="btn ghost" data-a="invite">초대 링크로 가입</button><span class="sp"></span>${flag('인증 방식 협의 (A-1)')}</div>
-    <div class="lbl" style="margin-bottom:8px">체험 계정으로 둘러보기</div>
+    <div class="lbl" style="margin-bottom:8px">체험 계정으로 둘러보기 <span class="small faint" style="font-weight:400">6개 역할</span></div>
     ${P_.map(([id, r, d]) => `<button class="persona" data-a="login" data-u="${id}">${av(id, 32)}<span class="pn"><b>${esc(U(id).name)}  <span class="muted" style="font-weight:400">${r}</span></b><span>${d}</span></span></button>`).join('')}
     <p class="small faint" style="margin-top:14px">체험 로그인은 실제 인증과 계정 연결을 정의한 화면이 아닙니다. 화면의 수치와 이력은 시연용입니다.</p>
   </section></div>`;
 }
 function vInvite() {
-  return `<div class="login"><section class="login-l"><div class="row"><span class="brand-mark">TX</span><b>TMS</b></div><h1>한빛카드 카드 혜택 알림 프로젝트에 초대되었습니다</h1><p>초대한 사람: 정우진 (관리자). 역할: 요청자</p></section>
+  return `<div class="login"><section class="login-l"><div class="row"><span class="brand-mark">TX</span><b>TMS</b></div><h1>한빛카드 카드 혜택 알림 프로젝트에 초대되었습니다</h1><p>초대한 사람: 강민호 (고객사 관리자). 역할: 요청자</p></section>
   <section class="login-r"><h2 style="margin:0 0 18px;font-size:20px">초대 수락</h2>
   <div class="fld"><label>이메일</label><input class="in" value="new.member@hanbitcard.co.kr" disabled></div>
   <div class="fld"><label class="req">이름</label><input class="in" placeholder="이름"></div>
@@ -926,6 +972,7 @@ function vInvite() {
 
 /* ========== dashboard ========== */
 function vHome() {
+  if (isOps()) return vOpsHome();
   const rs = roles(S.me, S.pid), adm = isAdmin(S.cid), pid = S.pid;
   const inP = S.requests.filter(r => r.pid === pid && canView(r));
   const K = [];
@@ -941,7 +988,9 @@ function vHome() {
   if (rs.includes('lead')) { K.push(['배정 대기', inP.filter(r => r.status === 'wait'), 'wait']); K.push(['지연', inP.filter(overdue), 'ask']); }
   if (rs.includes('reviewer') || rs.includes('lead')) K.push(['납기 임박', inP.filter(r => dueSoon(r) && (rs.includes('lead') || r.reviewers.includes(S.me))), 'wait']);
   if (rs.includes('approver')) K.push(['승인 대기', inP.filter(r => can.approve(r)), 'appr']);
-  if (adm) { K.push(['의견 처리 대기', S.feedback.filter(f => f.cid === S.cid && ['접수', '검토'].includes(f.status)), 'wait']); }
+  if (adm) { const allC = S.requests.filter(r => P(r.pid).cid === S.cid && canView(r));
+    K.push(['고객사 진행 중', allC.filter(r => !isFinal(r) && r.status !== 'draft'), 'review']);
+    K.push(['고객사 완료', allC.filter(isFinal), 'done']); }
   UI.kpi = K;
   const todo = [];
   inP.forEach(r => {
@@ -955,7 +1004,7 @@ function vHome() {
   });
   const notices = visibleNotices().slice(0, 4);
   const leadBox = rs.includes('lead') ? `<div class="panel"><div class="panel-h"><h3>검수자별 업무량</h3><span class="note">검수 중, 확인 요청, 승인 대기 기준</span></div><div class="panel-b">${workloadRows(pid, true)}</div></div>` : '';
-  const admBox = adm && !isMember(pid) ? `<div class="banner info"><div class="bt"><b>관리자는 프로젝트 콘텐츠를 자동으로 볼 수 없습니다</b>운영 지원이 필요하면 사용자·권한 관리에서 대상 프로젝트와 접근 기간을 부여합니다. 부여 기간의 조회와 반출은 모두 기록됩니다.</div><button class="btn sm" data-a="nav" data-r="users" data-sub="grants">접근 부여</button></div>` : '';
+  const admBox = adm && !isMember(pid) ? `<div class="banner info"><div class="bt"><b>고객사 관리자 권한으로 보고 있습니다</b>소속 고객사의 모든 프로젝트를 조회할 수 있지만 검수와 최종 승인은 관리 권한으로 처리할 수 없습니다. 다른 요청자가 작성 중인 요청은 보이지 않습니다.</div><button class="btn sm" data-a="nav" data-r="users" data-sub="grants">접근 기록 보기</button></div>` : '';
   return `<div class="page"><div class="ph"><div><div class="today">9월 21일 월요일</div><h1 class="hello">${esc(me().name)}님, 오늘 처리할 업무입니다</h1><p>${esc(P(pid)?.name || '')} 프로젝트 기준입니다. ${flag('역할별 지표 확정 전 (A-6)')}</p></div>
   <div class="acts">${rs.includes('requester') ? `<button class="btn pri" data-a="newReq">${IC.plus}새 요청</button>` : ''}</div></div>
   ${admBox}
@@ -970,6 +1019,32 @@ function vHome() {
     ${leadBox}
     <div class="panel"><div class="panel-h"><h3>공지</h3><button class="btn sm ghost" data-a="nav" data-r="notices" style="margin-left:auto">전체</button></div>
     ${notices.map(n => `<div class="list-item" data-a="nav" data-r="notices" data-n="${n.id}"><div class="main"><b>${esc(n.title)}</b><span>${scopeLabel(n)}  ${fD(n.at)}</span></div></div>`).join('') || empty('공지가 없습니다')}</div>
+  </div></div></div>`;
+}
+/* 솔루션 운영 담당자 대시보드. 콘텐츠 지표가 아니라 운영 상태를 본다 */
+function vOpsHome() {
+  const stats = S.customers.map(c => ({ c, d: custStat(c.id) }));
+  const noAdmin = stats.filter(x => x.c.active !== false && !x.d.admins.length);
+  const noProj = stats.filter(x => x.c.active !== false && !x.d.ps.length);
+  const unassigned = stats.filter(x => x.c.active !== false && x.d.unassigned.length);
+  const grants = S.grants.filter(g => g.uid === S.me && !g.revoked && g.until >= NOW);
+  const K = [['등록 고객사', S.customers.filter(c => c.active !== false).length, 'done'], ['관리자 미지정', noAdmin.length, 'ask'], ['데이터셋 미배정 고객사', unassigned.length, 'wait'], ['내 지원 접근', grants.length, 'review']];
+  const todo = [...noAdmin.map(x => [x.c, '고객사 관리자 초대', 'opsSeed']), ...noProj.map(x => [x.c, '초기 프로젝트 생성', 'opsSeed']), ...unassigned.map(x => [x.c, `유효 데이터셋 ${x.d.unassigned.length}개 조합 배정`, 'standards'])];
+  return `<div class="page"><div class="ph"><div><div class="today">9월 21일 월요일</div><h1 class="hello">${esc(me().name)}님, 운영 현황입니다</h1>
+  <p>솔루션 운영 담당자는 고객사 초기 설정과 콘텐츠 유형·교정 기준을 운영합니다. 고객사 콘텐츠는 지원 접근을 받은 기간에만 볼 수 있습니다. ${flag('운영 전용 대시보드 범위 협의 07')}</p></div>
+  <div class="acts"><button class="btn pri" data-a="opsCustNew">${IC.plus}고객사 생성</button></div></div>
+  <div class="kpis">${K.map(([k, v, c]) => `<div class="kpi" style="--c:var(--s-${c});cursor:default"><span class="k">${k}</span><div class="v">${v}<small>건</small></div><span class="kbar"><i style="width:${Math.min(100, v * 25)}%"></i></span></div>`).join('')}</div>
+  <div class="dash"><div>
+    <div class="panel"><div class="panel-h"><h3>초기 설정에서 남은 일</h3><span class="note">${todo.length}건</span></div>
+    ${todo.length ? todo.map(([c, a, r]) => `<div class="list-item" data-a="nav" data-r="${r}" data-sub="${r === 'standards' ? 'assign' : ''}"><span class="st wait" style="width:auto">${esc(a)}</span><div class="main"><b>${esc(c.name)}</b><span>${esc(c.domain)}  ${c.approval ? '승인 단계 사용' : '승인 단계 미사용'}</span></div></div>`).join('') : empty('초기 설정이 모두 끝났습니다', '새 고객사를 만들면 여기에 남은 단계가 표시됩니다.')}</div>
+    <div class="panel"><div class="panel-h"><h3>고객사</h3><button class="btn sm ghost" data-a="nav" data-r="opsCust" style="margin-left:auto">전체 보기</button></div>
+    ${stats.map(({ c, d }) => `<div class="list-item" data-a="nav" data-r="opsCust"><div class="main"><b>${esc(c.name)}${c.active === false ? ' (비활성)' : ''}</b><span>프로젝트 ${d.ps.length}  사용자 ${d.users.length}  진행 중 요청 ${d.live.length}</span></div>${d.unassigned.length ? `<span class="tag hot">미배정 ${d.unassigned.length}</span>` : '<span class="tag">배정 완료</span>'}</div>`).join('')}</div>
+  </div><div>
+    <div class="panel"><div class="panel-h"><h3>내 지원 접근</h3></div><div class="panel-b">
+    ${grants.length ? grants.map(g => `<div class="row small" style="padding:6px 0;border-bottom:1px solid var(--line)"><span>${esc(Cu(P(g.pid).cid).name)}  ${esc(P(g.pid).name)}</span><span class="sp"></span><span class="faint">~${fD(g.until)}</span></div>`).join('') : '<p class="small muted" style="margin:0">지원 접근이 없습니다. 고객사 콘텐츠는 보이지 않습니다.</p>'}
+    <button class="btn sm" style="margin-top:12px" data-a="nav" data-r="opsCust">접근 부여</button></div></div>
+    <div class="panel"><div class="panel-h"><h3>최근 운영 이력</h3></div>
+    ${S.audit.slice(0, 6).map(a => `<div class="list-item" style="cursor:default"><div class="main"><b>${esc(a.act)}</b><span>${esc(a.target)}  ${fDT(a.at)}  ${esc(U(a.by).name)}</span></div></div>`).join('') || empty('기록이 없습니다')}</div>
   </div></div></div>`;
 }
 function vPipe(list) {
@@ -1037,7 +1112,7 @@ function vRequests(tab) {
 function vRequest(tab) {
   const r = Rq(tab.p.id);
   if (!r) return vDenied('요청을 찾을 수 없습니다', '삭제되었거나 주소가 잘못되었습니다.');
-  if (!canView(r)) return vDenied('이 요청에 접근할 권한이 없습니다', `${esc(r.id)}는 ${esc(P(r.pid).name)} 프로젝트의 요청입니다. 프로젝트 구성원만 조회할 수 있습니다.`);
+  if (!canView(r)) return vDenied('이 요청에 접근할 권한이 없습니다', r.status === 'draft' ? `${esc(r.id)}는 아직 작성 중인 요청입니다. 작성 중 요청은 작성한 요청자만 조회할 수 있습니다.` : `${esc(r.id)}는 ${esc(P(r.pid).name)} 프로젝트의 요청입니다. 프로젝트 구성원, 고객사 관리자, 지원 접근을 받은 운영 담당자만 조회할 수 있습니다.`);
   if (activeGrant(r.pid) && !isMember(r.pid) && !tab.st.audited) { tab.st.audited = 1; S.audit.unshift({ at: now(), by: S.me, act: '요청 조회', target: r.id, detail: '운영 지원 접근' }); }
   const t = tab.st; t.sub = t.sub || (r.status === 'draft' && !r.title ? 'info' : 'contents'); t.cid = t.cid || r.contents[0]?.id;
   const cust = custOf(r), p = P(r.pid);
@@ -1056,7 +1131,7 @@ function vRequest(tab) {
   const nAsk = r.asks.filter(a => !a.a).length;
   return `<div class="req-head" style="--c:var(--s-${ST[r.status].c})">
     <div class="crumb"><a href="#/requests" data-a="nav" data-r="requests">${esc(cust.name)}  /  ${esc(p.name)}</a>  /  ${r.id}${r.parent ? `  <a href="#/request/${r.parent.req}" data-a="openReq" data-id="${r.parent.req}">원본 ${r.parent.req}</a>` : ''}</div>
-    <div class="req-title">${tyChip(r.type)}<h1>${esc(r.title || '제목 없는 요청')}</h1>${st(r.status)}<span class="round" title="검수 차수">${r.round}차</span>${r.recall ? '<span class="tag recall">회수 요청됨</span>' : ''}${r.urg === '긴급' ? '<span class="tag hot">긴급</span>' : ''}
+    <div class="req-title">${tyChip(r.type)}<h1>${esc(r.title || '제목 없는 요청')}</h1>${st(r.status)}<span class="round" title="검수 차수">${r.round}차</span>${r.recall ? '<span class="tag recall">회수 요청됨</span>' : ''}${r.urg === '긴급' ? '<span class="tag hot">긴급</span>' : ''}${r.demo ? '<span class="tag flag" title="초기 설정에서 만든 샘플입니다. 실적 집계에서 제외합니다">샘플</span>' : ''}
       <div class="sp"></div><div class="row">${more.join('')}${acts.join('')}</div></div>
     <div class="req-meta"><span>유형<b>${r.type}</b></span><span>요청자<b class="row" style="display:inline-flex;gap:6px">${av(r.by, 20)}${esc(U(r.by).name)}</b></span><span>대표 검수자<b>${esc(U(p.lead).name)}</b></span><span>주담당<b>${r.primary ? esc(U(r.primary).name) : '미지정'}</b></span><span>배정 검수자<b>${r.reviewers.length ? avStack(r.reviewers) + ' ' + names(r.reviewers) : '-'}</b></span>
       <span>희망 납기<b>${fD(r.hopeDue)}</b></span><span>확정 납기<b>${fD(r.due)}${overdue(r) ? ' (지연)' : ''}</b></span>${r.submitted ? `<span>접수<b>${fDT(r.submitted)}</b></span>` : ''}</div>
@@ -1179,7 +1254,7 @@ function vSidePanel(tab, r, c, F, editable) {
 }
 function vProof(tab, r, c, F, editable) {
   const t = tab.st; const files = getFiles(t, c);
-  const eff = effectiveRules(r.type);
+  const eff = effectiveRules(r.type, P(r.pid).cid);
   const checkable = x => !(r.type === '자유입력형' && getFiles(t, x).length);
   const top = `<div class="row" style="margin-bottom:10px"><button class="btn sm" data-a="check" ${checkable(c) ? '' : 'disabled'}>이 콘텐츠 검사</button>${r.contents.length > 1 ? `<button class="btn sm" data-a="checkAll">전체 검사 ${r.contents.filter(checkable).length}건</button>` : ''}</div>
     <p class="small faint" style="margin:0 0 12px">적용 기준 ${esc(eff.label)}. 교정은 선택 기능이며 검수 요청과 검수 완료의 조건이 아닙니다.</p>`;
@@ -1285,13 +1360,15 @@ function vDenied(t, d) {
   return `<div class="page"><div style="max-width:520px;margin:60px auto;text-align:center"><div style="width:44px;height:44px;border-radius:50%;border:2px solid var(--line2);display:grid;place-items:center;margin:0 auto 16px;color:var(--sub)">${IC.x}</div><h1 style="font-size:20px;margin:0 0 8px">${t}</h1><p class="muted">${d}</p><p class="small faint">메뉴가 보이지 않는 기능은 주소를 직접 입력하거나 API로 요청해도 같은 권한 조건으로 막힙니다.</p><button class="btn" data-a="nav" data-r="home">대시보드로 이동</button></div></div>`;
 }
 function visibleNotices() {
-  return S.notices.filter(n => !n.withdrawn && (n.scope === 'common' || n.scope === 'standard' || (n.scope === 'customer' && n.cid === S.cid) || (n.scope === 'project' && P(n.pid)?.cid === S.cid && (isMember(n.pid) || isAdmin(S.cid))))).sort((a, b) => b.at - a.at);
+  return S.notices.filter(n => !n.withdrawn && (n.scope === 'common' || n.scope === 'standard'
+    || (n.scope === 'customer' && n.cid === S.cid && (me().cid === n.cid || isAdmin(n.cid)))
+    || (n.scope === 'project' && P(n.pid)?.cid === S.cid && (isMember(n.pid) || isAdmin(S.cid))))).sort((a, b) => b.at - a.at);
 }
 const scopeLabel = n => ({ project: `프로젝트 공지  ${P(n.pid)?.name || ''}`, customer: '고객사 전체 공지', common: '공통 운영 공지', standard: '기준 변경 공지' }[n.scope]);
 
 function vContentTab(tab) {
   const r = Rq(tab.p.id);
-  if (!r || !canView(r)) return vDenied('이 콘텐츠에 접근할 권한이 없습니다', '프로젝트 구성원만 조회할 수 있습니다.');
+  if (!r || !canView(r)) return vDenied('이 콘텐츠에 접근할 권한이 없습니다', r?.status === 'draft' ? '작성 중 요청의 콘텐츠는 작성한 요청자만 조회할 수 있습니다.' : '프로젝트 구성원, 고객사 관리자, 지원 접근을 받은 운영 담당자만 조회할 수 있습니다.');
   return `<div class="req-head" style="padding-bottom:16px"><div class="crumb"><a href="#/request/${r.id}" data-a="openReq" data-id="${r.id}">${r.id}  ${esc(r.title)}</a></div><div class="req-title"><h1 style="font-size:19px">${esc(r.contents.find(c => c.id === tab.p.cid)?.title || '')}</h1>${st(r.status)}<span class="round">${r.round}차</span></div></div>
   <div class="req-body">${vWork(tab, r, tab.p.cid)}</div>`;
 }
@@ -1372,7 +1449,8 @@ function vPerf(tab) {
   const from = f.period === 'm' ? new Date(2026, 8, 1).getTime() : NOW - (+f.period) * DAY;
   const projs = myProjects().filter(p => hasRole(p.id, 'lead') || isAdmin(p.cid));
   const pids = f.pid === 'all' ? projs.map(p => p.id) : [f.pid];
-  const reqs = S.requests.filter(r => pids.includes(r.pid));
+  /* 시연용 샘플은 실적 집계에서 제외한다 (기획서 18.4) */
+  const reqs = S.requests.filter(r => pids.includes(r.pid) && !r.demo);
   const received = reqs.filter(r => r.submitted && r.submitted >= from && r.submitted <= NOW);
   const recDone = received.filter(isFinal);
   const doneIn = reqs.filter(r => r.bundle && r.bundle.at >= from);
@@ -1427,17 +1505,15 @@ function vUsers(tab) {
   const ps = S.projects.filter(p => p.cid === S.cid);
   const us = S.users.filter(u => u.cid === S.cid);
   let body;
-  if (t.sub === 'users') body = `<div class="panel"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>사용자</th><th>소속</th>${ps.map(p => `<th>${esc(p.name)}</th>`).join('')}<th>상태</th><th></th></tr></thead><tbody>
+  if (t.sub === 'users') body = `<div class="panel"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>사용자</th><th>소속</th><th>관리 권한</th>${ps.map(p => `<th>${esc(p.name)}</th>`).join('')}<th>상태</th><th></th></tr></thead><tbody>
     ${us.map(u => `<tr><td><span class="row">${av(u.id, 24)}<span><b style="font-weight:500">${esc(u.name)}</b><br><span class="small faint">${esc(u.email)}</span></span></span></td><td>${esc(u.dept)}</td>
+    <td class="small">${(u.admin || []).includes(S.cid) ? `<span class="tag fill">${MROLE_L.admin}</span>` : '<span class="faint">-</span>'}</td>
     ${ps.map(p => `<td class="small">${roles(u.id, p.id).map(r => ROLE_L[r]).join(', ') || '<span class="faint">-</span>'}</td>`).join('')}
     <td>${u.active ? '<span class="tag">활성</span>' : '<span class="tag hot">비활성</span>'}</td><td><div class="row"><button class="btn sm" data-a="roleEdit" data-id="${u.id}">역할</button>${u.active ? `<button class="btn sm ghost warn" data-a="deact" data-id="${u.id}">비활성화</button>` : ''}</div></td></tr>`).join('')}</tbody></table></div></div>`;
-  else body = `<div class="grid2" style="grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:18px;align-items:start"><div class="panel"><div class="panel-h"><h3>운영 지원 접근 부여</h3></div><div class="panel-b">
-    <p class="small muted" style="margin-top:0">관리자도 프로젝트 권한이 없으면 콘텐츠를 볼 수 없습니다. 지원이 필요하면 대상 프로젝트와 기간을 지정합니다.</p>
-    <div class="fld"><label>대상 프로젝트</label><select class="sel" id="g-p">${ps.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></div>
-    <div class="fld"><label>접근 종료일</label><input type="date" class="in" id="g-u" value="${fISO(NOW + DAY)}"></div>
-    <div class="fld"><label class="req">사유</label><input class="in" id="g-r" placeholder="예: 교정 결과 오류 문의 확인"></div>
-    <button class="btn pri" data-a="grant">접근 부여</button>
-    <div style="margin-top:16px">${S.grants.filter(g => P(g.pid).cid === S.cid).map(g => `<div class="row small" style="padding:8px 0;border-top:1px solid var(--line)"><span>${esc(U(g.uid).name)}  ${esc(P(g.pid).name)}  ~${fD(g.until)}</span><span class="sp"></span>${g.revoked ? '<span class="faint">회수됨</span>' : `<button class="btn sm ghost" data-a="revoke" data-id="${g.id}">회수</button>`}</div>`).join('')}</div></div></div>
+  else body = `<div class="grid2" style="grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:18px;align-items:start"><div class="panel"><div class="panel-h"><h3>운영 지원 접근 현황</h3></div><div class="panel-b">
+    <p class="small muted" style="margin-top:0">솔루션 운영 담당자는 고객사 콘텐츠를 자동으로 보지 못합니다. 지원이 필요한 기간에만 대상 프로젝트 접근을 받고, 그 기간의 조회와 반출은 모두 기록됩니다.</p>
+    ${S.grants.filter(g => P(g.pid)?.cid === S.cid).map(g => `<div class="row small" style="padding:8px 0;border-top:1px solid var(--line)"><span>${esc(U(g.uid).name)}  ${esc(P(g.pid).name)}  ~${fD(g.until)}${g.reason ? `<br><span class="faint">${esc(g.reason)}</span>` : ''}</span><span class="sp"></span>${g.revoked ? '<span class="faint">회수됨</span>' : g.until < NOW ? '<span class="faint">만료</span>' : '<span class="tag">사용 중</span>'}</div>`).join('') || '<p class="small muted">현재 부여된 지원 접근이 없습니다.</p>'}
+    <p class="small faint" style="margin-bottom:0">${flag('접근 허가의 부여 주체와 허용 행위 범위 협의 18, 22')}</p></div></div>
     <div class="panel"><div class="panel-h"><h3>접근·반출 기록</h3></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>시각</th><th>행위자</th><th>행동</th><th>대상</th><th>내용</th></tr></thead><tbody>${S.audit.map(a => `<tr><td>${fDT(a.at)}</td><td>${esc(U(a.by).name)}</td><td>${esc(a.act)}</td><td>${esc(a.target)}</td><td class="small muted">${esc(a.detail)}</td></tr>`).join('')}</tbody></table></div></div></div>`;
   return `<div class="page wide"><div class="ph"><div><h1>사용자·권한 관리</h1><p>한 사용자가 여러 역할을 가질 수 있지만 요청자와 검수자는 함께 가질 수 없습니다. 역할이 바뀌어도 접근 범위는 자동으로 넓어지지 않습니다.</p></div><div class="acts"><button class="btn pri" data-a="inviteUser">${IC.plus}사용자 초대</button></div></div>
   <div class="subtabs"><button class="${t.sub === 'users' ? 'on' : ''}" data-a="sub" data-k="users">사용자와 역할</button><button class="${t.sub === 'grants' ? 'on' : ''}" data-a="sub" data-k="grants">운영 지원 접근</button></div>${body}</div>`;
@@ -1454,11 +1530,91 @@ function vCustomer() {
     <div class="fld"><label>업무 알림 채널</label><select class="sel" data-i="custOps" data-k="notifyChannel"><option ${c.ops.notifyChannel === '제품 내 알림' ? 'selected' : ''}>제품 내 알림</option><option ${c.ops.notifyChannel === '제품 내 알림 + 이메일' ? 'selected' : ''}>제품 내 알림 + 이메일</option></select><span class="hint">채널과 재통지 간격은 협의 후 확정합니다.</span></div>
     <div class="fld"><label>납기 임박 기준</label><select class="sel" data-i="custOps" data-k="dueSoonDays">${[1, 2, 3].map(n => `<option value="${n}" ${c.ops.dueSoonDays == n ? 'selected' : ''}>확정 납기 ${n}일 전</option>`).join('')}</select><span class="hint">임시 기준입니다.</span></div></div></div></div></div>`;
 }
-/* admin: standards */
+/* ops: 고객사 관리 (E-11) */
+const custStat = cid => {
+  const ps = S.projects.filter(p => p.cid === cid);
+  const rq = S.requests.filter(r => ps.some(p => p.id === r.pid));
+  return { ps, rq, users: S.users.filter(u => u.cid === cid), admins: S.users.filter(u => (u.admin || []).includes(cid) && u.active),
+    live: rq.filter(r => !isFinal(r) && r.status !== 'draft'), unassigned: ['공통', ...TYPES].filter(ty => !assignOf(cid, ty)) };
+};
+function vOpsCust(tab) {
+  const t = tab.st; const sel = S.customers.find(c => c.id === t.cu) || S.customers.find(c => c.id === S.cid) || S.customers[0]; t.cu = sel?.id;
+  const d = custStat(sel.id);
+  const rows = S.customers.map(c => { const s = custStat(c.id);
+    return `<tr${c.id === sel.id ? ' style="background:var(--sunk)"' : ''}><td class="ttl"><button class="btn sm ghost" data-a="opsCustSel" data-id="${c.id}" style="padding:0;height:auto;font-weight:600">${esc(c.name)}</button><div class="small faint">${esc(c.domain)}</div></td>
+    <td>${c.approval ? '<span class="tag fill">승인 단계 사용</span>' : '<span class="tag">미사용</span>'}</td><td>${s.ps.length}</td><td>${s.users.length}</td><td>${s.admins.length ? esc(names(s.admins.map(u => u.id))) : '<span class="tag hot">미지정</span>'}</td>
+    <td>${s.live.length}</td><td>${s.unassigned.length ? `<span class="tag hot">${s.unassigned.length}개 조합 미배정</span>` : '<span class="tag">완료</span>'}</td>
+    <td>${c.active === false ? '<span class="tag hot">비활성</span>' : '<span class="tag">사용</span>'}</td>
+    <td><div class="row">${c.active === false ? `<button class="btn sm" data-a="opsCustReact" data-id="${c.id}">사용 재개</button>` : `<button class="btn sm ghost warn" data-a="opsCustDeact" data-id="${c.id}">비활성</button>`}</div></td></tr>`; }).join('');
+  return `<div class="page wide"><div class="ph"><div><h1>고객사 관리</h1><p>솔루션 운영 담당자가 고객사를 등록하고 상태를 관리합니다. 이력이 연결된 고객사는 삭제하지 않고 비활성으로 보존합니다.</p></div>
+  <div class="acts"><button class="btn pri" data-a="opsCustNew">${IC.plus}고객사 생성</button></div></div>
+  <div class="panel" style="margin-bottom:18px"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>고객사</th><th>승인 단계</th><th>프로젝트</th><th>사용자</th><th>고객사 관리자</th><th>진행 중 요청</th><th>유효 데이터셋</th><th>상태</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>
+  <div class="grid2" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start">
+  <div class="panel"><div class="panel-h"><h3>${esc(sel.name)} 상세</h3><span class="sp"></span><span class="small faint">${fD(sel.created)} 등록  ${esc(U(sel.by).name)}</span></div><div class="panel-b">
+    <dl class="kv"><dt>회사 도메인</dt><dd>${esc(sel.domain)} <span class="small faint">초대 가능한 이메일 도메인</span></dd>
+    <dt>승인 단계</dt><dd>${sel.approval ? '사용 (최종 상태: 승인 완료)' : '미사용 (최종 상태: 검수 완료)'} <span class="small faint">도입 시 확정, 운영 중 변경 불가</span></dd>
+    <dt>고객사 관리자</dt><dd>${d.admins.length ? d.admins.map(u => `${esc(u.name)} <span class="small faint">${esc(u.email)}</span>`).join('<br>') : '<span class="tag hot">미지정</span> 초기 설정에서 지정하세요'}</dd>
+    <dt>프로젝트</dt><dd>${d.ps.map(p => `${esc(p.name)} <span class="small faint">대표 ${esc(U(p.lead).name)}${p.active ? '' : ', 중지'}</span>`).join('<br>') || '<span class="faint">없음</span>'}</dd>
+    <dt>요청</dt><dd>전체 ${d.rq.length}건, 진행 중 ${d.live.length}건, 완료 ${d.rq.filter(isFinal).length}건</dd>
+    <dt>운영 설정</dt><dd>알림 ${esc(sel.ops.notifyChannel)}, 납기 임박 D-${sel.ops.dueSoonDays} <span class="small faint">고객사 관리자가 변경</span></dd></dl>
+    <p class="small faint" style="margin-bottom:0">${flag('운영 화면 범위와 비활성 고객사의 열람 수준 협의 22')}</p></div></div>
+  <div class="panel"><div class="panel-h"><h3>내 콘텐츠 접근 범위</h3></div><div class="panel-b">
+    <p class="small muted" style="margin-top:0">운영 담당자는 고객사 콘텐츠를 자동으로 보지 못합니다. 지원이 필요하면 대상 프로젝트와 기간을 받아야 하고, 그 기간의 조회·반출은 모두 기록됩니다.</p>
+    <div class="fld"><label>대상 프로젝트</label><select class="sel" id="g-p">${d.ps.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('') || '<option value="">프로젝트 없음</option>'}</select></div>
+    <div class="grid2"><div class="fld"><label>접근 종료일</label><input type="date" class="in" id="g-u" value="${fISO(NOW + DAY)}"></div><div class="fld"><label class="req">사유</label><input class="in" id="g-r" placeholder="예: 교정 결과 오류 문의 확인"></div></div>
+    <button class="btn pri" data-a="grant" ${d.ps.length ? '' : 'disabled'}>접근 부여</button>
+    <div style="margin-top:14px">${S.grants.filter(g => g.uid === S.me).map(g => `<div class="row small" style="padding:8px 0;border-top:1px solid var(--line)"><span>${esc(Cu(P(g.pid).cid).name)}  ${esc(P(g.pid).name)}  ~${fD(g.until)}</span><span class="sp"></span>${g.revoked ? '<span class="faint">회수됨</span>' : g.until < NOW ? '<span class="faint">만료</span>' : `<button class="btn sm ghost" data-a="revoke" data-id="${g.id}">회수</button>`}</div>`).join('') || '<span class="muted small">부여된 접근이 없습니다.</span>'}</div></div></div></div>
+  <div class="panel" style="margin-top:18px"><div class="panel-h"><h3>운영 이력</h3><span class="note">접근과 반출은 업무 로그와 따로 보존합니다</span></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>시각</th><th>행위자</th><th>행동</th><th>대상</th><th>내용</th></tr></thead><tbody>
+  ${S.audit.slice(0, 12).map(a => `<tr><td>${fDT(a.at)}</td><td>${esc(U(a.by).name)}</td><td>${esc(a.act)}</td><td>${esc(a.target)}</td><td class="small muted">${esc(a.detail)}</td></tr>`).join('') || '<tr><td colspan="5" class="muted">기록이 없습니다.</td></tr>'}</tbody></table></div></div></div>`;
+}
+
+/* ops: 초기 설정과 시드 (E-12) */
+function vOpsSeed(tab) {
+  const t = tab.st; const c = S.customers.find(x => x.id === t.cu) || Cu(S.cid) || S.customers[0]; t.cu = c.id;
+  const d = custStat(c.id);
+  const demoReq = S.requests.filter(r => r.demo && d.ps.some(p => p.id === r.pid));
+  const realReq = S.requests.filter(r => !r.demo && d.ps.some(p => p.id === r.pid));
+  const log = S.seedLog.filter(l => l.cid === c.id);
+  const ruleRows = ['공통', ...TYPES].map(ty => { const a = assignOf(c.id, ty); const ds = a && S.datasets.find(x => x.id === a.dsId); const lt = latestDS(ty);
+    return `<tr><td class="ttl">${ty}</td><td>${ds ? `v${ds.v} <span class="small faint">규칙 ${ds.rules.length}개</span>` : '<span class="tag hot">미배정</span>'}</td><td>${lt ? `v${lt.v}` : '<span class="faint">배포본 없음</span>'}</td>
+    <td>${ds && lt && ds.v !== lt.v ? '<span class="tag hot">최신 아님</span>' : ds ? '<span class="tag">최신</span>' : '-'}</td>
+    <td>${lt ? `<button class="btn sm" data-a="seedRule" data-cid="${c.id}" data-ty="${ty}" ${ds && ds.v === lt.v ? 'disabled' : ''}>최신 배포본 시드</button>` : ''}</td></tr>`; }).join('');
+  return `<div class="page wide"><div class="ph"><div><h1>초기 설정·시드</h1><p>고객사 도입에 필요한 초기 프로젝트, 사용자, 교정 규칙 시드와 샘플 데이터를 운영합니다. 샘플 초기화는 실제 운영 데이터를 지우지 않습니다.</p></div>
+  <div class="acts"><select class="sel" data-i="seedCust" style="width:auto">${S.customers.map(x => `<option value="${x.id}" ${x.id === c.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div></div>
+  <div class="setup-grid">
+  <div class="panel"><div class="panel-h"><h3>초기 프로젝트·사용자</h3><span class="tag">E-12.1</span></div><div class="panel-b">
+    <div class="steps">
+      <div class="step ${d.admins.length ? 'done' : ''}"><b>고객사 관리자 지정</b><span>${d.admins.length ? esc(names(d.admins.map(u => u.id))) : '아직 없습니다. 관리자를 먼저 초대하세요.'}</span>
+      <button class="btn sm" data-a="seedUser" data-cid="${c.id}" data-role="admin">관리자 초대</button></div>
+      <div class="step ${d.ps.length ? 'done' : ''}"><b>초기 프로젝트</b><span>${d.ps.length ? `${d.ps.length}개 (${esc(d.ps.map(p => p.name).join(', '))})` : '프로젝트가 없습니다.'}</span>
+      <button class="btn sm" data-a="seedProject" data-cid="${c.id}">프로젝트 생성</button></div>
+      <div class="step ${d.users.length > d.admins.length ? 'done' : ''}"><b>업무 사용자</b><span>요청자 ${d.ps.reduce((a, p) => a + Object.entries(p.members).filter(([, rs]) => rs.includes('requester')).length, 0)}명, 검수자 ${d.ps.reduce((a, p) => a + Object.entries(p.members).filter(([, rs]) => rs.includes('reviewer')).length, 0)}명${c.approval ? `, 승인자 ${d.ps.reduce((a, p) => a + approvers(p.id).length, 0)}명` : ''}</span>
+      <button class="btn sm" data-a="seedUser" data-cid="${c.id}" data-role="member">사용자 초대</button></div>
+      <div class="step ${d.unassigned.length ? '' : 'done'}"><b>유효 데이터셋 연결</b><span>${d.unassigned.length ? `미배정 ${esc(d.unassigned.join(', '))}` : '모든 유형에 배정되었습니다.'}</span>
+      <button class="btn sm" data-a="nav" data-r="standards" data-sub="assign">배정 화면</button></div>
+    </div>
+    <p class="small faint" style="margin-bottom:0">${flag('초기 프로젝트·사용자·권한 설정 범위 협의 22')}</p></div></div>
+  <div class="panel"><div class="panel-h"><h3>유형별 교정 규칙 시드</h3><span class="tag">B-6.2 · E-8.1</span></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>유형</th><th>배정된 유효 데이터셋</th><th>최신 배포본</th><th>상태</th><th></th></tr></thead><tbody>${ruleRows}</tbody></table></div>
+    <div class="panel-b" style="padding-top:12px"><p class="small muted" style="margin:0">시드는 고객사 × 유형 조합에 유효 데이터셋 하나를 연결하는 작업입니다. 기준 내용을 편집하거나 배포하는 기능은 후속입니다.</p></div></div>
+  </div>
+  <div class="panel" style="margin-top:18px"><div class="panel-h"><h3>샘플 요청·콘텐츠</h3><span class="tag">E-12.2</span><span class="sp"></span>
+    <button class="btn sm" data-a="seedSample" data-cid="${c.id}" ${d.ps.length ? '' : 'disabled'}>샘플 요청 생성</button><button class="btn sm ghost warn" data-a="seedClear" data-cid="${c.id}" ${demoReq.length ? '' : 'disabled'}>샘플만 초기화</button></div><div class="panel-b">
+    <div class="row" style="gap:18px;align-items:flex-start;flex-wrap:wrap">
+      <div class="ro-box small" style="flex:1;min-width:220px"><b>샘플 데이터 ${demoReq.length}건</b>${demoReq.map(r => `<div>${esc(r.id)}  ${esc(r.title)}  ${ST[r.status].l}</div>`).join('') || '<div class="muted">생성된 샘플이 없습니다.</div>'}</div>
+      <div class="ro-box small" style="flex:1;min-width:220px"><b>실제 운영 데이터 ${realReq.length}건</b><div class="muted">초기화 대상이 아닙니다. 요청·완료 묶음·업무 이력은 그대로 보존됩니다.</div></div></div>
+    <p class="small faint" style="margin-bottom:0">샘플은 <span class="tag">샘플</span> 표시로 구분하고 실적 집계에서 제외합니다. ${flag('샘플 초기화 범위와 운영 데이터 분리 협의 22')}</p></div></div>
+  <div class="panel" style="margin-top:18px"><div class="panel-h"><h3>시드 실행 이력</h3><span class="note">대상, 실행자, 결과, 영향 범위를 남깁니다</span></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>시각</th><th>실행자</th><th>작업</th><th>대상</th><th>결과</th></tr></thead><tbody>
+  ${log.map(l => `<tr><td>${fDT(l.at)}</td><td>${esc(U(l.by).name)}</td><td>${esc(l.act)}</td><td>${esc(l.target)}</td><td class="small muted">${esc(l.result)}</td></tr>`).join('') || '<tr><td colspan="5" class="muted">실행 이력이 없습니다.</td></tr>'}</tbody></table></div></div></div>`;
+}
+
+/* ops: 유형·교정 기준 */
 function vStandards(tab) {
-  const t = tab.st; t.sub = t.sub || 'guide'; t.ty = t.ty || '알림톡';
-  const tabs = [['guide', '가이드·체크리스트'], ['ds', '교정 데이터셋'], ['types', '유형 관리'], ['fb', `의견 처리 <span class="n">${S.feedback.filter(f => f.cid === S.cid && ['접수', '검토'].includes(f.status)).length}</span>`], ['prop', `기준 제안 <span class="n">${S.proposals.filter(f => f.cid === S.cid && f.status === '접수').length}</span>`]];
+  const t = tab.st; t.sub = t.sub || 'assign'; t.ty = t.ty || '알림톡';
+  const tabs = [['types', '유형 관리'], ['assign', '유효 데이터셋 배정'], ['ds', '데이터셋 버전·배포'], ['guide', '가이드·체크리스트'], ['fb', `의견 처리 <span class="n">${S.feedback.filter(f => f.cid === S.cid && ['접수', '검토'].includes(f.status)).length}</span>`], ['prop', `기준 제안 <span class="n">${S.proposals.filter(f => f.cid === S.cid && f.status === '접수').length}</span>`], ['opsNotice', '공통·기준 공지']];
+  const PH2 = { ds: 'E-7.2', guide: 'E-6.1', fb: 'E-9.1', prop: 'E-9.1', opsNotice: 'E-10.2' };
   let body = '';
+  if (t.sub === 'assign') body = vAssign(t);
+  if (t.sub === 'opsNotice') body = vOpsNotice();
   if (t.sub === 'guide') { const g = S.guides[t.ty];
     body = `${tySel(t)}<div class="grid2" style="grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:18px;align-items:start"><div class="panel"><div class="panel-h"><h3>${t.ty} 가이드</h3></div><div class="panel-b">
       <div class="fld"><label>원칙</label><textarea class="ta" id="g-pr" rows="4">${esc(g.principles)}</textarea></div>
@@ -1467,17 +1623,49 @@ function vStandards(tab) {
       <button class="btn pri" data-a="guideSave">가이드 저장</button></div></div>
       <div class="panel"><div class="panel-h"><h3>가이드 변경 이력</h3><span class="note">관리자만 봅니다</span></div><div class="panel-b">${S.guideLog.filter(l => l.type === t.ty).map(l => `<div class="small" style="padding:6px 0;border-bottom:1px solid var(--line)">${fDT(l.at)}  ${esc(U(l.by).name)}  ${esc(l.what)}</div>`).join('') || '<span class="muted small">변경 이력이 없습니다.</span>'}</div></div></div>`; }
   if (t.sub === 'ds') body = vDataset(t);
-  if (t.sub === 'types') body = `<div class="panel"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>유형</th><th>주요 입력값</th><th>작성 지원</th><th>목업</th><th>사용</th></tr></thead><tbody>
+  if (t.sub === 'types') body = `<div class="panel"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>유형</th><th>주요 입력값</th><th>작성 지원</th><th>목업 시드 <span class="tag flag">후속 E-5.2</span></th><th>사용 <span class="tag">1차 E-5.1</span></th></tr></thead><tbody>
     ${S.types.map((x, i) => `<tr><td class="ttl">${x.k}</td><td class="small">${{ '알림톡': '승인 템플릿, 본문, 변수, 버튼', '문자': '발신번호, 본문, 고객센터·수신거부 안내 여부', 'RCS': '제목, 본문, 이미지, 이미지 설명, 카드 수, 버튼', '자유입력형': '직접 입력 텍스트, 변수, 선택 제목, 첨부파일' }[x.k]}</td><td class="small">${{ '알림톡': '텍스트 교정, 목업, XLSX 대량 등록', '문자': '텍스트 교정, 목업, XLSX 대량 등록', 'RCS': '텍스트 교정, 목업', '자유입력형': '텍스트 교정 또는 파일 버전·다운로드' }[x.k]}</td>
     <td>${x.k === '자유입력형' ? '<span class="faint">해당 없음</span>' : `<label class="chk"><input type="checkbox" data-i="tyMock" data-k="${i}" ${x.mock ? 'checked' : ''}>표시</label>`}</td><td><label class="chk"><input type="checkbox" data-i="tyAct" data-k="${i}" ${x.active ? 'checked' : ''}>사용</label></td></tr>`).join('')}</tbody></table></div></div>
-    <p class="small faint">사용을 끈 유형은 새 요청에서 고를 수 없습니다. 과거 요청을 새 유형으로 자동 변환하지 않습니다.</p>`;
+    <p class="small faint">사용을 끈 유형은 새 요청에서 고를 수 없습니다. 과거 요청을 새 유형으로 자동 변환하지 않습니다. 1차는 유형별 사용 상태 관리까지이며, 목업 템플릿 등록·관리는 후속입니다.</p>`;
   if (t.sub === 'fb') body = `<div class="panel"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>구분</th><th>대상 문안</th><th>이유와 제안</th><th>제안자</th><th>상태</th><th>회신과 적용 버전</th></tr></thead><tbody>
     ${S.feedback.filter(f => f.cid === S.cid).map(f => `<tr><td>${f.kind}</td><td style="max-width:240px">${esc(f.text)}</td><td class="small" style="max-width:280px">${esc(f.reason)}<br><span class="muted">제안: ${esc(f.sug || '-')}</span></td><td>${esc(U(f.by).name)}<br><span class="small faint">${fD(f.at)}</span></td>
     <td><select class="sel" style="width:auto" data-i="fbSt" data-id="${f.id}">${['접수', '검토', '반영', '미반영'].map(s => `<option ${f.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select></td>
     <td><input class="in" data-i="fbReply" data-id="${f.id}" value="${esc(f.reply)}" placeholder="처리 결과 회신"><input class="in" style="margin-top:6px" data-i="fbVer" data-id="${f.id}" value="${esc(f.ver)}" placeholder="적용 버전 (예: 알림톡 v4)"></td></tr>`).join('')}</tbody></table></div></div><p class="small faint">상태를 바꾸면 제안자에게 결과와 적용 버전을 알립니다. 고객사 원문은 해당 권한 범위에서만 표시됩니다.</p>`;
-  if (t.sub === 'prop') body = `<div class="panel">${S.proposals.filter(x => x.cid === S.cid).map(x => `<div class="list-item" style="cursor:default;align-items:flex-start"><div class="main"><b>${esc(x.target)}: ${esc(x.prop)}</b><span>예시 ${esc(x.ex)}  이유 ${esc(x.reason)}  ${esc(U(x.by).name)}  ${fD(x.at)}</span></div><select class="sel" style="width:auto" data-i="propSt" data-id="${x.id}">${['접수', '검토', '반영 예정', '미반영'].map(s => `<option ${x.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div>`).join('') || empty('제안이 없습니다')}</div><p class="small faint">관리자가 검토하고 데이터셋으로 배포하기 전에는 기준이 바뀌지 않습니다.</p>`;
-  return `<div class="page wide"><div class="ph"><div><h1>가이드·교정 기준</h1><p>작성 가이드, 체크리스트, 교정 데이터셋의 변경 이력은 따로 관리합니다.</p></div></div>
-  <div class="subtabs">${tabs.map(([k, l]) => `<button class="${t.sub === k ? 'on' : ''}" data-a="sub" data-k="${k}">${l}</button>`).join('')}</div>${body}</div>`;
+  if (t.sub === 'prop') body = `<div class="panel">${S.proposals.filter(x => x.cid === S.cid).map(x => `<div class="list-item" style="cursor:default;align-items:flex-start"><div class="main"><b>${esc(x.target)}: ${esc(x.prop)}</b><span>예시 ${esc(x.ex)}  이유 ${esc(x.reason)}  ${esc(U(x.by).name)}  ${fD(x.at)}</span></div><select class="sel" style="width:auto" data-i="propSt" data-id="${x.id}">${['접수', '검토', '반영 예정', '미반영'].map(s => `<option ${x.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div>`).join('') || empty('제안이 없습니다')}</div><p class="small faint">솔루션 운영 담당자가 검토하고 데이터셋으로 배포하기 전에는 기준이 바뀌지 않습니다.</p>`;
+  const ph2 = PH2[t.sub] ? `<div class="banner info" style="margin-bottom:18px"><div class="bt"><b>이 화면은 후속 개발 범위입니다 (${PH2[t.sub]})</b>1차는 ${{ ds: '유효 데이터 저장과 시드, 고객사 x 유형 배정·연결·확인까지입니다. 기준 편집, 충돌 검사, 배포 비교, 복원은 후속입니다.', guide: '제공된 가이드·체크리스트·목업 시드의 읽기 전용 열람입니다. 변경과 배포는 후속입니다.', fb: '해당하지 않습니다. 오탐·개선 의견의 접수, 검토, 반영, 회신은 후속입니다.', prop: '해당하지 않습니다. 고객사 기준 제안의 접수와 처리는 후속입니다.', opsNotice: '고객사·프로젝트 공지입니다. 공통 운영 공지와 기준 변경 공지는 후속입니다.' }[t.sub]} 아래 화면은 후속 범위를 미리 보여 주는 참고용입니다.</div></div>` : '';
+  return `<div class="page wide"><div class="ph"><div><h1>유형·교정 기준</h1><p>솔루션 운영 담당자가 콘텐츠 유형과 고객사별 유효 교정 기준을 운영합니다. 1차는 유형 사용 상태와 유효 데이터셋 배정까지입니다.</p></div></div>
+  <div class="subtabs">${tabs.map(([k, l]) => `<button class="${t.sub === k ? 'on' : ''}" data-a="sub" data-k="${k}">${l}${PH2[k] ? ' <span class="tag flag" style="margin-left:4px">후속</span>' : ''}</button>`).join('')}</div>${ph2}${body}</div>`;
+}
+
+/* E-7.1 고객사 x 유형 유효 데이터셋 배정표, E-8.1 조합별 1개 연결 */
+function vAssign(t) {
+  const cols = ['공통', ...TYPES];
+  const rows = S.customers.map(c => {
+    const cells = cols.map(ty => {
+      const list = S.datasets.filter(d => d.type === ty && d.status === 'deployed').sort((a, b) => b.v - a.v);
+      const a = assignOf(c.id, ty); const cur = a && S.datasets.find(d => d.id === a.dsId);
+      const tyOff = ty !== '공통' && !S.types.find(x => x.k === ty)?.active;
+      return `<td><div class="cell"><select class="sel" data-i="asSet" data-cid="${c.id}" data-ty="${ty}" ${tyOff ? 'disabled title="사용하지 않는 유형입니다"' : ''}>
+      <option value="">미배정</option>${list.map(d => `<option value="${d.id}" ${cur?.id === d.id ? 'selected' : ''}>v${d.v}  규칙 ${d.rules.length}개</option>`).join('')}</select>
+      ${cur ? `<span class="ck">${a.checkedAt ? `${fD(a.checkedAt)} 확인  ${esc(U(a.checkedBy).name)}` : '<span style="color:var(--s-wait)">확인 전</span>'}</span>${a.checkedAt ? '' : `<button class="btn sm ghost" data-a="asConfirm" data-id="${a.id}" style="align-self:flex-start">확인 처리</button>`}` : '<span class="ck">연결된 기준이 없습니다</span>'}</div></td>`;
+    }).join('');
+    const miss = cols.filter(ty => !assignOf(c.id, ty) && (ty === '공통' || S.types.find(x => x.k === ty)?.active));
+    return `<tr><td class="ttl">${esc(c.name)}${c.active === false ? ' <span class="tag hot">비활성</span>' : ''}<div class="small faint">${miss.length ? `미배정 ${miss.length}개` : '배정 완료'}</div></td>${cells}</tr>`;
+  }).join('');
+  const eff = ['공통', ...TYPES];
+  return `<div class="panel" style="margin-bottom:18px"><div class="panel-h"><h3>고객사 × 콘텐츠 유형 배정</h3><span class="note">조합마다 유효 데이터셋 하나만 연결합니다</span></div>
+  <div class="tbl-wrap"><table class="tbl mx"><thead><tr><th>고객사</th>${eff.map(x => `<th>${x}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div></div>
+  <div class="panel"><div class="panel-h"><h3>${esc(Cu(S.cid).name)} 텍스트 교정에 실제 적용되는 기준</h3></div><div class="panel-b">
+  ${TYPES.map(ty => { const e = effectiveRules(ty, S.cid); const off = !S.types.find(x => x.k === ty)?.active;
+    return `<div class="row" style="padding:8px 0;border-bottom:1px solid var(--line)"><span style="min-width:90px"><b style="font-weight:500">${ty}</b></span><span class="small ${e.missing ? 'faint' : 'muted'}">${esc(e.label)}  규칙 ${e.rules.length}개</span><span class="sp"></span>${off ? '<span class="tag">유형 미사용</span>' : e.missing ? '<span class="tag hot">배정 전 기본값</span>' : '<span class="tag">배정됨</span>'}</div>`; }).join('')}
+  <p class="small faint" style="margin-bottom:0">배정하지 않은 조합은 최근 배포본으로 검사하며 결과 카드에 배정 전 기본값으로 표시됩니다. 실제 개발에서는 배정 없이 교정을 실행할지 먼저 정해야 합니다. ${flag('기준 연결과 적용 시점 협의 15')}</p></div></div>`;
+}
+/* E-10.2 공통 운영·기준 변경 공지 (후속) */
+function vOpsNotice() {
+  const list = S.notices.filter(n => n.scope === 'common' || n.scope === 'standard').sort((a, b) => b.at - a.at);
+  return `<div class="panel"><div class="panel-h"><h3>공통 운영 공지와 기준 변경 공지</h3><span class="note">읽기 전용</span></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>제목</th><th>범위</th><th>연결된 배포 묶음</th><th>작성</th><th>상태</th></tr></thead><tbody>
+  ${list.map(n => `<tr><td class="ttl">${esc(n.title)}<div class="small muted">${esc(n.body)}</div></td><td>${scopeLabel(n)}</td><td>${n.bundle ? `<span class="tag">${esc(n.bundle)}</span>` : '<span class="faint">-</span>'}</td><td>${esc(U(n.by).name)}  ${fD(n.at)}</td><td>${n.withdrawn ? '<span class="tag hot">철회</span>' : '<span class="tag">게시</span>'}</td></tr>`).join('') || '<tr><td colspan="5" class="muted">공지가 없습니다.</td></tr>'}</tbody></table></div>
+  <div class="panel-b"><p class="small faint" style="margin:0">기준 변경 공지는 실제 배포 묶음과 적용 시점에 연결합니다. 고객사·프로젝트 공지는 고객사 관리자의 공지 관리에서 작성합니다.</p></div></div>`;
 }
 const tySel = (t, withCommon) => `<div class="seg" style="margin-bottom:16px">${(withCommon ? ['공통', ...TYPES] : TYPES).map(x => `<button class="${t.ty === x ? 'on' : ''}" data-a="ty" data-k="${x}">${x}</button>`).join('')}</div>`;
 function vDataset(t) {
@@ -1485,7 +1673,7 @@ function vDataset(t) {
   const sel = list.find(d => d.id === t.ds) || list[0]; if (sel) t.ds = sel.id;
   const dep = list.find(d => d.status === 'deployed');
   const draft = sel?.status === 'draft';
-  const eff = t.ty === '공통' ? null : effectiveRules(t.ty);
+  const eff = t.ty === '공통' ? null : effectiveRules(t.ty, S.cid);
   let diff = '';
   if (t.showDiff && sel && dep && sel.id !== dep.id) {
     const a = new Map(dep.rules.map(r => [r.p, r])), b = new Map(sel.rules.map(r => [r.p, r]));
@@ -1500,7 +1688,7 @@ function vDataset(t) {
   <div style="padding:10px"><button class="btn sm" data-a="dsNew" ${list.some(d => d.status === 'draft') ? 'disabled' : ''}>새 초안 만들기</button></div></div>
   <div class="panel"><div class="panel-h"><h3>${t.ty} v${sel?.v ?? '-'} ${draft ? '초안' : ''}</h3><span class="sp"></span>
     ${draft ? `<button class="btn sm" data-a="dsConflict">충돌 검사</button><button class="btn sm" data-a="dsDiff">변경 비교</button><button class="btn sm pri" data-a="dsDeploy">배포</button>` : sel && sel.id !== dep?.id ? `<button class="btn sm" data-a="dsDiff">변경 비교</button><button class="btn sm" data-a="dsRestore">이 버전으로 복원 배포</button>` : '<span class="tag fill">배포됨, 변경 불가</span>'}</div>
-  <div class="panel-b">${eff ? `<p class="small muted" style="margin-top:0">현재 ${t.ty} 텍스트 교정에 쓰이는 유효 데이터셋: ${esc(eff.label)} (규칙 ${eff.rules.length}개)</p>` : '<p class="small muted" style="margin-top:0">공통 기준은 모든 유형과 합쳐져 유형별 유효 데이터셋 하나로 확정됩니다.</p>'}
+  <div class="panel-b">${eff ? `<p class="small muted" style="margin-top:0">${esc(Cu(S.cid).name)}의 ${t.ty} 교정에 쓰이는 유효 데이터셋: ${esc(eff.label)} (규칙 ${eff.rules.length}개). 고객사별 연결은 유효 데이터셋 배정에서 바꿉니다.</p>` : '<p class="small muted" style="margin-top:0">공통 기준은 모든 유형과 합쳐져 유형별 유효 데이터셋 하나로 확정됩니다.</p>'}
   ${conf}${diff}
   <div class="tbl-wrap"><table class="tbl"><thead><tr><th>찾을 표현</th><th>제안</th><th>이유</th>${draft ? '<th></th>' : ''}</tr></thead><tbody>
   ${(sel?.rules || []).map(r => draft ? `<tr><td><input class="in" data-i="rule" data-id="${r.id}" data-k="p" value="${esc(r.p)}"></td><td><input class="in" data-i="rule" data-id="${r.id}" data-k="s" value="${esc(r.s)}"></td><td><input class="in" data-i="rule" data-id="${r.id}" data-k="r" value="${esc(r.r)}"></td><td><button class="btn sm ghost" data-a="ruleDel" data-id="${r.id}">${IC.x}</button></td></tr>` : `<tr><td>${esc(r.p)}</td><td>${esc(r.s)}</td><td class="muted">${esc(r.r)}</td></tr>`).join('')}</tbody></table></div>
@@ -1512,26 +1700,105 @@ function vNoticeAdmin() {
   const list = S.notices.filter(n => n.scope === 'common' || n.scope === 'standard' || n.cid === S.cid).sort((a, b) => b.at - a.at);
   return `<div class="page wide"><div class="ph"><div><h1>공지 관리</h1><p>수정과 철회 이력은 보존됩니다. 기준 변경 공지는 실제 배포 묶음에 연결합니다.</p></div><div class="acts"><button class="btn pri" data-a="noticeEdit" data-id="">${IC.plus}공지 작성</button></div></div>
   <div class="panel"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>제목</th><th>범위</th><th>작성</th><th>이력</th><th>상태</th><th></th></tr></thead><tbody>
-  ${list.map(n => `<tr><td class="ttl">${esc(n.title)}${n.bundle ? ` <span class="tag">${n.bundle}</span>` : ''}</td><td>${scopeLabel(n)}</td><td>${esc(U(n.by).name)}  ${fD(n.at)}</td><td class="small muted">${n.log.map(l => `${fD(l.at)} ${l.act}`).join('<br>') || '-'}</td><td>${n.withdrawn ? '<span class="tag hot">철회</span>' : '<span class="tag">게시</span>'}</td>
-  <td><div class="row">${!n.withdrawn ? `<button class="btn sm" data-a="noticeEdit" data-id="${n.id}">수정</button><button class="btn sm ghost warn" data-a="noticeWithdraw" data-id="${n.id}">철회</button>` : ''}</div></td></tr>`).join('')}</tbody></table></div></div>
-  <p class="small faint">${flag('게시 시점과 적용 시점 처리 협의')}</p></div>`;
+  ${list.map(n => { const mine = ['project', 'customer'].includes(n.scope);
+    return `<tr><td class="ttl">${esc(n.title)}${n.bundle ? ` <span class="tag">${n.bundle}</span>` : ''}</td><td>${scopeLabel(n)}</td><td>${esc(U(n.by).name)}  ${fD(n.at)}</td><td class="small muted">${n.log.map(l => `${fD(l.at)} ${l.act}`).join('<br>') || '-'}</td><td>${n.withdrawn ? '<span class="tag hot">철회</span>' : '<span class="tag">게시</span>'}</td>
+  <td><div class="row">${!mine ? '<span class="small faint">솔루션 운영 공지</span>' : !n.withdrawn ? `<button class="btn sm" data-a="noticeEdit" data-id="${n.id}">수정</button><button class="btn sm ghost warn" data-a="noticeWithdraw" data-id="${n.id}">철회</button>` : ''}</div></td></tr>`; }).join('')}</tbody></table></div></div>
+  <p class="small faint">상위 범위 공지는 하위 권한으로 수정할 수 없습니다. 공통 운영 공지와 기준 변경 공지는 솔루션 운영 담당자의 후속 범위입니다. ${flag('예약 게시의 1차 포함 여부 협의 11')}</p></div>`;
 }
 
 /* spec map */
+/* 부록 A 기준 99개 세부 기능 (상위 53개). [id, 이름, 단계, 화면 위치, 관련 협의] */
 const SPEC = [
-  ['A. 공통 기반', [['A-1', '로그인·인증', 'login'], ['A-2', '역할·프로젝트 권한 통제', 'denied'], ['A-3', '고객사 > 프로젝트 > 요청 > 콘텐츠', 'requests'], ['A-4', '업무/관리 2단 메뉴', 'home'], ['A-5', '프로덕트 내부 멀티탭', 'tabAdd'], ['A-6', '역할별 업무 현황 대시보드', 'home'], ['A-7', '업무 알림', 'notifs'], ['A-8', '접근 차단 안내', 'denied'], ['A-9', '프로필·개인 설정', 'profile']]],
-  ['B. 요청자', [['B-1', '요청 작성·편집, 자동/수동 저장', 'req:REQ-2609-105:u1'], ['B-2', '알림톡·문자·RCS 입력', 'req:REQ-2609-103:u1'], ['B-3', '자유입력형 텍스트+첨부', 'req:REQ-2609-107:u1'], ['B-4', 'XLSX 대량 등록', 'req:REQ-2609-105:u1'], ['B-5', '변수 검색·삽입·신규 등록', 'req:REQ-2609-105:u1'], ['B-6', '텍스트 교정', 'req:REQ-2609-105:u1'], ['B-7', '요청 복제', 'req:REQ-2609-104:u1'], ['B-8', '검수 요청(제출)', 'req:REQ-2609-105:u1'], ['B-9', '요청 취소', 'req:REQ-2609-104:u1'], ['B-10', '회수 요청', 'req:REQ-2609-101:u1'], ['B-11', '확인 요청 응답', 'req:REQ-2609-102:u1'], ['B-12', '결과 확인(완료 묶음)', 'req:REQ-2609-106:u1']]],
-  ['C. 검수자·대표 검수자', [['C-1', '검수 편집, 잠금, 버전 비교', 'req:REQ-2609-101:u2'], ['C-2', '확인 요청 보내기', 'req:REQ-2609-101:u2'], ['C-3', '검수 의견 등록', 'req:REQ-2609-101:u2'], ['C-4', '전체 텍스트 교정', 'req:REQ-2609-101:u2'], ['C-5', '검수 완료 (주담당)', 'req:REQ-2609-101:u2'], ['C-6', '회수 승인·거절', 'req:REQ-2609-107:u2'], ['C-7', '검수자 배정·주담당 지정', 'req:REQ-2609-104:u3'], ['C-8', '검수자 변경·인수인계', 'req:REQ-2609-101:u3'], ['C-9', '납기·긴급도 확정', 'req:REQ-2609-104:u3'], ['C-10', '배정 관리 화면', 'r:review:u3'], ['C-11', '실적 보고', 'r:perf:u3']]],
-  ['D. 승인자', [['D-1', '승인 큐', 'r:approval:u4'], ['D-2', '승인 검토·승인', 'req:REQ-2609-103:u4'], ['D-3', '수정 요청(반려)', 'req:REQ-2609-103:u4']]],
-  ['E. 관리자', [['E-1', '프로젝트 관리', 'r:projects:u5'], ['E-2', '변수 관리', 'r:vars:u5'], ['E-3', '사용자·권한 관리', 'r:users:u5'], ['E-4', '고객사 설정', 'r:customer:u5'], ['E-5', '유형·목업 관리', 'r:standards:u5:types'], ['E-6', '가이드·체크리스트 관리', 'r:standards:u5:guide'], ['E-7', '교정 데이터셋 검토·배포', 'r:standards:u5:ds'], ['E-8', '유형별 유효 데이터셋', 'r:standards:u5:ds'], ['E-9', '오탐·개선 의견 처리', 'r:standards:u5:fb'], ['E-10', '공지 관리', 'r:noticeAdmin:u5']]],
-  ['F. 공통 데이터·조회', [['F-1', '통합 히스토리', 'req:REQ-2609-103:u1:hist'], ['F-2', '콘텐츠 검색·보관', 'r:contents:u1'], ['F-3', '요청 목록 검색', 'r:requests:u1'], ['F-4', '완료 원본 반출', 'req:REQ-2609-106:u1:result'], ['F-5', '작성 가이드·목업 열람', 'req:REQ-2609-103:u1'], ['F-6', '공지 열람', 'r:notices:u1']]]
+  ["A. 공통 기능", [
+    ["A-1", "로그인·인증", "login", "", [["A-1.1", "자체 로그인", 1, "로그인", "01"], ["A-1.2", "사용자 역할별 체험", 1, "로그인", "24"], ["A-1.3", "초대 가입·수락", 1, "초대", "02,23"], ["A-1.4", "세션·로그아웃", 1, "전역", "02"], ["A-1.5", "SSO", 2, "로그인", "01"]]],
+    ["A-2", "역할·프로젝트 기반 권한 통제", "denied", "", [["A-2.1", "서버 측 권한 검증", 1, "전역", "18"], ["A-2.2", "6개 역할 모델", 1, "전역", "18"], ["A-2.3", "요청자·검수자 상호배제", 1, "관리", ""], ["A-2.4", "메뉴·주소·API 동일 권한", 1, "전역", ""]]],
+    ["A-3", "데이터 구조: 고객사>프로젝트>요청>콘텐츠", "requests", "", [["A-3.1", "고객사>프로젝트>요청>콘텐츠", 1, "전역", ""], ["A-3.2", "요청 단위 상태·검수 차수", 1, "전역", ""], ["A-3.3", "콘텐츠 버전 관리", 1, "전역", ""]]],
+    ["A-4", "메뉴 구조(업무/관리 2단)", "home", "", [["A-4.1", "업무 메뉴", 1, "좌측 메뉴", ""], ["A-4.2", "관리 메뉴(역할 구분)", 1, "좌측 메뉴", "18"], ["A-4.3", "승인 메뉴 조건 노출", 1, "좌측 메뉴", ""]]],
+    ["A-5", "프로덕트 내부 멀티탭", "tabAdd", "", [["A-5.1", "탭 열기·이동·종료", 1, "상단 탭", "20"], ["A-5.2", "미저장 종료 경고", 1, "상단 탭", ""], ["A-5.3", "교정 결과 탭 이동", 1, "상단 탭", ""]]],
+    ["A-6", "업무 현황 대시보드(역할별)", "home", "", [["A-6.1", "역할별 지표", 1, "대시보드", "07"], ["A-6.2", "납기 임박 기준", 1, "대시보드", "07,08"]]],
+    ["A-7", "업무 알림", "notifs", "", [["A-7.1", "다음 행동 책임자 알림", 1, "알림 센터", "10"], ["A-7.2", "읽음·완료 구분", 1, "알림 센터", "10"], ["A-7.3", "재통지 정책", 1, "알림 센터", "10"], ["A-7.4", "알림→요청 이동 권한확인", 1, "알림 센터", "10"]]],
+    ["A-8", "접근 차단 안내", "denied", "", [["A-8.1", "권한 없는 접근 차단", 1, "차단 안내", ""]]],
+    ["A-9", "프로필·개인 설정", "profile", "", [["A-9.1", "프로필 변경", 1, "내 설정", "13"], ["A-9.2", "테마", 2, "내 설정", "24"]]],
+  ]],
+  ["B. 요청 작성과 제출", [
+    ["B-1", "요청 작성·편집", "req:REQ-2609-105:u1", "", [["B-1.1", "공통 입력", 1, "요청 작성", ""], ["B-1.2", "자동/수동 저장", 1, "요청 작성", "20"]]],
+    ["B-2", "유형별 콘텐츠 입력 (알림톡·문자·RCS)", "req:REQ-2609-103:u1", "", [["B-2.1", "알림톡", 1, "요청 작성", "03"], ["B-2.2", "문자", 1, "요청 작성", "03"], ["B-2.3", "RCS", 1, "요청 작성", "03"], ["B-2.4", "길이 한도(채널 규격)", 1, "요청 작성", "03,23"]]],
+    ["B-3", "자유입력형 (텍스트+첨부)", "req:REQ-2609-107:u1", "", [["B-3.1", "직접 입력·변수·제목", 1, "요청 작성", ""], ["B-3.2", "첨부 등록·분량·검수 범위", 1, "요청 작성", "04"], ["B-3.3", "파일 검증", 1, "요청 작성", "04"], ["B-3.4", "첨부 시 교정 비활성", 1, "요청 작성", "04"]]],
+    ["B-4", "XLSX 대량 등록", "req:REQ-2609-105:u1", "", [["B-4.1", "업로드·파싱", 1, "요청 작성", "05"], ["B-4.2", "행별 검증·선택", 1, "요청 작성", "05"], ["B-4.3", "템플릿·샘플", 1, "요청 작성", "05"], ["B-4.4", "최대 행 수", 1, "요청 작성", "05"]]],
+    ["B-5", "변수 검색·삽입·신규 등록", "req:REQ-2609-105:u1", "", [["B-5.1", "키워드 검색·삽입", 1, "요청 작성·검수", "14"], ["B-5.2", "신규 등록·검증", 1, "요청 작성", "14"]]],
+    ["B-6", "텍스트 교정", "req:REQ-2609-105:u1", "", [["B-6.1", "교정 실행·결과 카드", 1, "요청 작성", "15"], ["B-6.2", "유형별 교정 데이터셋 시드", 1, "", "15"]]],
+    ["B-7", "요청 복제", "req:REQ-2609-104:u1", "", [["B-7.1", "복제→새 작성 중", 1, "요청 목록", ""]]],
+    ["B-8", "검수 요청(제출)", "req:REQ-2609-105:u1", "", [["B-8.1", "제출 조건 검증", 1, "요청 작성", ""], ["B-8.2", "배정 대기 전환", 1, "요청 작성", ""]]],
+    ["B-9", "요청 취소", "req:REQ-2609-104:u1", "", [["B-9.1", "배정 대기 즉시 취소", 1, "요청 상세", ""]]],
+    ["B-10", "회수 요청", "req:REQ-2609-101:u1", "", [["B-10.1", "검수 중 회수 요청", 1, "요청 상세", ""]]],
+    ["B-11", "확인 요청 응답", "req:REQ-2609-102:u1", "", [["B-11.1", "답변→검수 중", 1, "요청 상세", ""]]],
+    ["B-12", "결과 확인", "req:REQ-2609-106:u1", "", [["B-12.1", "완료 묶음 조회", 1, "완료 결과", ""]]],
+  ]],
+  ["C. 검수와 업무 관리", [
+    ["C-1", "검수(문안 편집)", "req:REQ-2609-101:u2", "", [["C-1.1", "검수 중 편집", 1, "검수", ""], ["C-1.2", "편집 잠금", 1, "검수", "20"], ["C-1.3", "저장 버전 비교", 1, "검수", "20"]]],
+    ["C-2", "확인 요청 보내기", "req:REQ-2609-101:u2", "", [["C-2.1", "질문→확인 요청 전환", 1, "검수", ""]]],
+    ["C-3", "검수 의견 등록", "req:REQ-2609-101:u2", "", [["C-3.1", "의견 등록", 1, "검수", ""]]],
+    ["C-4", "전체 텍스트 교정 (다건 일괄)", "req:REQ-2609-101:u2", "", [["C-4.1", "일괄 검사·카드", 1, "검수", "15"], ["C-4.2", "첨부 자유입력형 검사 제외", 1, "검수", ""]]],
+    ["C-5", "검수 완료 처리", "req:REQ-2609-101:u2", "", [["C-5.1", "완료·상태 전환", 1, "검수", ""]]],
+    ["C-6", "회수 승인·거절", "req:REQ-2609-107:u2", "", [["C-6.1", "회수 처리", 1, "검수", ""]]],
+    ["C-7", "검수자 배정·주담당 지정", "req:REQ-2609-104:u3", "", [["C-7.1", "복수 배정+주담당", 1, "배정 관리", ""]]],
+    ["C-8", "검수자 변경·인수인계", "req:REQ-2609-101:u3", "", [["C-8.1", "변경·인수인계", 1, "배정 관리", ""]]],
+    ["C-9", "납기·긴급도 확정", "req:REQ-2609-104:u3", "", [["C-9.1", "확정·기록", 1, "배정 관리", "08,18"]]],
+    ["C-10", "배정 관리 화면", "r:review:u3", "", [["C-10.1", "현황·업무량", 1, "배정 관리", "07,08"]]],
+    ["C-11", "실적 보고", "r:perf:u3", "", [["C-11.1", "실적 집계", 1, "실적", "07,08,09"]]],
+  ]],
+  ["D. 승인", [
+    ["D-1", "승인 큐", "r:approval:u4", "", [["D-1.1", "프로젝트 공용 큐", 1, "승인", ""]]],
+    ["D-2", "승인 검토·승인 처리", "req:REQ-2609-103:u4", "", [["D-2.1", "검토·승인", 1, "승인", "19"], ["D-2.2", "승인자 부재 처리", 1, "승인", "19"]]],
+    ["D-3", "수정 요청(반려)", "req:REQ-2609-103:u4", "", [["D-3.1", "반려·재검수", 1, "승인", ""]]],
+  ]],
+  ["E. 관리와 운영", [
+    ["E-1", "프로젝트 관리", "r:projects:u11", "", [["E-1.1", "프로젝트 기본 관리(CRUD)·대표 검수자", 1, "관리", ""]]],
+    ["E-2", "변수 관리", "r:vars:u11", "", [["E-2.1", "변수 목록·사용 상태", 1, "관리", "14"]]],
+    ["E-3", "사용자·권한 관리", "r:users:u11", "", [["E-3.1", "초대·비활성", 1, "관리", "02"], ["E-3.2", "역할·권한·인수인계", 1, "관리", "13,18"]]],
+    ["E-4", "고객사 설정", "r:customer:u11", "", [["E-4.1", "운영 설정", 1, "관리", "08,10,12"]]],
+    ["E-5", "유형·목업 관리", "r:standards:u5:types", "", [["E-5.1", "콘텐츠 유형 활성/비활성", 1, "운영 관리 화면", ""], ["E-5.2", "목업 등록·관리 고도화", 2, "운영 관리 화면", ""]]],
+    ["E-6", "가이드·체크리스트 관리", "r:standards:u5:guide", "", [["E-6.1", "가이드 변경·배포", 2, "운영 관리 화면", ""]]],
+    ["E-7", "교정 데이터셋 검토·배포", "r:standards:u5:assign", "", [["E-7.1", "데이터셋 배정·연결·확인", 1, "운영 관리 화면", "15"], ["E-7.2", "배포 파이프라인·복원", 2, "운영 관리 화면", "11,15"]]],
+    ["E-8", "유형별 가이드·교정 데이터셋", "r:standards:u5:assign", "", [["E-8.1", "유형별 유효 데이터셋 모델", 1, "", "15"], ["E-8.2", "충돌 자동 해결", 2, "운영 관리 화면", "15"]]],
+    ["E-9", "오탐·개선 의견 처리", "r:standards:u5:fb", "", [["E-9.1", "접수·검토·회신", 2, "운영 관리 화면", ""]]],
+    ["E-10", "공지 관리", "r:noticeAdmin:u11", "", [["E-10.1", "고객사·프로젝트 공지", 1, "관리", "11"], ["E-10.2", "공통 운영·기준 변경 공지", 2, "운영 관리 화면", "11"]]],
+    ["E-11", "고객사(테넌트) 관리", "r:opsCust:u5", "신규", [["E-11.1", "고객사 생성·목록·확인", 1, "운영 관리 화면", "22,23"], ["E-11.2", "고객사 비활성", 1, "운영 관리 화면", "22"]]],
+    ["E-12", "초기 설정·시드 운영", "r:opsSeed:u5", "신규", [["E-12.1", "프로젝트·사용자 시드 배정", 1, "운영 관리 화면", "22"], ["E-12.2", "샘플/시드 데이터 운영", 1, "운영 관리 화면", "22"]]],
+  ]],
+  ["F. 이력과 완료 데이터", [
+    ["F-1", "통합 히스토리", "req:REQ-2609-103:u1:hist", "", [["F-1.1", "통합 로그·차수 구분", 1, "요청 상세", "17"], ["F-1.2", "보존 기간", 1, "", "17"]]],
+    ["F-2", "콘텐츠 검색·보관", "r:contents:u1", "", [["F-2.1", "검색·조회·후속 요청", 1, "콘텐츠", "16"], ["F-2.2", "공개 범위 등 추가 기능", 2, "콘텐츠", "16"]]],
+    ["F-3", "요청 목록 검색", "r:requests:u1", "", [["F-3.1", "다조건 검색", 1, "요청 목록", "18"]]],
+    ["F-4", "완료 원본 반출", "req:REQ-2609-106:u1:result", "", [["F-4.1", "문안 XLSX 내보내기", 1, "완료 결과", "06"], ["F-4.2", "첨부 최종본 묶음", 1, "완료 결과", "04,06"], ["F-4.3", "문안 복사", 1, "완료 결과", ""]]],
+    ["F-5", "작성 가이드·목업 열람", "req:REQ-2609-103:u1", "", [["F-5.1", "읽기 전용 열람", 1, "가이드", ""]]],
+    ["F-6", "공지 열람", "r:notices:u1", "", [["F-6.1", "공지 노출", 1, "공지", ""]]],
+  ]],
 ];
-function vSpec() {
-  return `<div class="page"><div class="ph"><div><h1>기능 대응표</h1><p>개발 범위 협의표 A~F 51개 기능이 프로토타입의 어디에 있는지 보여줍니다. 이동하면 해당 기능을 쓰는 체험 계정으로 바뀝니다.</p></div></div>
-  ${SPEC.map(([g, items]) => `<div class="spec-grp"><h3>${g}</h3><div class="panel">${items.map(([id, n, go]) => `<div class="list-item" data-a="specGo" data-go="${go}"><span class="tag fill" style="width:48px;justify-content:center">${id}</span><div class="main"><b>${n}</b><span>${specHint(go)}</span></div><span class="small faint">이동</span></div>`).join('')}</div></div>`).join('')}
-  <div class="spec-grp"><h3>G. 정책 협의 항목</h3><p class="muted small">화면 곳곳에 점선 테두리 표시로 남겨 두었습니다. 입력·파일 한도, 인증 방식, 집계 기준, 알림 정책, 성능·보존 기준은 확정 전 임시값입니다.</p></div></div>`;
+function vSpec(tab) {
+  const t = tab.st; t.ph = t.ph || 'all';
+  const all = SPEC.flatMap(([, tops]) => tops.flatMap(([, , , , items]) => items));
+  const n1 = all.filter(x => x[2] === 1).length, n2 = all.length - n1;
+  const show = x => t.ph === 'all' || (t.ph === 'p1' ? x[2] === 1 : x[2] === 2);
+  const chips = [['all', `전체 ${all.length}`], ['p1', `1차 ${n1}`], ['p2', `후속 ${n2}`]];
+  const grp = ([g, tops]) => {
+    const vis = tops.map(([id, name, go, isNew, items]) => [id, name, go, isNew, items.filter(show)]).filter(x => x[4].length);
+    if (!vis.length) return '';
+    return `<div class="spec-grp"><h3>${esc(g)} <span class="small faint">${vis.reduce((a, x) => a + x[4].length, 0)}개</span></h3>
+    ${vis.map(([id, name, go, isNew, items]) => `<div class="panel" style="margin-bottom:12px"><div class="panel-h"><span class="tag fill">${id}</span><h3 style="font-size:14px">${esc(name)}</h3>${isNew ? '<span class="tag">신규</span>' : ''}<span class="sp"></span>
+      ${go ? `<button class="btn sm" data-a="specGo" data-go="${esc(go)}">${esc(specHint(go))} 열기</button>` : '<span class="small faint">화면 없음</span>'}</div>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th style="width:74px">기능 ID</th><th>세부 기능</th><th style="width:120px">화면 위치</th><th style="width:96px">단계</th><th style="width:110px">관련 협의</th></tr></thead><tbody>
+      ${items.map(([fid, fname, ph, scr, cons]) => `<tr><td class="small">${fid}</td><td class="ttl">${esc(fname)}</td><td class="small muted">${esc(scr || '-')}</td>
+        <td>${ph === 1 ? '<span class="tag">1차</span>' : '<span class="tag flag">후속</span>'}</td>
+        <td class="small muted">${cons ? cons.split(',').map(c => `협의 ${c}`).join(', ') : '-'}</td></tr>`).join('')}</tbody></table></div></div>`).join('')}</div>`;
+  };
+  return `<div class="page"><div class="ph"><div><h1>기능 대응표</h1><p>기획서 부록 A의 99개 세부 기능(상위 53개)을 그대로 옮긴 추적 기준입니다. 상위 기능의 열기 버튼을 누르면 해당 기능을 쓰는 체험 계정으로 바뀝니다.</p></div></div>
+  <div class="banner info" style="margin-bottom:18px"><div class="bt"><b>목록에 있다는 것과 구현이 끝난 것은 다릅니다</b>1차 요청 ${n1}개와 후속 ${n2}개는 클라이언트의 현재 요청 분류이며 계약 합의를 뜻하지 않습니다. 협의사항 24건은 모두 미회신 상태이고, 프로토타입의 수치·단순화된 동작은 업무 규칙이 아닙니다.</div></div>
+  <div class="seg" style="margin-bottom:18px">${chips.map(([k, l]) => `<button class="${t.ph === k ? 'on' : ''}" data-a="specPh" data-k="${k}">${l}</button>`).join('')}</div>
+  ${SPEC.map(grp).join('')}
+  <div class="spec-grp"><h3>정책 협의 항목</h3><p class="muted small">화면 곳곳에 점선 테두리 표시로 남겨 두었습니다. 입력·파일 한도, 인증 방식, 집계 기준, 알림 정책, 성능·보존 기준은 확정 전 임시값입니다.</p></div></div>`;
 }
-function specHint(go) { const [k, a, u, s] = go.split(':'); if (k === 'req') return `${a}  ${U(u).name} 계정${s ? '' : ''}`; if (k === 'r') return `${ROUTES[a].t}  ${U(u).name} 계정`; return { login: '로그인 화면', denied: '권한 없는 요청 주소 직접 입력', tabAdd: '탭 영역 오른쪽 + 버튼', notifs: '상단 알림', profile: '상단 사용자 메뉴', home: '대시보드', requests: '요청 목록' }[k] || ''; }
+function specHint(go) { const [k, a, u, s] = go.split(':'); if (k === 'req') return `${a}  ${U(u).name} 계정`; if (k === 'r') return `${ROUTES[a].t}  ${U(u).name} 계정`; return { login: '로그인 화면', denied: '권한 없는 요청 주소 직접 입력', tabAdd: '탭 영역 + 버튼', notifs: '상단 알림', profile: '상단 사용자 메뉴', home: '대시보드', requests: '요청 목록' }[k] || ''; }
 
 /* profile */
 function vProfile() {
@@ -1593,7 +1860,7 @@ function vMain(tab) {
   if (tab.route === 'content') return vContentTab(tab);
   const R = ROUTES[tab.route]; if (!R) return vDenied('페이지를 찾을 수 없습니다', '주소를 확인하세요.');
   if (!R.ok()) return vDenied('이 메뉴를 사용할 권한이 없습니다', `${R.t} 메뉴는 현재 역할과 프로젝트 권한으로 열 수 없습니다.`);
-  return ({ home: vHome, requests: vRequests, review: vReview, approval: vApproval, contents: vContents, perf: vPerf, notices: vNotices, projects: vProjects, vars: vVars, users: vUsers, customer: vCustomer, standards: vStandards, noticeAdmin: vNoticeAdmin, spec: vSpec, profile: vProfile })[tab.route](tab);
+  return ({ home: vHome, requests: vRequests, review: vReview, approval: vApproval, contents: vContents, perf: vPerf, notices: vNotices, projects: vProjects, vars: vVars, users: vUsers, customer: vCustomer, standards: vStandards, noticeAdmin: vNoticeAdmin, opsCust: vOpsCust, opsSeed: vOpsSeed, spec: vSpec, profile: vProfile })[tab.route](tab);
 }
 function render() {
   const root = $('#root');
@@ -1735,6 +2002,15 @@ const IN = {
   custName: (el, e) => { if (e.type === 'change') { Cu(S.cid).name = el.value; toast('고객사 이름을 저장했습니다'); render(); } },
   custOps: el => { Cu(S.cid).ops[el.dataset.k] = el.dataset.k === 'dueSoonDays' ? +el.value : el.value; toast('운영 설정을 저장했습니다'); },
   tyAct: el => { S.types[+el.dataset.k].active = el.checked; render(); },
+  seedCust: el => { activeTab().st.cu = el.value; S.cid = el.value; render(); },
+  asSet: el => { const { cid, ty } = el.dataset; const cur = assignOf(cid, ty);
+    if (!el.value) { if (cur) { S.assign = S.assign.filter(a => a.id !== cur.id); S.audit.unshift({ at: now(), by: S.me, act: '유효 데이터셋 해제', target: `${Cu(cid).name} x ${ty}`, detail: '' }); toast('배정을 해제했습니다. 배정 전 기본값으로 검사합니다'); } render(); return; }
+    const ds = S.datasets.find(d => d.id === el.value);
+    if (cur) { const prev = S.datasets.find(d => d.id === cur.dsId); cur.dsId = ds.id; cur.at = now(); cur.by = S.me; cur.checkedAt = null; cur.checkedBy = null;
+      S.audit.unshift({ at: now(), by: S.me, act: '유효 데이터셋 변경', target: `${Cu(cid).name} x ${ty}`, detail: `v${prev?.v ?? '-'} → v${ds.v}` }); }
+    else { S.assign.push({ id: uid('as'), cid, type: ty, dsId: ds.id, at: now(), by: S.me, checkedAt: null, checkedBy: null });
+      S.audit.unshift({ at: now(), by: S.me, act: '유효 데이터셋 배정', target: `${Cu(cid).name} x ${ty}`, detail: `v${ds.v}` }); }
+    toast(`${ty} v${ds.v}을 연결했습니다. 확인 처리까지 해 주세요`); render(); },
   tyMock: el => { S.types[+el.dataset.k].mock = el.checked; render(); },
   fbSt: el => { const f = S.feedback.find(x => x.id === el.dataset.id); f.status = el.value; notify([f.by], `제출한 의견이 "${f.status}" 처리되었습니다${f.ver ? ` (적용 ${f.ver})` : ''}. ${f.reply}`, null, 'fb'); toast('처리 상태를 바꾸고 제안자에게 알렸습니다'); render(); },
   fbReply: (el, e) => { if (e.type === 'change') S.feedback.find(x => x.id === el.dataset.id).reply = el.value; },
@@ -1819,7 +2095,7 @@ function reviewerPicker(r, change) {
 
 const A = {
   /* shell */
-  nav: el => { if (el.dataset.r === 'users' && el.dataset.sub) { const t = openTab('users'); t.st.sub = el.dataset.sub; render(); return; } openTab(el.dataset.r, { n: el.dataset.n }); },
+  nav: el => { if (el.dataset.sub) { const t = openTab(el.dataset.r); t.st.sub = el.dataset.sub; render(); return; } openTab(el.dataset.r, { n: el.dataset.n }); },
   menu: () => document.body.classList.toggle('nav-open'),
   tab: el => { UI.active = el.dataset.t; render(); },
   closeTab: el => closeTab(el.dataset.t),
@@ -1857,7 +2133,8 @@ const A = {
   modalOk: () => { const m = UI.modal; if (!m) return; const res = m.onOk && m.onOk(); if (res !== false && UI.modal === m) closeModal(); },
   mPrimary: el => { UI.m.primary = el.dataset.u; renderOv(); },
   pipe: el => { const [l, list] = UI.pipe[+el.dataset.k]; reqList(l, list); },
-  kpi: el => { const k = UI.kpi[+el.dataset.k]; if (k[0] === '의견 처리 대기') { const t = openTab('standards'); t.st.sub = 'fb'; render(); return; } reqList(k[0], k[1]); },
+  kpi: el => { const k = UI.kpi[+el.dataset.k]; reqList(k[0], k[1]); },
+  specPh: el => { activeTab().st.ph = el.dataset.k; render(); },
   openReqM: el => { closeModal(); openTab('request', { id: el.dataset.id }); },
   specGo: el => {
     const [k, a, u, s] = el.dataset.go.split(':');
@@ -1872,7 +2149,7 @@ const A = {
   },
   /* lists */
   newReq: () => { if (!hasRole(S.pid, 'requester')) return toast('요청자 역할이 있어야 요청을 만들 수 있습니다'); const r = makeDraft(S.pid, { type: S.types.find(x => x.active)?.k }); log(r, '요청 작성'); const t = openTab('request', { id: r.id }); t.st.sub = 'info'; render(); },
-  openReq: el => { const r = Rq(el.dataset.id); if (r && P(r.pid).cid === S.cid && (isMember(r.pid) || isAdmin(S.cid))) S.pid = r.pid; openTab('request', { id: el.dataset.id }); },
+  openReq: el => { const r = Rq(el.dataset.id); if (r && P(r.pid).cid === S.cid && (isMember(r.pid) || isAdmin(S.cid) || activeGrant(r.pid))) S.pid = r.pid; openTab('request', { id: el.dataset.id }); },
   openReqNew: el => A.openReq(el),
   fltReset: () => { activeTab().st.f = null; render(); },
   sub: el => { activeTab().st.sub = el.dataset.k; render(); },
@@ -2064,6 +2341,85 @@ const A = {
   grant: () => { const pid = $('#g-p').value, until = pISO($('#g-u').value), why = $('#g-r').value.trim(); if (!why) return toast('사유를 입력하세요'); if (!until || until < NOW) return toast('종료일을 오늘 이후로 정하세요');
     S.grants.push({ id: uid('g'), uid: S.me, pid, until, reason: why }); S.audit.unshift({ at: now(), by: S.me, act: '운영 지원 접근 부여', target: P(pid).name, detail: `~${fD(until)}, ${why}` }); toast(`${P(pid).name} 조회 권한을 ${fD(until)}까지 받았습니다`); render(); },
   revoke: el => { const g = S.grants.find(x => x.id === el.dataset.id); g.revoked = true; S.audit.unshift({ at: now(), by: S.me, act: '운영 지원 접근 회수', target: P(g.pid).name, detail: '' }); render(); },
+  /* ops: 고객사 관리 (E-11) */
+  opsCustSel: el => { activeTab().st.cu = el.dataset.id; render(); },
+  opsCustNew: () => showModal({ title: '고객사 생성', sub: '승인 단계 사용 여부는 도입 시 확정하며 운영 중에는 바꿀 수 없습니다.', m: { approval: false }, body: () => `${mIn('name', '고객사 이름', '', 1)}${mIn('domain', '회사 도메인', 'example.co.kr', 1)}
+    <label class="chk"><input type="checkbox" data-m="approval" ${M('approval') ? 'checked' : ''}>승인 단계 사용 (최종 상태를 승인 완료로 둡니다)</label>
+    <p class="small faint" style="margin-top:12px">${flag('중복 도메인 고객사 생성 차단 여부 협의 23')}</p>`, ok: '생성', onOk: () => {
+      if (!need(['name', '고객사 이름'], ['domain', '회사 도메인'])) return false;
+      const dom = M('domain').trim().toLowerCase().replace(/^@/, '');
+      if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(dom)) { toast('도메인 형식을 확인하세요'); return false; }
+      const dup = S.customers.find(c => c.domain === dom);
+      if (dup) { toast(`${dup.name}이(가) 같은 도메인을 쓰고 있습니다. 중복 허용 여부는 협의 23 결정 전까지 막습니다`); return false; }
+      const c = { id: uid('c'), name: M('name').trim(), approval: !!M('approval'), domain: dom, active: true, created: now(), by: S.me, ops: { notifyChannel: '제품 내 알림', dueSoonDays: 3 } };
+      S.customers.push(c); S.audit.unshift({ at: now(), by: S.me, act: '고객사 생성', target: c.name, detail: `${dom}, 승인 단계 ${c.approval ? '사용' : '미사용'}` });
+      S.seedLog.unshift({ at: now(), cid: c.id, by: S.me, act: '고객사 생성', target: c.name, result: '초기 프로젝트와 사용자, 유효 데이터셋 배정이 남았습니다' });
+      S.cid = c.id; const t = openTab('opsSeed'); t.st.cu = c.id; toast('고객사를 만들었습니다. 초기 설정을 이어서 진행하세요'); render(); } }),
+  opsCustDeact: el => { const c = Cu(el.dataset.id); const d = custStat(c.id);
+    showModal({ title: `${c.name} 비활성화`, sub: '물리 삭제는 1차 범위가 아닙니다. 이력과 완료본은 비활성 상태로 보존합니다.', m: { why: '' }, body: () => `<dl class="kv"><dt>진행 중 요청</dt><dd>${d.live.length}건 ${d.live.length ? '<span class="tag hot">업무가 남아 있습니다</span>' : ''}</dd>
+      <dt>사용자</dt><dd>${d.users.length}명 (관리자 ${d.admins.length}명)</dd><dt>완료 요청</dt><dd>${d.rq.filter(isFinal).length}건 <span class="small faint">보존</span></dd></dl>
+      ${mTa('why', '비활성 사유', '', 1)}<p class="small faint">${flag('비활성 고객사의 로그인·열람·다운로드 허용 수준과 복구 절차 협의 22')}</p>`, ok: '비활성화', okCls: 'warn', onOk: () => {
+        if (!need(['why', '비활성 사유'])) return false;
+        if (d.live.length) { toast(`진행 중 요청 ${d.live.length}건을 먼저 정리하거나 담당자와 합의해야 합니다`); return false; }
+        c.active = false; S.audit.unshift({ at: now(), by: S.me, act: '고객사 비활성', target: c.name, detail: M('why') }); toast('비활성 처리했습니다. 데이터는 보존됩니다'); render(); } }); },
+  opsCustReact: el => { const c = Cu(el.dataset.id); c.active = true; S.audit.unshift({ at: now(), by: S.me, act: '고객사 사용 재개', target: c.name, detail: '' }); toast('사용 상태로 돌렸습니다'); render(); },
+  /* ops: 초기 설정과 시드 (E-12) */
+  seedProject: el => { const cid = el.dataset.cid; const us = S.users.filter(u => u.cid === cid && u.active);
+    showModal({ title: '초기 프로젝트 생성', sub: `${Cu(cid).name}의 업무 단위를 만듭니다. 대표 검수자는 이후 고객사 관리자가 바꿀 수 있습니다.`, m: { name: '', lead: us[0]?.id || '' }, body: () => `${mIn('name', '프로젝트 이름', '예: 고객 안내 문자', 1)}
+      ${us.length ? mSel('lead', '대표 검수자', us.map(u => [u.id, `${u.name}  ${u.dept}`]), 1) : '<p class="small muted">사용자가 없습니다. 먼저 사용자를 초대하면 대표 검수자를 지정할 수 있습니다.</p>'}`, ok: '생성', onOk: () => {
+        if (!need(['name', '프로젝트 이름'])) return false;
+        const p = { id: uid('p'), cid, name: M('name').trim(), active: true, lead: M('lead') || null, members: {}, tpls: [], senders: [] };
+        if (p.lead) p.members[p.lead] = ['reviewer'];
+        S.projects.push(p); S.seedLog.unshift({ at: now(), cid, by: S.me, act: '초기 프로젝트 생성', target: p.name, result: p.lead ? `대표 검수자 ${U(p.lead).name}` : '대표 검수자 미지정' });
+        S.audit.unshift({ at: now(), by: S.me, act: '프로젝트 생성', target: p.name, detail: '초기 설정' }); render(); } }); },
+  seedUser: el => { const cid = el.dataset.cid, isAdm = el.dataset.role === 'admin'; const c = Cu(cid); const ps = S.projects.filter(p => p.cid === cid);
+    showModal({ title: isAdm ? '고객사 관리자 초대' : '업무 사용자 초대', sub: isAdm ? '고객사 관리자는 프로젝트, 사용자, 변수, 설정, 공지를 운영합니다. 검수와 승인 권한은 따로 부여합니다.' : '요청자와 검수자 역할은 같은 프로젝트에서 함께 줄 수 없습니다.',
+      m: { pid: ps[0]?.id || '', role: 'requester' }, body: () => `${mIn('email', '회사 이메일', `name@${c.domain}`, 1)}${mIn('name', '이름', '', 1)}${mIn('dept', '소속', '예: 마케팅팀')}
+      ${isAdm ? '' : ps.length ? `<div class="grid2">${mSel('pid', '프로젝트', ps.map(p => [p.id, p.name]))}${mSel('role', '역할', [['requester', '요청자'], ['reviewer', '검수자'], ...(c.approval ? [['approver', '승인자']] : [])])}</div>` : '<p class="small muted">프로젝트가 없습니다. 먼저 초기 프로젝트를 만드세요.</p>'}
+      <p class="small faint">${flag('초대 유효기간, 비밀번호, 세션 정책 협의 02')}</p>`, ok: '초대 보내기', onOk: () => {
+        if (!need(['email', '이메일'], ['name', '이름'])) return false;
+        if (!M('email').trim().endsWith('@' + c.domain)) { toast(`${c.domain} 도메인 이메일만 초대할 수 있습니다`); return false; }
+        if (!isAdm && !ps.length) { toast('먼저 초기 프로젝트를 만드세요'); return false; }
+        const u = { id: uid('u'), name: M('name').trim(), dept: M('dept') || '초대 대기', email: M('email').trim(), cid, active: true, color: '#6A6F7A' };
+        if (isAdm) u.admin = [cid]; S.users.push(u);
+        if (!isAdm) P(M('pid')).members[u.id] = [M('role')];
+        const what = isAdm ? '고객사 관리자' : `${P(M('pid')).name} ${ROLE_L[M('role')]}`;
+        S.seedLog.unshift({ at: now(), cid, by: S.me, act: '사용자 초대', target: u.name, result: what });
+        S.audit.unshift({ at: now(), by: S.me, act: '사용자 초대', target: u.name, detail: what }); toast('초대 메일을 보냈습니다'); render(); } }); },
+  seedRule: el => { const cid = el.dataset.cid, ty = el.dataset.ty; const lt = latestDS(ty); const a = assignOf(cid, ty);
+    showModal({ title: `${ty} 교정 규칙 시드`, sub: `${Cu(cid).name} × ${ty} 조합에 ${ty} v${lt.v}을 유효 데이터셋으로 연결합니다.`, body: () => `<div class="ro-box small"><b>규칙 ${lt.rules.length}개</b>${lt.rules.slice(0, 6).map(r => `<div>${esc(r.p)} > ${esc(r.s)}  <span class="muted">${esc(r.r)}</span></div>`).join('')}${lt.rules.length > 6 ? `<div class="muted">외 ${lt.rules.length - 6}개</div>` : ''}</div>
+      <p class="small muted">${a ? `현재 연결: v${S.datasets.find(d => d.id === a.dsId).v}` : '현재 연결된 기준이 없습니다.'} 이미 실행한 교정 결과는 바뀌지 않고, 이후 실행부터 적용됩니다.</p>`, ok: '시드 적용', onOk: () => {
+        if (a) { a.dsId = lt.id; a.at = now(); a.by = S.me; a.checkedAt = now(); a.checkedBy = S.me; }
+        else S.assign.push({ id: uid('as'), cid, type: ty, dsId: lt.id, at: now(), by: S.me, checkedAt: now(), checkedBy: S.me });
+        S.seedLog.unshift({ at: now(), cid, by: S.me, act: '교정 규칙 시드', target: `${ty} v${lt.v}`, result: `규칙 ${lt.rules.length}개 연결, 이후 실행부터 적용` });
+        toast('유효 데이터셋을 연결했습니다'); render(); } }); },
+  seedSample: el => { const cid = el.dataset.cid; const ps = S.projects.filter(p => p.cid === cid && p.active); const c = Cu(cid);
+    const reqUsers = ps.flatMap(p => Object.entries(p.members).filter(([, rs]) => rs.includes('requester')).map(([u]) => u));
+    showModal({ title: '샘플 요청·콘텐츠 생성', sub: '시연과 교육용 데이터입니다. 실적 집계에서 제외하고 샘플 초기화로만 지웁니다.', m: { pid: ps[0]?.id || '', type: '알림톡' },
+      body: () => `<div class="grid2">${mSel('pid', '프로젝트', ps.map(p => [p.id, p.name]))}${mSel('type', '콘텐츠 유형', S.types.filter(x => x.active).map(x => [x.k, x.k]))}</div>
+      <p class="small muted">작성 중 샘플 요청 1건을 만듭니다. 요청자 역할 사용자가 없으면 운영 담당자 이름으로 기록됩니다.</p>`, ok: '생성', onOk: () => {
+        if (!ps.length) { toast('사용 중인 프로젝트가 없습니다'); return false; }
+        const pid = M('pid'), ty = M('type');
+        const by = Object.entries(P(pid).members).find(([, rs]) => rs.includes('requester'))?.[0] || reqUsers[0] || S.me;
+        const r = makeDraft(pid, { type: ty, title: `[샘플] ${ty} 작성 연습`, purpose: '화면 사용 연습', target: '샘플 대상 고객', bg: '도입 교육용 샘플', hopeDue: at(7) });
+        r.by = by; r.demo = true; r.contents[0].f = blankF(ty);
+        if (ty === '알림톡') r.contents[0].f.body = '#{고객명}님, 샘플 안내 문안입니다. 내용을 바꿔 보세요.';
+        if (ty === '문자') { r.contents[0].f.body = '[' + c.name + '] 샘플 안내 문안입니다.'; r.contents[0].f.sender = P(pid).senders[0] || ''; }
+        log(r, '샘플 요청 생성', '초기 설정에서 생성한 샘플');
+        S.seedLog.unshift({ at: now(), cid, by: S.me, act: '샘플 요청 생성', target: r.id, result: `${P(pid).name}, ${ty}, 작성 중` });
+        toast('샘플 요청을 만들었습니다'); render(); } }); },
+  seedClear: el => { const cid = el.dataset.cid; const ps = S.projects.filter(p => p.cid === cid);
+    const demo = S.requests.filter(r => r.demo && ps.some(p => p.id === r.pid)); const real = S.requests.filter(r => !r.demo && ps.some(p => p.id === r.pid));
+    showModal({ title: '샘플 데이터만 초기화할까요?', sub: '실제 운영 요청, 완료 묶음, 업무 이력은 지우지 않습니다.', body: () => `<dl class="kv"><dt>삭제 대상</dt><dd>샘플 요청 ${demo.length}건</dd><dt>보존</dt><dd>운영 요청 ${real.length}건과 완료 묶음, 업무 이력 전체</dd></dl>
+      <p class="small faint">${flag('샘플 초기화 범위 협의 22')}</p>`, ok: '샘플 초기화', okCls: 'warn', onOk: () => {
+        const ids = demo.map(r => r.id); S.requests = S.requests.filter(r => !ids.includes(r.id));
+        S.notifs = S.notifs.filter(n => !ids.includes(n.req));
+        UI.tabs.filter(t => t.route === 'request' && ids.includes(t.p.id)).forEach(t => closeTab(t.id, true));
+        S.seedLog.unshift({ at: now(), cid, by: S.me, act: '샘플 초기화', target: `${demo.length}건`, result: `운영 요청 ${real.length}건은 보존` });
+        S.audit.unshift({ at: now(), by: S.me, act: '샘플 데이터 초기화', target: Cu(cid).name, detail: `샘플 ${demo.length}건 삭제, 운영 데이터 보존` });
+        toast(`샘플 ${demo.length}건을 지웠습니다`); render(); } }); },
+  asConfirm: el => { const a = S.assign.find(x => x.id === el.dataset.id); a.checkedAt = now(); a.checkedBy = S.me;
+    S.audit.unshift({ at: now(), by: S.me, act: '유효 데이터셋 확인', target: `${Cu(a.cid).name} × ${a.type}`, detail: `v${S.datasets.find(d => d.id === a.dsId).v}` }); render(); },
   ty: el => { const t = activeTab(); t.st.ty = el.dataset.k; t.st.ds = null; t.st.conf = null; t.st.showDiff = false; render(); },
   guideSave: () => { const t = activeTab(); const g = S.guides[t.st.ty]; g.principles = $('#g-pr').value; g.good = $('#g-gd').value.split('\n').filter(Boolean).map(l => l.split('>').map(s => s.trim())); g.check = $('#g-ck').value.split('\n').map(s => s.trim()).filter(Boolean); S.guideLog.unshift({ type: t.st.ty, at: now(), by: S.me, what: '가이드·체크리스트 수정' }); toast('가이드를 저장했습니다'); render(); },
   dsSel: el => { const t = activeTab(); t.st.ds = el.dataset.id; t.st.conf = null; t.st.showDiff = false; render(); },
@@ -2081,7 +2437,7 @@ const A = {
   dsRestore: () => { const t = activeTab(); const src = S.datasets.find(x => x.id === t.st.ds); const list = S.datasets.filter(x => x.type === src.type); const cur_ = list.filter(x => x.status === 'deployed').sort((a, b) => b.v - a.v)[0];
     deployModal(src, `v${src.v} 내용을 새 버전으로 복원 배포`, () => { const n = { id: uid('ds'), type: src.type, v: Math.max(...list.map(x => x.v)) + 1, status: 'deployed', rules: clone(src.rules), at: now(), by: S.me, restoredFrom: src.v }; S.datasets.push(n); S.audit.unshift({ at: now(), by: S.me, act: '교정 데이터셋 복원', target: `${src.type}`, detail: `v${cur_.v} → v${n.v} (v${src.v} 내용)` }); t.st.ds = n.id; return n; }); },
   noticeEdit: el => { const n = S.notices.find(x => x.id === el.dataset.id); const ps = S.projects.filter(p => p.cid === S.cid);
-    showModal({ title: n ? '공지 수정' : '공지 작성', m: n ? { scope: n.scope, pid: n.pid || ps[0].id, title: n.title, body: n.body, bundle: n.bundle || '' } : { scope: 'project', pid: S.pid, bundle: '' }, body: () => `${mSel('scope', '공지 범위', [['project', '프로젝트 공지'], ['customer', `고객사 전체 공지 (${Cu(S.cid).name})`], ['common', '공통 운영 공지'], ['standard', '기준 변경 공지']])}
+    showModal({ title: n ? '공지 수정' : '공지 작성', m: n ? { scope: n.scope, pid: n.pid || ps[0].id, title: n.title, body: n.body, bundle: n.bundle || '' } : { scope: 'project', pid: S.pid, bundle: '' }, body: () => `${mSel('scope', '공지 범위', [['project', '프로젝트 공지'], ['customer', `고객사 전체 공지 (${Cu(S.cid).name})`]])}
       ${M('scope') === 'project' ? mSel('pid', '프로젝트', ps.map(p => [p.id, p.name])) : ''}${M('scope') === 'standard' ? mSel('bundle', '연결할 배포 묶음', [['', '선택'], ...S.bundles.map(b => [b.id, `${b.id}  ${b.type} v${b.v}  ${fD(b.at)}`])], 1) : ''}
       ${M('scope') === 'customer' ? '<p class="small muted" style="margin-top:0">고객사 전체 구성원에게 보이며 프로젝트나 역할로 거르지 않습니다.</p>' : ''}${mIn('title', '제목', '', 1)}${mTa('body', '내용', '', 1)}`, ok: n ? '수정' : '게시', onOk: () => {
         if (!need(['title', '제목'], ['body', '내용'])) return false; if (M('scope') === 'standard' && !M('bundle')) { toast('기준 변경 공지는 배포 묶음에 연결해야 합니다'); return false; }
