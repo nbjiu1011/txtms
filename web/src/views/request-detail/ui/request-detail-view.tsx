@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useLayoutEffect } from "react";
 import { Button, Empty, Page, Panel, RoundBadge } from "@/shared/ui";
 import { projectRoles } from "@/entities/me";
 import { RequestStatusChip } from "@/entities/request";
@@ -106,7 +106,7 @@ interface ReadyBodyProps {
 function useCombinedDirty(setDirty: (dirty: boolean) => void) {
   const parts = useRef({ draft: false, revision: false });
   const target = useRef(setDirty);
-  useEffect(() => {
+  useLayoutEffect(() => {
     target.current = setDirty;
   });
   const update = useCallback((part: "draft" | "revision", dirty: boolean) => {

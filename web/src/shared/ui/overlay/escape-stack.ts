@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useLayoutEffect } from "react";
 
 /**
  * Escape closes exactly one overlay per key press, in this order:
@@ -50,7 +50,7 @@ function install() {
 /** Registers an Escape handler while `active`. */
 export function useEscapeLayer(active: boolean, priority: number, onEscape: () => void): void {
   const handlerRef = useRef(onEscape);
-  useEffect(() => {
+  useLayoutEffect(() => {
     handlerRef.current = onEscape;
   }, [onEscape]);
 

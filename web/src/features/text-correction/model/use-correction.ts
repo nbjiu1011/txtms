@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useLayoutEffect } from "react";
 import { isApiError } from "@/shared/api";
 import { toast } from "@/shared/ui";
 import { correctionApi, type CorrectionCheckItem } from "@/entities/correction";
@@ -122,7 +122,9 @@ export function useCorrection(options: UseCorrectionOptions): CorrectionControll
   const [state, setState] = useState<TabCorrection>({ runs: {}, bulk: null });
   const [checking, setChecking] = useState<"one" | "all" | null>(null);
   const latest = useRef({ state, options });
-  useEffect(() => {
+  // Layout effect, not a passive one: a click right after new results render must already see them,
+  // otherwise apply/restore read the previous state and silently do nothing.
+  useLayoutEffect(() => {
     latest.current = { state, options };
   });
   const busy = useRef(false);

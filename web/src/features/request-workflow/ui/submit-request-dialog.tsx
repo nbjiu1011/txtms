@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useLayoutEffect } from "react";
 import { isApiError, type FieldError } from "@/shared/api";
 import { Modal, toast } from "@/shared/ui";
 import { requestApi, type RequestDetail } from "@/entities/request";
@@ -65,7 +65,7 @@ export function SubmitRequestDialog(props: SubmitRequestDialogProps) {
     if (!open) setConfirming(false);
   }
   const handlers = useRef(props);
-  useEffect(() => {
+  useLayoutEffect(() => {
     handlers.current = props;
   });
 

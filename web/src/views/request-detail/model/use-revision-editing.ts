@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, useLayoutEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { isApiError } from "@/shared/api";
 import { toast } from "@/shared/ui";
@@ -73,7 +73,7 @@ export function useRevisionEditing(
   const client = useQueryClient();
   const id = request.id;
   const dirtyRef = useRef(setDirty);
-  useEffect(() => {
+  useLayoutEffect(() => {
     dirtyRef.current = setDirty;
   });
   const [saving, setSaving] = useState<string | null>(null);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, useLayoutEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   requestApi,
@@ -29,7 +29,7 @@ export interface DraftSessionOptions {
 export function useDraftSession({ requestId, tabId, setDirty, onError }: DraftSessionOptions): DraftSession {
   const client = useQueryClient();
   const handlers = useRef({ setDirty, onError });
-  useEffect(() => {
+  useLayoutEffect(() => {
     handlers.current = { setDirty, onError };
   });
 
