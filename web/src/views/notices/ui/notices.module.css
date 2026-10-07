@@ -1,0 +1,9 @@
+/* reference expanded body `<p style="margin:10px 0 2px;white-space:pre-wrap;color:var(--ink)">` */
+.list span.body {
+  display: block;
+  margin: 10px 0 2px;
+  white-space: pre-wrap;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.55;
+}

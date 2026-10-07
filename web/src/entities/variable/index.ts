@@ -7,4 +7,4 @@ export type {
   VariableSnapshot,
   VariableType,
 } from "./model/types";
-export { createVariable, useProjectVariables, variableKeys } from "./api/variable-queries";
+export { createVariable, useProjectVariables, useVariableLogs, variableApi, variableKeys } from "./api/variable-queries";

@@ -18,8 +18,10 @@ export interface NotificationsPopoverProps {
   onOpenRequest: (requestId: string) => Promise<boolean>;
 }
 
-function metaText(n: Notification): string {
-  const parts = [formatDateTime(n.createdAt), n.read ? "읽음" : "안 읽음", n.pending ? "업무 미처리" : "업무 처리 완료"];
+/** Reference J:223: 처리 완료 only for a notification with a request the user no longer has work on. */
+export function notificationMeta(n: Notification): string {
+  const done = n.requestId !== null && !n.pending;
+  const parts = [formatDateTime(n.createdAt), n.read ? "읽음" : "안 읽음", done ? "업무 처리 완료" : "업무 미처리"];
   if (n.renotify) parts.push("재통지");
   return parts.join(" · ");
 }
@@ -61,7 +63,7 @@ export function NotificationsPopover({ open, anchor, onClose, onOpenRequest }: N
               <span className={styles.ud} aria-hidden="true" />
               <span className={styles.nm}>
                 {n.text}
-                <span>{metaText(n)}</span>
+                <span>{notificationMeta(n)}</span>
               </span>
             </button>
           ))

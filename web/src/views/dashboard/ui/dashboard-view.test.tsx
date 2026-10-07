@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { API_SNAPSHOT, dashboardU1, dashboardU11, dashboardU3, request102U1, requestListU1 } from "@fixtures/api-snapshot";
-import { formatKstToday } from "@/shared/lib";
+import { formatKstToday, useViewIntent } from "@/shared/lib";
 import type { Customer } from "@/entities/customer";
 import { dashboardKeys, type Dashboard } from "@/entities/dashboard";
 import type { Me } from "@/entities/me";
@@ -114,5 +114,16 @@ describe("DashboardView", () => {
     expect(screen.getByText("고객사 관리자 권한으로 보고 있습니다")).toBeTruthy();
     expect(screen.getByText("처리할 일이 없습니다")).toBeTruthy();
     expect(screen.getByRole("button", { name: "고객사 진행 중 7건" })).toBeTruthy();
+  });
+
+  it("opens 접근·변경 기록 from the admin banner and a notice row expanded on 공지", () => {
+    const { openTab } = setup(11, dashboardU11);
+    fireEvent.click(screen.getByRole("button", { name: "접근 기록 보기" }));
+    expect(useViewIntent.getState().intents.adminUsers).toBe("audit");
+    expect(openTab).toHaveBeenLastCalledWith({ route: "adminUsers", params: {} });
+    const notice = dashboardU11.notices[0];
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(notice.title) }));
+    expect(useViewIntent.getState().intents.notices).toBe(String(notice.id));
+    expect(openTab).toHaveBeenLastCalledWith({ route: "notices", params: {} });
   });
 });

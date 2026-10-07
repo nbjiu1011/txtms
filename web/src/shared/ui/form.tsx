@@ -97,3 +97,27 @@ export function Checkbox({ label, labelClassName, className, ref, ...rest }: Che
     </label>
   );
 }
+
+export interface ErrorDetailsProps {
+  /** Lead sentence (usually the server message). */
+  message?: ReactNode;
+  items: string[];
+  className?: string;
+}
+
+/** Server `details` of a refused write (blocking requests, missing items) as a danger list. */
+export function ErrorDetails({ message, items, className }: ErrorDetailsProps) {
+  if (!message && items.length === 0) return null;
+  return (
+    <div role="alert" className={cn(styles.details, className)}>
+      {message ? <b>{message}</b> : null}
+      {items.length ? (
+        <ul>
+          {items.map((item, i) => (
+            <li key={i}>{item}</li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}

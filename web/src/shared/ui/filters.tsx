@@ -11,6 +11,8 @@ export const filterClasses = {
   reset: styles.reset,
   /** Checkbox label aligned with the controls. */
   check: styles.check,
+  /** Row of controls under one label (e.g. two dates without a separator). */
+  range: styles.range,
 };
 
 export interface FilterBarProps {

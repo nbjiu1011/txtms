@@ -65,6 +65,10 @@ export interface PerformancePerson {
 }
 
 export interface Performance {
+  /** Applied period (KST dates, both ends inclusive) and projects. */
+  fromDate: string;
+  toDate: string;
+  projectIds: number[];
   received: number;
   receivedContents: number;
   receivedCompleted: number;
@@ -77,8 +81,9 @@ export interface Performance {
   workload: WorkloadRow[];
 }
 
+/** Query of `GET /api/performance` (omitted keys: all permitted projects, last 30 days, every reviewer). */
 export interface PerformanceParams {
-  customerId?: number;
+  customerId: number;
   projectId?: number;
   from?: string;
   to?: string;

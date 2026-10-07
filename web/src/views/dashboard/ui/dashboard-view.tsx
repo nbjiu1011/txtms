@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatKstToday } from "@/shared/lib";
-import { ROUTES } from "@/shared/config/routes";
+import { formatKstToday, useViewIntent } from "@/shared/lib";
 import { Banner, Button, Empty, Kpi, KpiGrid, Page, PageHeader, Panel } from "@/shared/ui";
 import { useDashboard } from "@/entities/dashboard";
 import { projectRoles } from "@/entities/me";
@@ -101,7 +100,21 @@ export function DashboardView({ me, context, openTab }: WorkViewProps) {
     <Page>
       {header}
       {data.adminViewing ? (
-        <Banner tone="info" title="고객사 관리자 권한으로 보고 있습니다">
+        <Banner
+          tone="info"
+          title="고객사 관리자 권한으로 보고 있습니다"
+          actions={
+            <Button
+              size="sm"
+              onClick={() => {
+                useViewIntent.getState().request("adminUsers", "audit");
+                openTab({ route: "adminUsers", params: {} });
+              }}
+            >
+              접근 기록 보기
+            </Button>
+          }
+        >
           소속 고객사의 모든 프로젝트를 조회할 수 있지만 검수와 최종 승인은 관리 권한으로 처리할 수 없습니다. 다른
           요청자가 작성 중인 요청은 보이지 않습니다.
         </Banner>
@@ -144,7 +157,11 @@ export function DashboardView({ me, context, openTab }: WorkViewProps) {
           <NoticePanel
             notices={data.notices}
             projects={context.projects}
-            onShowAll={ROUTES.notices.enabled ? () => openTab({ route: "notices", params: {} }) : undefined}
+            onShowAll={() => openTab({ route: "notices", params: {} })}
+            onOpen={(id) => {
+              useViewIntent.getState().request("notices", String(id));
+              openTab({ route: "notices", params: {} });
+            }}
           />
         </div>
       </div>

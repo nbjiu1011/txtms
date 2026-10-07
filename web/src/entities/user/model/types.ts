@@ -25,12 +25,13 @@ export interface Member {
   invitationExpiresAt: string | null;
 }
 
+/** `POST /api/customers/{id}/invitations` body. */
 export interface MemberInvite {
   email: string;
   name: string;
   dept: string;
-  projectId: number;
-  role: ProjectRole;
+  projectId: number | null;
+  role: ProjectRole | null;
   externalDomainConfirmed: boolean;
 }
 

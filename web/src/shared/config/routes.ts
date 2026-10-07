@@ -72,16 +72,16 @@ export const ROUTES: Record<RouteKey, RouteDef> = {
     icon: "chart",
     group: "work",
     access: "performance",
-    enabled: false,
+    enabled: true,
   },
-  notices: { key: "notices", title: "공지", icon: "mega", group: "work", access: "always", enabled: false },
+  notices: { key: "notices", title: "공지", icon: "mega", group: "work", access: "always", enabled: true },
   adminProjects: {
     key: "adminProjects",
     title: "프로젝트 관리",
     icon: "folder",
     group: "admin",
     access: "admin",
-    enabled: false,
+    enabled: true,
   },
   adminVariables: {
     key: "adminVariables",
@@ -89,7 +89,7 @@ export const ROUTES: Record<RouteKey, RouteDef> = {
     icon: "brace",
     group: "admin",
     access: "admin",
-    enabled: false,
+    enabled: true,
   },
   adminUsers: {
     key: "adminUsers",
@@ -97,7 +97,7 @@ export const ROUTES: Record<RouteKey, RouteDef> = {
     icon: "users",
     group: "admin",
     access: "admin",
-    enabled: false,
+    enabled: true,
   },
   adminCustomer: {
     key: "adminCustomer",
@@ -105,7 +105,7 @@ export const ROUTES: Record<RouteKey, RouteDef> = {
     icon: "build",
     group: "admin",
     access: "admin",
-    enabled: false,
+    enabled: true,
   },
   adminNotices: {
     key: "adminNotices",
@@ -113,7 +113,7 @@ export const ROUTES: Record<RouteKey, RouteDef> = {
     icon: "mega",
     group: "admin",
     access: "admin",
-    enabled: false,
+    enabled: true,
   },
   opsCustomers: {
     key: "opsCustomers",

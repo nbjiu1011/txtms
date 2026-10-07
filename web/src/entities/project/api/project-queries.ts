@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { http, queryKeys } from "@/shared/api";
-import type { Project } from "../model/types";
+import type { Project, ProjectUpsert } from "../model/types";
 
 export const projectKeys = {
   all: queryKeys.all("projects"),
@@ -34,3 +34,10 @@ export function useProject(id: number | null) {
     staleTime: 5 * 60_000,
   });
 }
+
+/** Customer admin project writes (contract §11). Callers invalidate `projectKeys.all`. */
+export const projectApi = {
+  create: (customerId: number, body: ProjectUpsert) => http.post<Project>(`/customers/${customerId}/projects`, body),
+  /** Partial update: omitted keys stay; `approverIds` replaces the approver set when present. */
+  update: (projectId: number, body: Partial<ProjectUpsert>) => http.patch<Project>(`/projects/${projectId}`, body),
+};

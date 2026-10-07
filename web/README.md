@@ -34,6 +34,8 @@ section is hidden) and protected URLs redirect to `/login?next=…`.
 | `npm run e2e:real:review` | assignment → review → approval flow against a running API in demo mode (see below) |
 | `npm run e2e:real:result` | completion results, exports, follow-ups and the content archive against a running API (see below) |
 | `npm run e2e:real:correction` | text correction (check, apply / swap / restore, full check, suggestions) against a running API (see below) |
+| `npm run e2e:real:admin` | customer admin screens, notices and performance against a running API (see below) |
+| `npm run e2e:real:admin-visual` | M5/M6 screens and modals next to the prototype, app on the running API (see below) |
 
 ### Visual comparison harness (`e2e/visual/`)
 
@@ -142,6 +144,26 @@ run raises C1 by two versions). A 자유입력형 draft drops its result once a 
 `C1 · 첨부파일로 제외`) and does not get it back after the file is removed. 문지아 (customer 2, no 자유입력형 dataset) sees
 `배정 필요` and the server message on click. Screenshots `correction-*.png` in `e2e/real/out/`.
 
+### Real-API flow (`e2e/real/admin-flow.mjs`)
+
+강민호 (customer admin, 한빛카드): 프로젝트 추가 (required-field toasts, lead + approver) → 사용자 초대 of an external
+address (warning banner, first click = confirmation toast, second click invites) → 초대 재발급 → the sample customer's
+outbox shows the full `/invite/{token}` link → the invitee opens it in a fresh context, sets name + password and is
+signed in (email login works afterwards) → 역할 관리 (requester/reviewer exclusivity, saved as reviewer) → 공지 작성
+(customer scope; 김서연 sees and expands it, 문지아 of 도담생명 does not) → 수정 (`수정됨`) → 철회 (gone for 김서연) →
+변수 등록 (type error toast) / 편집 / 삭제, `customer_name` in use: 삭제 disabled and the API refuses → 고객사 설정
+(due-soon days and name with toasts, restored) → 비활성화 of 김서연 refused by the server with the details list →
+the invitee made lead of the new project, 비활성화 asks for a substitute + handover, the lead moves to 박지훈 →
+재활성화 → 접근·변경 기록 tab. A throwaway customer created through the ops API shows the masked outbox (`링크 가림`,
+`••••`, `링크는 수신자에게만 전달됩니다`) to its admin signed in by email; that customer is deactivated. 이도현 opens
+업무량·실적 (all projects, user filter, an invalid period shows the server error). Screenshots `admin-*.png`.
+
+`e2e/real/admin-visual.mjs` captures the prototype and the app (same persona, live API data) for 업무량·실적, 공지, the five
+admin pages and the project / variable / invite / role / notice modals as `visual-*.side-by-side.png` in `e2e/real/out`
+(1440×900: 0.3–2.6% differing pixels where the data matches; the users table and role modal differ more once E2E runs
+added projects). Intended differences: data, enum labels for variable types, no operator notices (Phase 2), the
+`접근·변경 기록` sub tab and the outbox title.
+
 Against the real API: `API_ORIGIN=http://localhost:8080 npm run dev`, then sign in with a demo persona.
 If a dev server already runs, `VISUAL_PORT=3000 npm run e2e:visual` reuses it.
 
@@ -153,13 +175,16 @@ src/
 │                  (app)/layout.tsx + (app)/[[...slug]] (renders nothing; the shell renders views),
 │                  globals.css (tokens), providers.tsx
 ├─ views/          login, token-password, dashboard, request-list, request-detail (+ content tab), review,
-│                  approval, content-archive, profile
-├─ widgets/        app-shell (sidebar, top bar, work tabs, popovers, tab store), auth-layout (login hero)
+│                  approval, content-archive, performance, notices, admin-projects, admin-variables,
+│                  admin-users, admin-customer, admin-notices, profile
+├─ widgets/        app-shell (sidebar, top bar, work tabs, popovers, tab store), auth-layout (login hero),
+│                  workload-table (검수자별 업무량, shared by 검수 › 배정 관리 and 업무량·실적)
 ├─ features/       auth (login, demo personas, reset request, token password, session), profile-edit,
 │                  request-create (new, clone, follow-up), request-workflow (submit/cancel, assignment, schedule, recall, opinions,
 │                  asks/answers, completion, approval, unlock), completed-output (copy,
 │                  XLSX/ZIP export), variable-picker, bulk-import, text-correction (panel, cards,
-│                  apply/restore offsets, freshness, 건의하기)
+│                  apply/restore offsets, freshness, 건의하기), customer-admin (project, variable, invite, roles,
+│                  deactivation, email, notice and settings forms; row actions)
 ├─ entities/       me, customer, project, user, request, variable, correction, dashboard,
 │                  notification, notice, audit, ops — contract types + label maps (+ small queries)
 └─ shared/         api (http client, XHR upload, blob GET, ApiError, query client/keys), config (env, routes), lib, ui (kit + icons)
@@ -220,7 +245,8 @@ URL scheme (`src/shared/config/routes.ts`, `pathToTab` / `tabToPath`):
 | `/requests/{id}` | draft authoring and review workflow (below) — header (breadcrumb, chips, round, tags, meta, status track, sub tabs), banners, work grid (content list with 편집 중 / 수정 중 markers, type editors, lock bars, guide drawer, version compare), side panel (교정 panel and result cards, 미리보기 mockups, 의견 + form, 확인 요청 thread + ask / answer forms), 요청 정보, 히스토리 (merged, round separators, filter), 완료 결과 (bundle, XLSX/ZIP export, copy, variables). Not-found / denied states |
 | `/requests/{id}/contents/{key}` | content header + two-column work grid (draft autosave or review-time revision editing) |
 | `/contents` | done — completed contents by lineage (`GET /api/archive/contents`, 20 per page + 더 보기), filters (text debounced 250ms, type, campaign from `GET /api/archive/campaigns`, status, completion date, 초기화), expand past completions / follow-ups, 복사, 새 탭, 후속 요청 (requesters), empty / loading / error / no-permission states |
-| other routes | not listed in menus; direct URL shows "아직 제공되지 않는 화면입니다" |
+| `/performance`, `/notices`, `/admin/*` | done — see "Work management and customer admin (M5 + M6)" |
+| `/ops/*` | not listed in menus; direct URL shows "아직 제공되지 않는 화면입니다" |
 
 ### Request authoring (M1)
 
@@ -347,6 +373,38 @@ URL scheme (`src/shared/config/routes.ts`, `pathToTab` / `tabToPath`):
 - **건의하기** modal: content key, matched text and the current options, required `건의 이유` (2,000자) → `POST …/suggestions`
   (`ruleIds` = the group's rules) → `건의를 보냈습니다`.
 
+### Work management and customer admin (M5 + M6)
+
+- **업무량·실적** (`views/performance`, lead of the selected projects or customer admin): filters 기간 (접수일 KST: 이번 달 /
+  최근 30일 / 최근 90일), 접수일 직접 지정 (two KST dates; a typed start wins over the preset, a missing end = today on the
+  server, both ends inclusive), 프로젝트 (led projects, all customer projects for an admin, + `권한 있는 전체` = no
+  `projectId`), 사용자 (active reviewers of the target projects) → `GET /api/performance`. KPI tiles 접수 요청 / 접수 집단
+  완료율 (`–` when nothing was received, one decimal) / 기간 내 완료량 / 현재 진행, 개인 실적 table with bars, 현재 업무량
+  (the server's workload of every target project, `widgets/workload-table`). A refused query (e.g. start after end) shows
+  the server message.
+- **공지** (`views/notices`): accordion of `GET /api/notices?customerId` (`{범위}  {작성자}  {M/D HH:mm}` + `수정됨`), admins
+  get `공지 관리`. Dashboard notice rows open this tab with that notice expanded (`useViewIntent` hand-off in
+  `shared/lib`); the dashboard admin banner's `접근 기록 보기` opens 사용자·권한 관리 on `접근·변경 기록`.
+- **고객사 관리** menus (customer admins of the selected customer, also in the add-tab popover): 프로젝트 관리 (table with
+  in-progress counts, 프로젝트 추가 / 편집 modal: lead, approver checklist on approval customers, 사용 중 + stop warning),
+  변수 관리 (project select, 사용 = 활성/중지 + ` · 사용 중`, 이력 from the variable logs, 편집 / 삭제 — 삭제 disabled while in
+  use, `PATCH` sends changed keys only), 사용자·권한 관리 (members with project role columns, pending invitations with 초대
+  재발급, 역할 / 이메일 / 비활성화 / 재활성화; 사용자 초대 with the external-domain confirmation — a client warning plus a
+  held first click, and a server `EXTERNAL_DOMAIN_CONFIRM_REQUIRED` also counts as that step so the next click resends
+  with `externalDomainConfirmed: true`; 역할 관리 with live requester/reviewer exclusivity, the lead's reviewer locked,
+  approver only on approval customers, only changed projects are sent; 비활성화 loads the deactivation impact first — a
+  review in 확인 요청 / 승인 대기 is refused with the reference toast, otherwise the modal shows 진행 중 검수 / 대표 검수자 /
+  승인 대기 이후 plus blocking rows, substitute + handover when reviews or lead projects move; 메일 발송 대기함 paged, `링크
+  가림` on masked mails; `접근·변경 기록` sub tab = the customer audit log), 고객사 설정 (approval stage read-only; name saves
+  on blur/Enter, channel and due-soon days at once, toasts as the reference), 공지 관리 (table with logs, 공지 작성 / 수정
+  modal, 철회 confirmation).
+- Modal errors: client checks toast the first problem (reference wording); a refused write toasts the server message,
+  puts `fieldErrors` under their fields and shows `details` as a list in the modal (`ErrorDetails`); the modal stays open.
+- Notification popover: `업무 처리 완료` only for a notification with a request and no pending work, plus `재통지`.
+- Dashboard KPIs are drawn from the server array as they come (requesters also get 납기 임박, reviewers 확인 요청
+  `MY_ASSIGNED_CONFIRMING`); the KPI list modal uses the same view. Correction freshness uses the newer of the request's
+  and the project's `variablesRevision`.
+
 ## shared/ui components
 
 Button (default/pri/ok/warn/ghost, sm) · IconButton (badge) · Tag (hot/flag/recall/fill) · StatusChip ·
@@ -355,7 +413,9 @@ PanelBody · FilterBar/FilterField/DateRangeFilter (+ `filterClasses`) · Table 
 Label/Hint/ErrorMessage/Input/Select/Textarea/Checkbox · Modal (focus trap, Escape, scrim, busy-safe async
 `onOk`, 560/900, ok variant default/pri/ok/warn) · Popover (+ header/body/section/item) · Drawer · Toaster/`toast()` (single, 2.8s,
 `role=status`) · LockBar · ReadOnlyBox · KeyValueList · Bar · SaveIndicator · ProgressTrack · BrandMark ·
-Page/PageHeader (`rawEyebrow` for the dashboard date) · Icon (all reference icons + `send` for 건의하기) · TypeGlyph.
+Page/PageHeader (`rawEyebrow` for the dashboard date) · Icon (all reference icons + `send` for 건의하기) · TypeGlyph ·
+ErrorDetails (server refusal message + `details`). ListItem takes `extra` / `expanded` (accordion rows), Kpi an omitted
+`tone` (no accent stripe).
 
 Accessibility fixes over the reference (no visual change): tab title button is the `role=tab`
 (`aria-selected`) with the close button as a sibling, `aria-current` on the active menu, `aria-selected` /
@@ -364,11 +424,12 @@ the bell's accessible name, Escape/outside click closes the mobile menu.
 
 ## Not implemented yet / stubs
 
-- Performance, notices, admin and ops screens.
+- Operator (ops) screens.
 - Dark theme (light only).
 
 ## PR order
 
 PR1 foundation (tokens, fonts, shared/ui, API client, entities) → PR2 shell + auth pages → PR3 dashboard +
 request list + read-only request detail (M0 part 2) → PR4 request authoring (M1) → PR5 assignment, review and
-approval (M2 + approval part of M3) → PR6 completion results, archive and follow-ups (M3) → PR7… correction, admin.
+approval (M2 + approval part of M3) → PR6 completion results, archive and follow-ups (M3) → PR7 correction (M4) → PR8 work management + customer admin (M5 + M6) →
+PR9 ops.

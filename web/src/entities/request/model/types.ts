@@ -306,6 +306,8 @@ export interface RequestDetail extends RequestSummary {
    * means unknown.
    */
   nextSubmitRound?: number;
+  /** Project variable revision at read time (correction result freshness, contract §14.4). */
+  variablesRevision?: number;
 }
 
 /** Editable request info keys (PATCH /api/requests/{id}). */
@@ -432,6 +434,8 @@ export const REQUEST_LIST_VIEWS = [
   "CUSTOMER_COMPLETED",
   "MY_ASSIGNED_ACTIVE",
   "MY_ASSIGNED_DONE",
+  /** Reviewer KPI 확인 요청: assigned requests waiting for the requester's answer. */
+  "MY_ASSIGNED_CONFIRMING",
   "APPROVAL_QUEUE",
   "APPROVAL_PROCESSED",
 ] as const;

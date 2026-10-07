@@ -1,4 +1,6 @@
 export { ApiError, isApiError, toApiErrorBody } from "./api-error";
+export { serverFormError } from "./form-errors";
+export type { ServerFormError } from "./form-errors";
 export type { ApiErrorBody, ApiErrorCode, FieldError } from "./api-error";
 export { accessTokenStore, getAccessToken, setAccessToken } from "./access-token";
 export { buildUrl, configureHttpClient, downloadFile, getBlob, http, refreshSession, request } from "./http-client";

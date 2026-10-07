@@ -1,7 +1,7 @@
 import { formatDate } from "@/shared/lib";
 import { Avatar, Bar, Button, Empty, ListItem, Panel, PanelBody, PanelHeader, StatusChip, Tag } from "@/shared/ui";
 import type { DashboardTodo, WorkloadRow } from "@/entities/dashboard";
-import type { NoticeSummary } from "@/entities/notice";
+import { noticeScopeText, type NoticeSummary } from "@/entities/notice";
 import type { Project } from "@/entities/project";
 import {
   CONTENT_TYPE_LABEL,
@@ -119,30 +119,26 @@ export function WorkloadPanel({ rows, users }: { rows: WorkloadRow[]; users: Use
   );
 }
 
-function noticeScopeLabel(notice: NoticeSummary, projects: Project[]): string {
-  if (notice.scope === "CUSTOMER") return "고객사 전체 공지";
-  const name = projects.find((p) => p.id === notice.projectId)?.name ?? "";
-  return `프로젝트 공지  ${name}`.trimEnd();
-}
-
 export function NoticePanel({
   notices,
   projects,
   onShowAll,
+  onOpen,
 }: {
   notices: NoticeSummary[];
   projects: Project[];
-  /** Opens the notices screen; omitted while that screen is not available (rows stay static). */
-  onShowAll?: () => void;
+  /** Opens the notices screen. */
+  onShowAll: () => void;
+  /** Opens the notices screen with this notice expanded. */
+  onOpen: (id: number) => void;
 }) {
+  const projectName = (id: number) => projects.find((p) => p.id === id)?.name;
   return (
     <Panel>
       <PanelHeader title="공지">
-        {onShowAll ? (
-          <Button size="sm" variant="ghost" className={styles.headBtn} onClick={onShowAll}>
-            전체
-          </Button>
-        ) : null}
+        <Button size="sm" variant="ghost" className={styles.headBtn} onClick={onShowAll}>
+          전체
+        </Button>
       </PanelHeader>
       {notices.length === 0 ? (
         <Empty title="공지가 없습니다" />
@@ -153,8 +149,8 @@ export function NoticePanel({
             <ListItem
               key={n.id}
               title={n.title}
-              meta={`${noticeScopeLabel(n, projects)}  ${formatDate(n.createdAt)}`}
-              onClick={onShowAll}
+              meta={`${noticeScopeText(n, projectName)}  ${formatDate(n.createdAt)}`}
+              onClick={() => onOpen(n.id)}
             />
           ))
       )}

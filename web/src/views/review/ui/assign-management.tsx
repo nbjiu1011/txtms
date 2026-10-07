@@ -1,10 +1,8 @@
 "use client";
 
-import { Fragment } from "react";
-import { Avatar, Bar, Button, Empty, ListItem, Panel, PanelBody, PanelHeader, Table, Tag } from "@/shared/ui";
-import { useWorkload, type WorkloadRow } from "@/entities/dashboard";
+import { Button, Empty, ListItem, Panel, PanelBody, PanelHeader } from "@/shared/ui";
+import { useWorkload } from "@/entities/dashboard";
 import {
-  FILE_UNIT_LABEL,
   REQUEST_LIST_PAGE_SIZE,
   RequestStatusChip,
   useRequests,
@@ -12,6 +10,7 @@ import {
   type RequestSummary,
 } from "@/entities/request";
 import type { UserDirectory } from "@/entities/user";
+import { WorkloadTable } from "@/widgets/workload-table";
 import { assignQueueMeta } from "../model/review-rows";
 import styles from "./review.module.css";
 
@@ -35,7 +34,7 @@ export function AssignManagement({ projectId, users, onOpen, onAssign }: AssignM
       <Panel>
         <PanelHeader title="검수자별 활성 요청과 업무량" />
         <PanelBody>
-          <WorkloadTable projectId={projectId} users={users} />
+          <ProjectWorkload projectId={projectId} users={users} />
         </PanelBody>
       </Panel>
     </>
@@ -101,10 +100,8 @@ function QueuePanel({ title, view, projectId, users, onOpen, onAssign }: QueuePa
   );
 }
 
-const WORKLOAD_COLUMNS = ["검수자", "활성 요청", "주담당", "납기 임박·지연", "문안 글자 수", "파일 실제 검수 범위"];
-
 /** Reviewer workload (`GET /api/projects/{id}/workload`, reference `workloadRows`). */
-export function WorkloadTable({ projectId, users }: { projectId: number; users: UserDirectory }) {
+export function ProjectWorkload({ projectId, users }: { projectId: number; users: UserDirectory }) {
   const workload = useWorkload(projectId);
   if (workload.isPending) return <Empty plain title="업무량을 불러오는 중입니다" />;
   if (workload.isError) {
@@ -117,61 +114,5 @@ export function WorkloadTable({ projectId, users }: { projectId: number; users: 
       />
     );
   }
-  const rows: WorkloadRow[] = workload.data;
-  const max = Math.max(1, ...rows.map((r) => r.active));
-  return (
-    <>
-      <Table>
-        <thead>
-          <tr>
-            {WORKLOAD_COLUMNS.map((c) => (
-              <th key={c}>{c}</th>
-            ))}
-            <th className={styles.loadCol}>부하</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => {
-            const user = users.get(row.userId);
-            const name = user?.name ?? "-";
-            return (
-              <tr key={row.userId}>
-                <td>
-                  <span className={styles.person}>
-                    <Avatar name={name} color={user?.avatarColor} size={22} />
-                    {name}
-                  </span>
-                </td>
-                <td>{row.active}</td>
-                <td>{row.primary}</td>
-                <td>{row.dueSoonOrOverdue}</td>
-                <td>{row.chars.toLocaleString("ko-KR")}자</td>
-                <td>
-                  {row.files.length ? (
-                    row.files.map((f, i) => (
-                      <Fragment key={f.unit}>
-                        {i > 0 ? " " : null}
-                        <Tag>
-                          {FILE_UNIT_LABEL[f.unit]} {f.amount}
-                        </Tag>
-                      </Fragment>
-                    ))
-                  ) : (
-                    <span className={styles.faint}>-</span>
-                  )}
-                </td>
-                <td>
-                  <Bar percent={(row.active / max) * 100} label={`${name} 부하`} />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </Table>
-      {rows.length === 0 ? <Empty plain title="검수자가 없습니다" /> : null}
-      <p className={styles.wlNote}>
-        파일 검수량은 파일 건수가 아니라 실제 검수 범위로 표시하며, 단위가 다르면 합산하지 않습니다.
-      </p>
-    </>
-  );
+  return <WorkloadTable rows={workload.data} users={users} />;
 }

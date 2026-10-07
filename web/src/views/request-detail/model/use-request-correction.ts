@@ -86,7 +86,9 @@ export function useRequestCorrection(options: UseRequestCorrectionOptions): Requ
       title: draft ? editing.session.content(c).title : c.title,
       fileCount: c.files.length,
     })),
-    variablesRevision: page.project?.variablesRevision ?? null,
+    // The detail carries the revision (refreshed with the request); the project query moves first
+    // after a variable is registered here — the newer of the two wins.
+    variablesRevision: newestRevision(r.variablesRevision, page.project?.variablesRevision),
     editor,
     adoptFor: ownKey ?? undefined,
     onVariablesAhead: () => void client.invalidateQueries({ queryKey: projectKeys.detail(r.projectId) }),
@@ -102,4 +104,10 @@ export function useRequestCorrection(options: UseRequestCorrectionOptions): Requ
   });
 
   return { controller, reveal, onRevealed: () => setReveal(null) };
+}
+
+/** Newer of two optional revisions (null when neither is known). */
+export function newestRevision(a: number | undefined, b: number | undefined): number | null {
+  if (a === undefined && b === undefined) return null;
+  return Math.max(a ?? -Infinity, b ?? -Infinity);
 }

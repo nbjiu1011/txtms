@@ -102,17 +102,18 @@ describe("CorrectionPanel", { timeout: 20_000 }, () => {
     expect(restore.disabled).toBe(true);
 
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "할 수" })));
-    expect(writes.at(-1)?.payload).toEqual(alimtalk("참여는 할 수 있습니다"));
-    expect(lastToast()).toBe("교정이 적용되었습니다.");
-    expect(api.event).toHaveBeenCalledWith("REQ-T", { contentKey: "C1", action: "APPLY", field: "body", before: "할수", after: "할 수" });
+    // Applying awaits the editor's begin() before writing; wait for the write instead of assuming one tick.
+    await waitFor(() => expect(writes.at(-1)?.payload).toEqual(alimtalk("참여는 할 수 있습니다")));
+    await waitFor(() => expect(lastToast()).toBe("교정이 적용되었습니다."));
+    await waitFor(() => expect(api.event).toHaveBeenCalledWith("REQ-T", { contentKey: "C1", action: "APPLY", field: "body", before: "할수", after: "할 수" }));
     rerender(<Harness contents={[{ key: "C1", title: "안내", fileCount: 0, payload: alimtalk("참여는 할수 있습니다") }]} />);
     expect(screen.getByRole("button", { name: "할 수" }).getAttribute("aria-pressed")).toBe("true");
     expect(screen.queryByText(STALE_NOTE)).toBeNull();
 
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "할수(으)로 복원" })));
-    expect(writes.at(-1)?.payload).toEqual(alimtalk("참여는 할수 있습니다"));
-    expect(lastToast()).toBe("교정이 취소되었습니다.");
-    expect(api.event).toHaveBeenLastCalledWith("REQ-T", { contentKey: "C1", action: "RESTORE", field: "body", before: "할 수", after: "할수" });
+    await waitFor(() => expect(writes.at(-1)?.payload).toEqual(alimtalk("참여는 할수 있습니다")));
+    await waitFor(() => expect(lastToast()).toBe("교정이 취소되었습니다."));
+    await waitFor(() => expect(api.event).toHaveBeenLastCalledWith("REQ-T", { contentKey: "C1", action: "RESTORE", field: "body", before: "할 수", after: "할수" }));
   });
 
   it("1:N select applies at once and swaps directly; description-only shows no recommendation", async () => {
@@ -121,10 +122,10 @@ describe("CorrectionPanel", { timeout: 20_000 }, () => {
     const select = (await screen.findByRole("combobox", { name: "수령인 권장 표현 선택" })) as HTMLSelectElement;
     expect(select.value).toBe("");
     await act(async () => fireEvent.change(select, { target: { value: "0" } }));
-    expect(writes.at(-1)?.payload).toEqual(alimtalk("받는 사람 처리"));
+    await waitFor(() => expect(writes.at(-1)?.payload).toEqual(alimtalk("받는 사람 처리")));
     await act(async () => fireEvent.change(select, { target: { value: "1" } }));
-    expect(writes.at(-1)?.payload).toEqual(alimtalk("받는 분 처리"));
-    expect(api.event).toHaveBeenLastCalledWith("REQ-T", expect.objectContaining({ before: "받는 사람", after: "받는 분" }));
+    await waitFor(() => expect(writes.at(-1)?.payload).toEqual(alimtalk("받는 분 처리")));
+    await waitFor(() => expect(api.event).toHaveBeenLastCalledWith("REQ-T", expect.objectContaining({ before: "받는 사람", after: "받는 분" })));
     expect(screen.getByText("높임 표현")).toBeTruthy();
     expect(screen.getByText("분 설명")).toBeTruthy();
     // 처리: label + reason only
@@ -166,8 +167,9 @@ describe("CorrectionPanel", { timeout: 20_000 }, () => {
     expect(screen.getByRole("button", { name: /C1 · 첫째/ }).textContent).toContain("(2)");
     expect(screen.getByText("교정할 표현이 없습니다.")).toBeTruthy();
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "할 수" })));
-    const bar = screen.getByText(/교정 적용/).parentElement as HTMLElement;
-    expect(bar.textContent).toBe("콘텐츠 2교정 적용 1교정 결과 2");
+    await waitFor(() =>
+      expect((screen.getByText(/교정 적용/).parentElement as HTMLElement).textContent).toBe("콘텐츠 2교정 적용 1교정 결과 2"),
+    );
     fireEvent.click(screen.getByRole("button", { name: "교정 완료" }));
     expect(screen.queryByText("C2 · 첨부파일로 제외")).toBeNull();
     expect(screen.getByText("C1 · 첫째")).toBeTruthy();
@@ -213,6 +215,7 @@ describe("CorrectionPanel", { timeout: 20_000 }, () => {
     expect(lastToast()).toBe("건의 이유을(를) 입력하세요");
     fireEvent.change(screen.getByRole("textbox", { name: /건의 이유/ }), { target: { value: " 받으시는 분도 넣어 주세요 " } });
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "건의 보내기" })));
+    await waitFor(() => expect(api.suggest).toHaveBeenCalled());
     expect(api.suggest).toHaveBeenCalledWith("REQ-T", {
       contentKey: "C1",
       matchedText: "수령인",

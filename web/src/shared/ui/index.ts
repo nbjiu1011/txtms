@@ -22,8 +22,8 @@ export {
 export type { BannerProps, BannerTone, SaveState } from "./surfaces";
 export { Empty, Kpi, KpiGrid, ListItem, ProgressTrack, Seg, SubTabs, Table, tableClasses } from "./data-display";
 export type { EmptyProps, KpiProps, ListItemProps, SubTabItem, TrackStep } from "./data-display";
-export { Checkbox, ErrorMessage, Field, Hint, Input, Label, Select, Textarea } from "./form";
-export type { CheckboxProps, FieldProps, InputProps, SelectProps, TextareaProps } from "./form";
+export { Checkbox, ErrorDetails, ErrorMessage, Field, Hint, Input, Label, Select, Textarea } from "./form";
+export type { CheckboxProps, ErrorDetailsProps, FieldProps, InputProps, SelectProps, TextareaProps } from "./form";
 export { BrandMark, Page, PageHeader } from "./layout";
 export { DateRangeFilter, FilterBar, FilterField, filterClasses } from "./filters";
 export type { DateRangeFilterProps, FilterBarProps, FilterFieldProps } from "./filters";

@@ -7,10 +7,13 @@ export const NOTICE_SCOPE_LABEL: Record<NoticeScope, string> = {
   PROJECT: "프로젝트",
 };
 
+/** `수정` / `철회` entry with the snapshot before the change. */
 export interface NoticeLog {
   at: string;
   actorId: number;
   action: string;
+  previousScope: NoticeScope | null;
+  previousProjectId: number | null;
   previousTitle: string | null;
   previousBody: string | null;
 }

@@ -33,8 +33,8 @@ export function KpiGrid({ className, ...rest }: HTMLAttributes<HTMLDivElement>) 
 }
 
 export interface KpiProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "value"> {
-  /** Accent color token, e.g. `var(--s-review)` or a status tone. */
-  tone: StatusTone | "danger";
+  /** Accent color token, e.g. `var(--s-review)` or a status tone. Omit for no accent stripe. */
+  tone?: StatusTone | "danger";
   label: ReactNode;
   value: ReactNode;
   unit?: ReactNode;
@@ -44,7 +44,7 @@ export interface KpiProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 
   interactive?: boolean;
 }
 
-const KPI_TONE: Record<KpiProps["tone"], string> = {
+const KPI_TONE: Record<NonNullable<KpiProps["tone"]>, string> = {
   draft: "var(--s-draft)",
   wait: "var(--s-wait)",
   review: "var(--s-review)",
@@ -57,7 +57,7 @@ const KPI_TONE: Record<KpiProps["tone"], string> = {
 /** `.kpi` — metric tile with a left accent and optional bar. */
 export function Kpi({ tone, label, value, unit, barPercent, interactive = true, className, ...rest }: KpiProps) {
   const style = {
-    "--c": KPI_TONE[tone],
+    ...(tone ? { "--c": KPI_TONE[tone] } : {}),
     ...(barPercent !== undefined ? { "--pct": `${Math.max(0, Math.min(100, barPercent))}%` } : {}),
   } as CSSProperties;
   const body = (
@@ -167,17 +167,32 @@ export interface ListItemProps {
    * (a button cannot contain buttons). Clicks on those buttons should stop propagation.
    */
   nestedActions?: boolean;
+  /** Extra content under the meta line inside the main column (e.g. an expanded notice body). */
+  extra?: ReactNode;
+  /** Accordion rows: whether `extra` is shown (`aria-expanded`). */
+  expanded?: boolean;
   className?: string;
 }
 
 /** `.list-item` — row with leading visual, title/meta and trailing content. A button when clickable. */
-export function ListItem({ leading, title, meta, trailing, onClick, nestedActions, className }: ListItemProps) {
+export function ListItem({
+  leading,
+  title,
+  meta,
+  trailing,
+  onClick,
+  nestedActions,
+  extra,
+  expanded,
+  className,
+}: ListItemProps) {
   const content = (
     <>
       {leading}
       <span className={styles.main}>
         <b>{title}</b>
         {meta ? <span>{meta}</span> : null}
+        {extra}
       </span>
       {trailing}
     </>
@@ -202,7 +217,7 @@ export function ListItem({ leading, title, meta, trailing, onClick, nestedAction
   }
   if (onClick) {
     return (
-      <button type="button" className={cn(styles.listItem, className)} onClick={onClick}>
+      <button type="button" className={cn(styles.listItem, className)} onClick={onClick} aria-expanded={expanded}>
         {content}
       </button>
     );

@@ -1,0 +1,20 @@
+/* reference `.panel{margin-bottom:18px}` of 개인 실적 */
+.people {
+  margin-bottom: 18px;
+}
+th.barCol {
+  width: 28%;
+}
+.person {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
