@@ -74,10 +74,11 @@ curl -s -b cookies.txt -X POST http://localhost:8080/api/auth/refresh
 
 | Command | What runs | Needs the database |
 |---|---|---|
-| `./gradlew build` | compile + unit tests (policy and visibility, views, due dates, volume, password, session rules, submit validation, payload shape, SMS bytes, links, file signatures, malware stub, request ids, round/version rules, variable rules, XLSX row rules, review transitions, edit lock states, revision decisions, notification recipients and texts) | no |
+| `./gradlew build` | compile + unit tests (policy and visibility, views, due dates, volume, password, session rules, submit validation, payload shape, SMS bytes, links, file signatures, malware stub, request ids, round/version rules, variable rules, XLSX row rules, review transitions, edit lock states, revision decisions, notification recipients and texts, completion/approval transitions, eligible approvers, bundle snapshot, export rows, lineage, archive filters, co-review summary) | no |
 | `./gradlew integrationTest` | `@Tag("integration")` tests against `txtms_test` (Flyway clean + migrate, demo seed, HTTP flows) | yes |
 
-Write tests (`RequestAuthoringIntegrationTest`, `VariableIntegrationTest`, `BulkImportIntegrationTest`, `ReviewWorkflowIntegrationTest`) create their own
+Write tests (`RequestAuthoringIntegrationTest`, `VariableIntegrationTest`, `BulkImportIntegrationTest`, `ReviewWorkflowIntegrationTest`,
+`CompletionIntegrationTest`) create their own
 customer, project and users with `IntegrationTestBase.newTenant()`, so the demo tenants that read tests count on stay
 unchanged. Uploaded files of integration tests go to `build/it-storage`.
 
@@ -107,7 +108,8 @@ com.txtms
     ├── contenttype   content types, writing guides
     ├── request       requests, contents, versions, files, history; policy/RequestPolicy (allowedActions, views,
     │                 visibility); validation (payload shape, submit and XLSX rules); file (inspection, malware stub);
-    │                 RequestCommandService / AttachmentService / BulkImportService (writes)
+    │                 RequestCommandService / AttachmentService / BulkImportService (writes),
+    │                 CompletionService / BundleExportService / ArchiveService (completion, exports, archive)
     ├── variable      project variables and their change log
     ├── dashboard     project dashboard, reviewer workload
     ├── notification  notifications (read vs. pending work)
@@ -118,7 +120,9 @@ com.txtms
 
 The database schema for every planned feature is in `src/main/resources/db/migration/V1__init_schema.sql`;
 `V2__request_authoring.sql` adds `requests.submit_idempotency_key`. The review milestone needs no migration (it uses
-`request_assignment_changes`, `request_reminders`, `contents.lock_*` and `requests.answer_changed` from V1).
+`request_assignment_changes`, `request_reminders`, `contents.lock_*` and `requests.answer_changed` from V1), nor does
+the completion milestone (`completion_bundles`, `completion_bundle_items` and the per-content lineage columns
+`contents.parent_request_id` / `parent_content_key` are in V1).
 
 ## Not implemented yet (stubs)
 
@@ -191,3 +195,42 @@ curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -H
   `ContentLockService.releaseExpired()` directly). Reads already hide expired locks.
 - Asking releases every reviewer lock, answering releases the requester's locks, a reviewer change releases the
   removed reviewers' locks (all logged as `편집 잠금 해제`), an approved recall releases every lock.
+
+## Completion, approval and archive (M3)
+
+| Area | Endpoints |
+|---|---|
+| Workflow | `POST /api/requests/{id}/complete` (primary reviewer), `POST .../approve`, `POST .../revise` (`{ reason, contentKey, location?, expectation }`, eligible approver) |
+| Results | `RequestDetail.bundle`, `GET /api/requests/{id}/bundle/export.xlsx`, `GET .../bundle/attachments.zip`, `POST .../bundle/copy-events` (`{ contentKey }`) |
+| Follow-up | `POST /api/requests/{id}/follow-up` (`{ contentKey }` or empty for the whole bundle) |
+| Archive | `GET /api/archive/contents?projectId=…` (`q`, `type`, `campaign`, `status`, `completedFrom`, `completedTo`, paging), `GET /api/archive/campaigns?projectId=…` |
+| Review info | `GET /api/requests/{id}/assignment-changes`, `RequestDetail.coReviewers` (completion dialog) |
+
+- `CompletionService` runs complete/approve/revise. Completion checks, in order: eligible approver (approval
+  customers), other users' valid locks (`LOCKED_BY_OTHER`), the submit rules on the final contents, then releases the
+  remaining locks. Without approval the request is final (`REVIEW_COMPLETED`); with approval it waits
+  (`APPROVAL_WAITING`) and an eligible approver approves (`APPROVED`) or sends it back (`IN_REVIEW`, round + 1).
+- No eligible approver: the completion transaction writes `승인 대기 전환 차단` and the notifications (admins: approver
+  needed, requester + lead: delay), **commits**, and only then the API answers 409 `NO_ELIGIBLE_APPROVER`
+  (`TransactionTemplate` in the service; the row lock is released at that commit).
+- Final completion freezes the bundle (`CompletionBundles`): every current content with its version, payload and the
+  FileMeta array of its current attachments, plus the project's active variables. Previews, exports and the archive
+  resolve variables with these frozen values.
+- Exports (`BundleExportService`): XLSX (`BundleSheet`, 10 columns, sheet `완료본`, `{id}_완료본.xlsx`), ZIP streamed
+  file by file (`{key}/v{n}_{name}` + `완료_버전_명세.json` with sizes and SHA-256, `{id}_첨부_완료본.zip`). A ZIP whose
+  frozen file has no stored object (seeded demo files) is refused as a whole with `NOT_FOUND`. Audits: `완료본 반출`
+  (`XLSX`, `문안 복사 {key}`) and `첨부 반출` (`ZIP`) with the customer id.
+- Follow-ups copy the bundle items (frozen file version → new file v1 sharing the stored object, card images copied)
+  and record the source of each new content in `contents.parent_request_id` / `parent_content_key`. The archive
+  (`ArchiveService`, pure rules in `ContentLineage` and `ArchiveLines`) groups completed contents by the root of that
+  lineage, shows the latest completion first and applies the filters to it.
+
+Smoke test (completion path, approval not used; send UTF-8 bodies from files on Windows):
+
+```bash
+curl -s -H "Authorization: Bearer $REVIEWER_TOKEN" -H "Content-Type: application/json" \
+  -d '{"rowVersion":5}' http://localhost:8080/api/requests/<id>/complete          # 200 REVIEW_COMPLETED + bundle
+curl -s -o out.xlsx -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/requests/<id>/bundle/export.xlsx
+curl -s -o out.zip  -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/requests/<id>/bundle/attachments.zip
+curl -s -H "Authorization: Bearer $TOKEN" "http://localhost:8080/api/archive/contents?projectId=1"
+```

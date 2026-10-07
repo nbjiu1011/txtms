@@ -15,4 +15,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findByCustomerIdOrderByIdAsc(Long customerId);
 
     List<User> findByIdIn(Collection<Long> ids);
+
+    /** Customer admins of the customer (any account state), ordered by id. */
+    @org.springframework.data.jpa.repository.Query(
+            "select u from User u where :customerId member of u.adminCustomerIds order by u.id")
+    List<User> findAdminsOf(@org.springframework.data.repository.query.Param("customerId") Long customerId);
 }

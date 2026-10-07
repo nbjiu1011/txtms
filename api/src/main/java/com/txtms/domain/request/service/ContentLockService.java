@@ -181,6 +181,44 @@ public class ContentLockService {
                 .forEach(Content::releaseLock);
     }
 
+    /** Message when the primary reviewer completes while another user still edits a content. */
+    static final String COMPLETE_BLOCKED = "다른 검수자가 편집 중입니다. 저장과 잠금 해제 후 완료하세요";
+
+    /**
+     * Review completion: a valid lock of another user blocks it ({@code LOCKED_BY_OTHER}). Checked before any
+     * change; {@link #releaseForCompletion} then frees the remaining locks.
+     */
+    public void requireNoOtherLocks(Ctx ctx) {
+        Instant now = support.now();
+        boolean blocked = support.currentContents(ctx.request().getId()).stream()
+                .anyMatch(c -> EditLocks.state(c.getLockUserId(), c.getLockAt(), ctx.userId(), now, ttl)
+                        == EditLocks.State.OTHER);
+        if (blocked) {
+            throw new BusinessException(ErrorCode.LOCKED_BY_OTHER, COMPLETE_BLOCKED);
+        }
+    }
+
+    /**
+     * Releases every remaining lock at completion: the actor's own locks silently, expired locks of others with
+     * {@code 편집 잠금 자동 해제}.
+     */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public void releaseForCompletion(Ctx ctx) {
+        Instant now = support.now();
+        for (Content c : support.currentContents(ctx.request().getId())) {
+            if (c.getLockUserId() == null) {
+                continue;
+            }
+            if (EditLocks.state(c.getLockUserId(), c.getLockAt(), ctx.userId(), now, ttl) == EditLocks.State.OTHER) {
+                throw new BusinessException(ErrorCode.LOCKED_BY_OTHER, COMPLETE_BLOCKED);
+            }
+            if (c.getLockUserId() != ctx.userId()) {
+                logAutoRelease(ctx.request(), c);
+            }
+            c.releaseLock();
+        }
+    }
+
     // ------------------------------------------------------------------ automatic release
 
     /**

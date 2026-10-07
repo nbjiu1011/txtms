@@ -24,6 +24,7 @@ public record RequestDetail(
         List<OpinionResponse> opinions,
         List<AskResponse> asks,
         List<Long> eligibleApproverIds,
+        List<CoReviewer> coReviewers,
         int historyCount,
         Map<String, Instant> stageTimes,
         BundleResponse bundle,
@@ -34,5 +35,13 @@ public record RequestDetail(
     }
 
     public record Parent(String requestId, String contentKey) {
+    }
+
+    /** Co-review result of one reviewer (current, or previous with opinions). */
+    public record CoReviewer(long userId, boolean current, boolean primary, int opinionCount,
+            List<RoundCount> rounds) {
+    }
+
+    public record RoundCount(int round, int count) {
     }
 }

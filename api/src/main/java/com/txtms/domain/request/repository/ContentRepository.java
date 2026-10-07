@@ -24,6 +24,9 @@ public interface ContentRepository extends JpaRepository<Content, Long> {
     /** Any content row with the key, deleted ones included (old versions and downloads). */
     java.util.Optional<Content> findByRequestIdAndKey(String requestId, String key);
 
+    /** Contents of the requests that were created from a completed content (follow-up lineage). */
+    List<Content> findByRequestIdInAndParentRequestIdIsNotNull(Collection<String> requestIds);
+
     /** Current payloads of every request of a project (variable usage). */
     @Query(value = "SELECT c.payload FROM contents c JOIN requests r ON r.id = c.request_id "
             + "WHERE r.project_id = :projectId AND c.deleted = FALSE", nativeQuery = true)

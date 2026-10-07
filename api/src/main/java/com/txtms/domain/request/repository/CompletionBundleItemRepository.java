@@ -9,4 +9,7 @@ import com.txtms.domain.request.entity.CompletionBundleItem;
 public interface CompletionBundleItemRepository extends JpaRepository<CompletionBundleItem, Long> {
 
     List<CompletionBundleItem> findByRequestIdOrderBySortOrderAsc(String requestId);
+
+    List<CompletionBundleItem> findByRequestIdInOrderByRequestIdAscSortOrderAsc(
+            java.util.Collection<String> requestIds);
 }

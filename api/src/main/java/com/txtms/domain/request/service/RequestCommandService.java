@@ -23,20 +23,24 @@ import com.txtms.domain.project.entity.ProjectTemplate;
 import com.txtms.domain.project.service.ProjectAccess;
 import com.txtms.domain.request.dto.request.ChangeTypeBody;
 import com.txtms.domain.request.dto.request.CreateRequestBody;
+import com.txtms.domain.request.dto.request.FollowUpBody;
 import com.txtms.domain.request.dto.request.SaveContentBody;
 import com.txtms.domain.request.dto.response.ContentResponse;
 import com.txtms.domain.request.dto.response.RequestDetail;
+import com.txtms.domain.request.entity.CompletionBundleItem;
 import com.txtms.domain.request.entity.Content;
 import com.txtms.domain.request.entity.ContentFile;
 import com.txtms.domain.request.entity.ContentFileVersion;
 import com.txtms.domain.request.entity.ContentImage;
 import com.txtms.domain.request.entity.ContentVersion;
 import com.txtms.domain.request.entity.FileScanStatus;
+import com.txtms.domain.request.entity.FileUnit;
 import com.txtms.domain.request.entity.Request;
 import com.txtms.domain.request.entity.RequestInfo;
 import com.txtms.domain.request.entity.RequestStatus;
 import com.txtms.domain.request.entity.Urgency;
 import com.txtms.domain.request.policy.RequestAction;
+import com.txtms.domain.request.repository.CompletionBundleItemRepository;
 import com.txtms.domain.request.repository.ContentFileRepository;
 import com.txtms.domain.request.repository.ContentFileVersionRepository;
 import com.txtms.domain.request.repository.ContentImageRepository;
@@ -77,6 +81,7 @@ public class RequestCommandService {
     private final ContentFileRepository files;
     private final ContentFileVersionRepository fileVersions;
     private final ContentImageRepository images;
+    private final CompletionBundleItemRepository bundleItems;
     private final RequestIdGenerator idGenerator;
     private final RequestWriteSupport support;
     private final RequestQueryService queries;
@@ -94,7 +99,8 @@ public class RequestCommandService {
 
     public RequestCommandService(RequestRepository requests, ContentRepository contents,
             ContentVersionRepository contentVersions, ContentFileRepository files,
-            ContentFileVersionRepository fileVersions, ContentImageRepository images, RequestIdGenerator idGenerator,
+            ContentFileVersionRepository fileVersions, ContentImageRepository images,
+            CompletionBundleItemRepository bundleItems, RequestIdGenerator idGenerator,
             RequestWriteSupport support, RequestQueryService queries, RequestAssembler assembler,
             ProjectAccess projectAccess, UserService userService, ContentTypeService contentTypes,
             VariableService variables, NotificationService notifications, PayloadNormalizer normalizer,
@@ -106,6 +112,7 @@ public class RequestCommandService {
         this.files = files;
         this.fileVersions = fileVersions;
         this.images = images;
+        this.bundleItems = bundleItems;
         this.idGenerator = idGenerator;
         this.support = support;
         this.queries = queries;
@@ -183,6 +190,73 @@ public class RequestCommandService {
         support.log(copy, ctx.userId(), "요청 복제", "원본 " + source.getId(), null, null);
         requests.flush();
         return detailOf(auth, copy.getId());
+    }
+
+    /**
+     * Follow-up of a finally completed request (FOLLOW_UP): a new draft linked to the original whose contents are
+     * the completion bundle items (all, or the one given) with their frozen title, payload and attachments (the
+     * frozen file version becomes v1 of a new file sharing the stored object; card images are copied). Every new
+     * content records the completed content it came from (per-content lineage).
+     */
+    public RequestDetail followUp(AuthUser auth, String id, FollowUpBody body) {
+        Ctx ctx = support.lock(auth, id);
+        support.require(ctx, RequestAction.FOLLOW_UP);
+        Request source = ctx.request();
+        String only = body == null || body.contentKey() == null || body.contentKey().isBlank() ? null
+                : body.contentKey().trim();
+        List<CompletionBundleItem> items = bundleItems.findByRequestIdOrderBySortOrderAsc(source.getId()).stream()
+                .filter(i -> only == null || i.getContentKey().equals(only)).toList();
+        if (items.isEmpty()) {
+            throw BusinessException.notFound();
+        }
+        Instant now = support.now();
+        Request copy = new Request(idGenerator.next(now), source.getProjectId(), source.getType(), ctx.userId(), now);
+        RequestInfo info = source.info();
+        copy.updateInfo(new RequestInfo(truncate(info.title() + " 후속", TITLE_MAX), null, info.purpose(),
+                info.target(), info.background(), info.campaign(), Urgency.NORMAL), now);
+        copy.linkParent(source.getId(), only);
+        copy = requests.save(copy);
+
+        int n = 0;
+        for (CompletionBundleItem item : items) {
+            n++;
+            Content target = contents.save(new Content(copy.getId(), "C" + n, item.getTitle(), item.getPayload(), n,
+                    now));
+            target.linkParent(source.getId(), item.getContentKey());
+            String payload = copyImages(source.getId(), copy.getId(), target, item.getPayload(), ctx.userId(), now);
+            if (!payload.equals(item.getPayload())) {
+                target.saveDraft(target.getTitle(), payload, now);
+            }
+            copyFrozenFiles(target, item.getFilesSnapshot(), ctx.userId(), now);
+        }
+        String versions = String.join(", ", items.stream().map(i -> i.getContentKey() + " v" + i.getVersion())
+                .toList());
+        support.log(copy, ctx.userId(), "후속 요청 작성", "원본 " + source.getId() + " " + versions, null, null);
+        requests.flush();
+        return detailOf(auth, copy.getId());
+    }
+
+    /** New attachments from a frozen FileMeta array: the frozen version's stored object becomes v1. */
+    private void copyFrozenFiles(Content target, String filesSnapshot, long userId, Instant now) {
+        int order = 0;
+        for (JsonNode meta : json.readTree(filesSnapshot)) {
+            long fileId = meta.path("id").asLong();
+            int version = meta.path("version").asInt(1);
+            ContentFileVersion frozen = fileVersions.findByFileIdAndVersion(fileId, version).orElse(null);
+            String name = meta.path("name").asString();
+            long size = meta.path("sizeBytes").asLong();
+            ContentFile nf = files.save(new ContentFile(target.getId(), name, meta.path("ext").asString(),
+                    FileUnit.valueOf(meta.path("unit").asString()), size, ++order, now, userId));
+            nf.describeRange(intOrNull(meta.get("totalAmount")), intOrNull(meta.get("reviewAmount")),
+                    meta.path("rangeNote").isString() ? meta.path("rangeNote").asString() : null);
+            fileVersions.save(new ContentFileVersion(nf.getId(), 1, name, size,
+                    frozen == null ? null : frozen.getStorageKey(),
+                    frozen == null ? FileScanStatus.SAFE : frozen.getScanStatus(), now, userId));
+        }
+    }
+
+    private static Integer intOrNull(JsonNode n) {
+        return n == null || n.isNull() ? null : n.asInt();
     }
 
     private String copyImages(String fromRequest, String toRequest, Content target, String payload, long userId,
@@ -379,7 +453,7 @@ public class RequestCommandService {
         Map<Long, List<ContentFile>> filesByContent = new HashMap<>();
         current.forEach(c -> filesByContent.put(c.getId(),
                 files.findByContentIdAndDeletedFalseOrderBySortOrderAsc(c.getId())));
-        SubmitValidator.Result result = submitValidator.validate(validationInput(ctx, current, filesByContent));
+        SubmitValidator.Result result = submitValidator.validate(validationInput(ctx, current, filesByContent, true));
         if (!result.ok()) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, SubmitValidator.SUMMARY,
                     result.fieldErrors().isEmpty() ? null : result.fieldErrors(), result.details());
@@ -422,8 +496,20 @@ public class RequestCommandService {
                 now, userId));
     }
 
+    /**
+     * Review completion re-check of the final contents: the submit rules on the current contents, without the
+     * project/type activity checks (those only gate new submissions).
+     */
+    public SubmitValidator.Result validateFinalContents(Ctx ctx) {
+        List<Content> current = support.currentContents(ctx.request().getId());
+        Map<Long, List<ContentFile>> filesByContent = new HashMap<>();
+        current.forEach(c -> filesByContent.put(c.getId(),
+                files.findByContentIdAndDeletedFalseOrderBySortOrderAsc(c.getId())));
+        return submitValidator.validate(validationInput(ctx, current, filesByContent, false));
+    }
+
     private SubmitValidator.Input validationInput(Ctx ctx, List<Content> current,
-            Map<Long, List<ContentFile>> filesByContent) {
+            Map<Long, List<ContentFile>> filesByContent, boolean checkActivity) {
         Request r = ctx.request();
         Project project = ctx.project();
         Map<Long, FileScanStatus> scan = new HashMap<>();
@@ -449,7 +535,8 @@ public class RequestCommandService {
         }
         Set<String> templates = new HashSet<>();
         project.getTemplates().stream().map(ProjectTemplate::getCode).forEach(templates::add);
-        return new SubmitValidator.Input(r.info(), r.getType(), contentTypes.isActive(r.getType()), project.isActive(),
+        return new SubmitValidator.Input(r.info(), r.getType(),
+                !checkActivity || contentTypes.isActive(r.getType()), !checkActivity || project.isActive(),
                 templates, new HashSet<>(project.getSenders()), variables.activeValues(project.getId()), inputs);
     }
 

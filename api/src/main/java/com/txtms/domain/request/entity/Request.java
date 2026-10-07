@@ -333,6 +333,41 @@ public class Request {
         return false;
     }
 
+    /**
+     * The primary reviewer completes the review (no recall pending). With approval the request waits for an
+     * eligible approver (APPROVAL_WAITING, not final); without approval it is finally completed (REVIEW_COMPLETED,
+     * {@code completedAt} set).
+     */
+    public void completeReview(boolean approvalEnabled, Instant now) {
+        requireStatus(RequestStatus.IN_REVIEW);
+        if (isRecallPending()) {
+            throw new BusinessException(ErrorCode.REQUEST_STATE_CONFLICT);
+        }
+        if (approvalEnabled) {
+            transitionTo(RequestStatus.APPROVAL_WAITING, now);
+        } else {
+            transitionTo(RequestStatus.REVIEW_COMPLETED, now);
+            this.completedAt = now;
+        }
+    }
+
+    /** An eligible approver approves: APPROVAL_WAITING → APPROVED (final, {@code completedAt} set). */
+    public void approve(Instant now) {
+        requireStatus(RequestStatus.APPROVAL_WAITING);
+        transitionTo(RequestStatus.APPROVED, now);
+        this.completedAt = now;
+    }
+
+    /**
+     * An eligible approver sends the request back: APPROVAL_WAITING → IN_REVIEW with the same reviewers and primary,
+     * round + 1.
+     */
+    public void reviseByApprover(Instant now) {
+        requireStatus(RequestStatus.APPROVAL_WAITING);
+        transitionTo(RequestStatus.IN_REVIEW, now);
+        this.round++;
+    }
+
     /** Confirmed due date and urgency change: not in drafts nor after final completion. */
     public void reschedule(LocalDate dueDate, Urgency urgency, Instant now) {
         if (status == RequestStatus.DRAFT || status.isFinal()) {

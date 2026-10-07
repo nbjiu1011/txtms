@@ -91,6 +91,14 @@ public class VariableService {
         return values;
     }
 
+    /** Active, not deleted variables of a project in registration order (completion bundle snapshot). */
+    public List<com.txtms.domain.variable.dto.VariableSnapshot> activeSnapshot(long projectId) {
+        return variables.findByProjectIdAndActiveTrueAndDeletedFalseOrderByIdAsc(projectId).stream()
+                .map(v -> new com.txtms.domain.variable.dto.VariableSnapshot(v.getKey(), v.getType(),
+                        v.getValue() == null ? "" : v.getValue()))
+                .toList();
+    }
+
     @Transactional
     public VariableResponse create(AuthUser auth, long projectId, VariableCreateRequest body) {
         User user = userService.require(auth.userId());

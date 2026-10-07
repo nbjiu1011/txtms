@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.txtms.domain.contenttype.entity.ContentType;
 import com.txtms.domain.project.entity.Project;
 import com.txtms.domain.project.service.ProjectAccess;
+import com.txtms.domain.request.dto.response.AssignmentChangeResponse;
 import com.txtms.domain.request.dto.response.ContentVersionResponse;
 import com.txtms.domain.request.dto.response.HistoryEntryResponse;
 import com.txtms.domain.request.dto.response.RequestDetail;
@@ -33,6 +34,7 @@ import com.txtms.domain.request.policy.RequestPolicy;
 import com.txtms.domain.request.policy.RequestView;
 import com.txtms.domain.request.repository.ContentRepository;
 import com.txtms.domain.request.repository.ContentVersionRepository;
+import com.txtms.domain.request.repository.RequestAssignmentChangeRepository;
 import com.txtms.domain.request.repository.RequestHistoryRepository;
 import com.txtms.domain.request.repository.RequestRepository;
 import com.txtms.domain.user.entity.User;
@@ -65,6 +67,7 @@ public class RequestQueryService {
     private final ContentRepository contents;
     private final ContentVersionRepository contentVersions;
     private final RequestHistoryRepository history;
+    private final RequestAssignmentChangeRepository assignmentChanges;
     private final ProjectAccess projectAccess;
     private final UserService userService;
     private final RequestPolicy policy;
@@ -72,12 +75,14 @@ public class RequestQueryService {
     private final Clock clock;
 
     public RequestQueryService(RequestRepository requests, ContentRepository contents,
-            ContentVersionRepository contentVersions, RequestHistoryRepository history, ProjectAccess projectAccess,
+            ContentVersionRepository contentVersions, RequestHistoryRepository history,
+            RequestAssignmentChangeRepository assignmentChanges, ProjectAccess projectAccess,
             UserService userService, RequestPolicy policy, RequestAssembler assembler, Clock clock) {
         this.requests = requests;
         this.contents = contents;
         this.contentVersions = contentVersions;
         this.history = history;
+        this.assignmentChanges = assignmentChanges;
         this.projectAccess = projectAccess;
         this.userService = userService;
         this.policy = policy;
@@ -189,6 +194,29 @@ public class RequestQueryService {
                 .map(h -> new HistoryEntryResponse(h.getId(), h.getAt(), h.getActorId(), h.getAction(), h.getDetail(),
                         h.getContentKey(), h.getContentTitle(), h.getRound()))
                 .toList();
+    }
+
+    /** Structured reviewer/primary changes of a visible request, oldest first. */
+    public List<AssignmentChangeResponse> assignmentChanges(AuthUser auth, String id) {
+        User user = userService.require(auth.userId());
+        ScopedRequest s = requireVisible(userService.actorOf(user), id);
+        return assignmentChanges.findByRequestIdOrderByAtAscIdAsc(s.request().getId()).stream()
+                .map(c -> new AssignmentChangeResponse(c.getAt(), c.getActorId(), c.getRound(),
+                        ids(c.getFromReviewerIds()), c.getFromPrimaryId(), ids(c.getToReviewerIds()),
+                        c.getToPrimaryId(), c.getReason(), c.getHandover()))
+                .toList();
+    }
+
+    /** Reviewer id array stored as JSON ({@code [2,6]}). */
+    static List<Long> ids(String jsonArray) {
+        if (jsonArray == null) {
+            return List.of();
+        }
+        String inner = jsonArray.trim().replace("[", "").replace("]", "").trim();
+        if (inner.isEmpty()) {
+            return List.of();
+        }
+        return java.util.Arrays.stream(inner.split(",")).map(String::trim).map(Long::valueOf).toList();
     }
 
     /**

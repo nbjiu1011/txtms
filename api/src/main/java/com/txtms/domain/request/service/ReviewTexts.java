@@ -123,6 +123,12 @@ public final class ReviewTexts {
         return requesterName + "님이 답변했습니다. 검수가 다시 시작됩니다. 답변: " + excerpt(answer, ANSWER_EXCERPT);
     }
 
+    /** {@code 수정 요청} detail: {@code 사유: …\n위치: C1 세부 위치\n기대 내용: …} (location detail optional). */
+    public static String revisionRequest(String reason, String contentKey, String location, String expectation) {
+        String where = location == null || location.isBlank() ? contentKey : contentKey + " " + location;
+        return "사유: " + reason + "\n위치: " + where + "\n기대 내용: " + expectation;
+    }
+
     public static String autoReleaseDetail(String ownerName) {
         return ownerName + ": 30분간 입력 없음";
     }

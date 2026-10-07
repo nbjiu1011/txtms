@@ -53,6 +53,11 @@ public class UserService {
         return repository.findByCustomerIdOrderByIdAsc(customerId);
     }
 
+    /** Customer admins whose account can be used now (active, not pending), ordered by id. */
+    public List<Long> activeAdminIdsOf(long customerId) {
+        return repository.findAdminsOf(customerId).stream().filter(this::canUseAccount).map(User::getId).toList();
+    }
+
     /** An account may sign in and call the API only while it and its customer are active. */
     public boolean canUseAccount(User user) {
         if (!user.isActive() || user.isPending()) {

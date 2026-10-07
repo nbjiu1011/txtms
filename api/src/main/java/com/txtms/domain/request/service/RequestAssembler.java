@@ -136,6 +136,8 @@ public class RequestAssembler {
                 .map(o -> new OpinionResponse(o.getId(), o.getAuthorId(), o.getContentKey(), o.getBody(), o.getRound(),
                         o.getCreatedAt()))
                 .toList();
+        List<RequestDetail.CoReviewer> coReviewers = CoReviewers.of(r.getReviewerIds(), r.getPrimaryReviewerId(),
+                opinionResponses.stream().map(o -> new CoReviewers.Opinion(o.authorId(), o.round())).toList());
         List<AskResponse> askResponses = asks.findByRequestIdOrderByAskedAtAscIdAsc(r.getId()).stream()
                 .map(a -> new AskResponse(a.getId(), a.getAskedBy(), a.getContentKey(), a.getQuestion(),
                         a.getAskedAt(), a.getAnswer(), a.getAnsweredBy(), a.getAnsweredAt(), a.getRound()))
@@ -150,7 +152,7 @@ public class RequestAssembler {
 
         return new RequestDetail(summary, r.getPurpose(), r.getTarget(), r.getBackground(), recall, parent,
                 contentResponses, opinionResponses, askResponses, policy.eligibleApprovers(s.project(), s.facts()),
-                entries.size(), stageTimes(entries), bundle(r), allowedActions, r.getRowVersion());
+                coReviewers, entries.size(), stageTimes(entries), bundle(r), allowedActions, r.getRowVersion());
     }
 
     /** Content responses with their files and versions. */
