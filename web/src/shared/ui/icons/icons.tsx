@@ -89,6 +89,8 @@ const PATHS = {
       <path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3" />
     </>
   ),
+  /* 건의하기 (교정 결과 화면설계 ④) */
+  send: <path d="M21 3L10 14M21 3l-7 18-4-7-7-4z" />,
 } satisfies Record<string, ReactNode>;
 
 export type IconName = keyof typeof PATHS;

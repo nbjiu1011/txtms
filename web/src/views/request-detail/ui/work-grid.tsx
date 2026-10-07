@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/shared/lib";
 import { Empty, Modal } from "@/shared/ui";
@@ -12,10 +12,12 @@ import {
   type FileMeta,
 } from "@/entities/request";
 import { BULK_TYPES, BulkImportModal } from "@/features/bulk-import";
+import { selectRange } from "@/features/text-correction";
 import { VariablePicker } from "@/features/variable-picker";
 import type { FileRangeDraft } from "../model/file-range";
 import type { DraftEditing } from "../model/use-draft-editing";
 import type { RequestPage } from "../model/use-request-page";
+import type { RequestCorrection } from "../model/use-request-correction";
 import type { RevisionEditing } from "../model/use-revision-editing";
 import { useVariableInsertion } from "../model/use-variable-insertion";
 import { ContentEditor } from "./content-editor";
@@ -45,6 +47,8 @@ export interface WorkGridProps {
   unlock?: UnlockAction | null;
   /** Opinion / ask / answer forms of the side panel. */
   thread?: ThreadActions | null;
+  /** Text correction of this tab (results, apply/restore, pending editor selection). */
+  correction?: RequestCorrection;
 }
 
 /** `.work` — content list, editor and side panel (reference `vWork`). */
@@ -62,6 +66,18 @@ export function WorkGrid(props: WorkGridProps) {
   const variables = useVariableInsertion(editorRef);
 
   const server = r.contents.find((c) => c.key === contentKey) ?? r.contents[0];
+  const reveal = props.correction?.reveal ?? null;
+  const onRevealed = props.correction?.onRevealed;
+  const shownKey = server?.key;
+  // A correction card asked to show its expression: select it once that content is in the editor.
+  useEffect(() => {
+    if (!reveal || reveal.key !== shownKey) return;
+    const frame = requestAnimationFrame(() => {
+      selectRange(editorRef.current, reveal.field, reveal.start, reveal.end);
+      onRevealed?.();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [reveal, shownKey, onRevealed]);
   if (!server) return <Empty title="콘텐츠가 없습니다" />;
   const draftMode = r.status === "DRAFT";
   const session = draftMode ? (editing?.session ?? null) : null;
@@ -186,7 +202,15 @@ export function WorkGrid(props: WorkGridProps) {
           images={images}
         />
       </section>
-      <SidePanel page={page} content={content} meId={meId} tab={sideTab} onTab={onSideTab} thread={props.thread ?? null} />
+      <SidePanel
+        page={page}
+        content={content}
+        meId={meId}
+        tab={sideTab}
+        onTab={onSideTab}
+        thread={props.thread ?? null}
+        correction={props.correction?.controller ?? null}
+      />
       <GuideDrawer type={r.type} open={guideOpen} onClose={() => setGuideOpen(false)} />
       <VersionCompareModal
         open={compareOpen}

@@ -1,9 +1,10 @@
 "use client";
 
 import { formatDateTime } from "@/shared/lib";
-import { Avatar, ReadOnlyBox, Tag } from "@/shared/ui";
+import { Avatar, Tag } from "@/shared/ui";
 import { ContentMockup, type Content, type Opinion } from "@/entities/request";
 import { AnswerForm, AskForm, OpinionForm } from "@/features/request-workflow";
+import { CorrectionPanel, type CorrectionController } from "@/features/text-correction";
 import type { RequestPage } from "../model/use-request-page";
 import type { ThreadActions } from "../model/workflow-types";
 import styles from "./work.module.css";
@@ -18,10 +19,12 @@ export interface SidePanelProps {
   onTab: (tab: SidePanelTab) => void;
   /** null: read-only threads (content tab of a request without these actions). */
   thread: ThreadActions | null;
+  /** Correction state of the tab (null: frame only, e.g. in isolated renders). */
+  correction?: CorrectionController | null;
 }
 
 /** `.side-panel` — 교정 / 미리보기 / 의견 / 확인 요청 (reference `vSidePanel`). */
-export function SidePanel({ page, content, meId, tab, onTab, thread }: SidePanelProps) {
+export function SidePanel({ page, content, meId, tab, onTab, thread, correction }: SidePanelProps) {
   const r = page.request;
   const tabs: { key: SidePanelTab; label: string }[] = [
     { key: "proof", label: "교정" },
@@ -46,26 +49,20 @@ export function SidePanel({ page, content, meId, tab, onTab, thread }: SidePanel
         ))}
       </div>
       <div className={styles.spBody} role="tabpanel">
-        {tab === "proof" ? <ProofPanel page={page} content={content} /> : null}
+        {tab === "proof" && correction ? (
+          <CorrectionPanel
+            requestId={r.id}
+            correction={correction}
+            currentKey={content.key}
+            canSuggest={r.allowedActions.includes("EDIT_CONTENT") || r.allowedActions.includes("REVIEW")}
+          />
+        ) : null}
         {tab === "mock" ? <MockPanel page={page} content={content} /> : null}
         {tab === "op" ? <OpinionsPanel page={page} meId={meId} content={content} thread={thread} /> : null}
         {tab === "ask" ? <AsksPanel page={page} content={content} thread={thread} /> : null}
       </div>
     </aside>
   );
-}
-
-/** Correction frame. The engine, check buttons and result cards arrive with M4. */
-function ProofPanel({ page, content }: { page: RequestPage; content: Content }) {
-  if (page.request.type === "FREEFORM" && content.files.length > 0) {
-    return (
-      <ReadOnlyBox className={styles.small}>
-        첨부파일이 있는 자유입력형은 교정 실행·결과가 비활성화되며 전체 검사에서 제외됩니다. 첨부파일을 모두 제거하면
-        다시 사용할 수 있습니다.
-      </ReadOnlyBox>
-    );
-  }
-  return <div className={styles.proofEmpty}>아직 검사하지 않았습니다.</div>;
 }
 
 function MockPanel({ page, content }: { page: RequestPage; content: Content }) {

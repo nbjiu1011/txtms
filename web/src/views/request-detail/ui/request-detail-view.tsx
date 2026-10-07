@@ -9,6 +9,7 @@ import { AccessDenied, type WorkViewProps } from "@/widgets/app-shell";
 import { UnlockDialog } from "@/features/request-workflow";
 import { useDraftEditing, type DraftEditing } from "../model/use-draft-editing";
 import { useRequestPage, type RequestPage } from "../model/use-request-page";
+import { useRequestCorrection } from "../model/use-request-correction";
 import { useRequestWorkflow } from "../model/use-request-workflow";
 import { useRevisionEditing, type RevisionEditing } from "../model/use-revision-editing";
 import { RevisionConflictModal, SaveConflictModal, SaveFailureBanner } from "./draft-chrome";
@@ -177,6 +178,8 @@ function ContentTabBody({ page, meId, openTab, contentKey, editing, revision, ti
   const r = page.request;
   const [sideTab, setSideTab] = useState<SidePanelTab>("proof");
   const workflow = useRequestWorkflow(page, meId, revision);
+  const openContent = (key: string) => openTab({ route: "content", params: { id: r.id, key } });
+  const correction = useRequestCorrection({ page, meId, editing, revision, ownKey: contentKey, onOpenContent: openContent });
   const content = r.contents.find((c) => c.key === contentKey);
   return (
     <>
@@ -210,11 +213,12 @@ function ContentTabBody({ page, meId, openTab, contentKey, editing, revision, ti
             single
             sideTab={sideTab}
             onSideTab={setSideTab}
-            onOpenContent={(key) => openTab({ route: "content", params: { id: r.id, key } })}
+            onOpenContent={openContent}
             editing={editing.canEditContent ? editing : null}
             revision={revision}
             unlock={workflow.unlock}
             thread={workflow.thread}
+            correction={correction}
           />
         ) : (
           <Empty title="콘텐츠가 없습니다" description={`${r.id}에 ${contentKey} 콘텐츠가 없습니다.`} />

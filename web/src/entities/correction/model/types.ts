@@ -1,3 +1,5 @@
+import type { ContentPayload } from "@/entities/request/@x/correction";
+
 /** Text correction results — contract §6. */
 export interface CorrectionOption {
   ruleId: string;
@@ -29,3 +31,34 @@ export interface CorrectionResult {
 }
 
 export type CorrectionEventAction = "APPLY" | "RESTORE";
+
+/** `GET /api/requests/{id}/corrections/dataset` — the effective dataset of the request's customer × type. */
+export interface CorrectionDataset {
+  assigned: boolean;
+  /** `{유형 라벨} v{버전}`; null when unassigned. */
+  datasetLabel: string | null;
+}
+
+/** One content of `POST …/corrections/check` (the edit buffer as shown). */
+export interface CorrectionCheckItem {
+  contentKey: string;
+  payload: ContentPayload;
+  hasFiles: boolean;
+}
+
+/** `POST …/corrections/events` — history only; the text change happens in the edit buffer. */
+export interface CorrectionEvent {
+  contentKey: string;
+  action: CorrectionEventAction;
+  field: string;
+  before: string;
+  after: string;
+}
+
+/** `POST …/corrections/suggestions` (화면설계 ④ 건의하기). */
+export interface CorrectionSuggestion {
+  contentKey: string;
+  matchedText: string;
+  ruleIds: string[];
+  body: string;
+}

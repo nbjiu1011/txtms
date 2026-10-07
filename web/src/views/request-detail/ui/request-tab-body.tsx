@@ -27,6 +27,7 @@ import type { WorkViewProps } from "@/widgets/app-shell";
 import { selectBanners } from "../model/banners";
 import { UPLOAD_BUSY_MESSAGE, type DraftEditing } from "../model/use-draft-editing";
 import type { RequestPage } from "../model/use-request-page";
+import { useRequestCorrection } from "../model/use-request-correction";
 import { useRequestWorkflow } from "../model/use-request-workflow";
 import type { RevisionEditing } from "../model/use-revision-editing";
 import { RevisionConflictModal, SaveConflictModal, SaveFailureBanner, ScanDemoPanel } from "./draft-chrome";
@@ -78,6 +79,14 @@ export function RequestTabBody({ page, meId, meIsApprover, demo, openTab, editin
   const { clone, followUp } = useRequestCreate(openRequest);
   const workflow = useRequestWorkflow(page, meId, revision);
   const { performable } = workflow;
+  const correction = useRequestCorrection({
+    page,
+    meId,
+    editing,
+    revision,
+    ownKey: null,
+    onSelectContent: setContentKey,
+  });
   const isFinal = FINAL_STATUSES.includes(r.status);
   const session = editing.canEditRequest ? editing.session : null;
   const title = session ? session.infoValue("title", r) : r.title;
@@ -180,6 +189,7 @@ export function RequestTabBody({ page, meId, meIsApprover, demo, openTab, editin
             revision={revision}
             unlock={workflow.unlock}
             thread={workflow.thread}
+            correction={correction}
           />
         ) : null}
         {current === "info" ? (

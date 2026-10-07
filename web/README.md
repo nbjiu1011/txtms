@@ -33,6 +33,7 @@ section is hidden) and protected URLs redirect to `/login?next=…`.
 | `npm run e2e:real` | request authoring flow against a running API in demo mode (see below) |
 | `npm run e2e:real:review` | assignment → review → approval flow against a running API in demo mode (see below) |
 | `npm run e2e:real:result` | completion results, exports, follow-ups and the content archive against a running API (see below) |
+| `npm run e2e:real:correction` | text correction (check, apply / swap / restore, full check, suggestions) against a running API (see below) |
 
 ### Visual comparison harness (`e2e/visual/`)
 
@@ -53,17 +54,20 @@ npm run e2e:visual -- login       # one file
 - `token.visual.ts` — invitation page with an invalid link (0.00%).
 - `shell.visual.ts` — app shell with a fixture session (chrome comparison + popover/tab captures).
 - `screens.visual.ts` — read-only workflow screens next to the prototype logged in as the same persona:
-  dashboard (u1, u3, u11), request list (u1), REQ-2609-101 as u2 (contents, preview, opinions, history),
+  dashboard (u1, u3, u11), request list (u1), REQ-2609-101 as u2 (contents, correction result after 이 콘텐츠 검사,
+  preview, opinions, history),
   REQ-2609-103 as u4 (approval waiting), REQ-2609-088 as u1 (result tab), 콘텐츠 as u1 (collapsed and with the
   lineage expanded). Prints the share of differing pixels per screen (1440×900: 0.2–1.6%). Intended differences are
   listed in the file header; on 콘텐츠 the preview shows completion-time values instead of variable chips (the API
   sends the resolved preview), the past-version row shows the item title (the prototype shows the request title)
-  and the campaign filter lists campaigns of completed requests only.
+  and the campaign filter lists campaigns of completed requests only. The correction cards follow the result screen
+  design (PNG, 261007) instead of the prototype card, so `request-101-u2-proof-checked` differs in the cards on
+  purpose (panel head and buttons match; the dataset line reads `교정 데이터셋 · 알림톡 v4`).
 
 - `draft.visual.ts` — draft editing as 김서연 (REQ-2609-105): contents tab (0.67%), 요청 정보 (0.30%),
   미리보기 (0.33%), the submit missing-items modal (0.00%) and the submit confirmation (taller on purpose: it
   carries the "텍스트 교정은 선택 사항입니다" note). Other intended differences: menus of unbuilt screens, the
-  correction check buttons, the prototype-only "첨부 검사 시연" panel.
+  correction dataset line, the prototype-only "첨부 검사 시연" panel.
 
 - `review.visual.ts` — 검수 (이도현 배정 관리 / 내 검수, 박지훈 내 검수), 승인 (최민아) and the 검수자 배정 / 검수자 변경 /
   검수 완료 modals next to the prototype. Modals are 0.00%; the pages differ only in row order (the server sorts by
@@ -79,6 +83,8 @@ API mocks for the harness come from `e2e/fixtures/`:
   only), regenerated with `node e2e/fixtures/capture-review.mjs [http://localhost:8080]`.
 - `archive-snapshot.ts` — 콘텐츠 archive of project 1 as u1 (seed lineages only) and its campaign list,
   regenerated with `node e2e/fixtures/capture-archive.mjs [http://localhost:8080]`.
+- `correction-snapshot.ts` — correction dataset labels of the seed requests the screens open and the check result of
+  REQ-2609-101, regenerated with `node e2e/fixtures/capture-correction.mjs [http://localhost:8080]`.
 - `mock-api.ts` — `mockApiAs(page, userId, { extra, onWrite })`: refresh returns that persona, GETs answer from
   the snapshot plus `extra` (query order ignored), writes go to `onWrite` (default 405). Unit tests import the
   same fixtures via `@fixtures/*`.
@@ -121,6 +127,21 @@ of the seed REQ-2609-107 (seed file without a stored original) approved → ZIP 
 the dialog stays → recall approved on a follow-up → the submit confirmation says "검수 차수가 2차로 올라갑니다".
 Screenshots `result-*.png` and the downloaded files go to `e2e/real/out/`.
 
+### Real-API flow (`e2e/real/correction-flow.mjs`)
+
+김서연 on the seed draft REQ-2609-105: 이 콘텐츠 검사 → `할수` card → `할 수` applies at once (toast `교정이 적용되었습니다.`,
+the new text selected in the editor, autosaved, history `교정 적용` `body: 할수 → 할 수`) → 복원 (`교정이 취소되었습니다.`,
+history `교정 복원`). A fresh draft built from sample-dataset phrases: 1:N swap without restoring (`가입 대상` → `가입대상` →
+`가입 가능한 분`, card label/description follow), `소요됩니다` → `필요합니다` → `걸립니다` → 복원 = `소요됩니다` with indexes intact
+after the earlier swap, `수령인` → `받는 사람` → `받는 분`, overlapping results (`첫번째 보장` applied disables `보장 받겠지만`
+until restored), description-only `처리`, card click / Enter → editor selection, stale banner after typing, 전체 검사 (groups
+per content, bottom bar counts, applying a C2 card switches the editor to C2, 교정 완료 closes) and 건의하기 (reason required,
+history `교정 건의`). On REQ-2609-101 the requester can check but not apply or suggest; 박지훈 applies `되요 → 돼요` (edit lock +
+revision buffer) and saves a new version — the seed text is then put back through the API (a second revision, so every
+run raises C1 by two versions). A 자유입력형 draft drops its result once a file is attached (exclusion note, 전체 검사 lists
+`C1 · 첨부파일로 제외`) and does not get it back after the file is removed. 문지아 (customer 2, no 자유입력형 dataset) sees
+`배정 필요` and the server message on click. Screenshots `correction-*.png` in `e2e/real/out/`.
+
 Against the real API: `API_ORIGIN=http://localhost:8080 npm run dev`, then sign in with a demo persona.
 If a dev server already runs, `VISUAL_PORT=3000 npm run e2e:visual` reuses it.
 
@@ -137,7 +158,8 @@ src/
 ├─ features/       auth (login, demo personas, reset request, token password, session), profile-edit,
 │                  request-create (new, clone, follow-up), request-workflow (submit/cancel, assignment, schedule, recall, opinions,
 │                  asks/answers, completion, approval, unlock), completed-output (copy,
-│                  XLSX/ZIP export), variable-picker, bulk-import
+│                  XLSX/ZIP export), variable-picker, bulk-import, text-correction (panel, cards,
+│                  apply/restore offsets, freshness, 건의하기)
 ├─ entities/       me, customer, project, user, request, variable, correction, dashboard,
 │                  notification, notice, audit, ops — contract types + label maps (+ small queries)
 └─ shared/         api (http client, XHR upload, blob GET, ApiError, query client/keys), config (env, routes), lib, ui (kit + icons)
@@ -195,7 +217,7 @@ URL scheme (`src/shared/config/routes.ts`, `pathToTab` / `tabToPath`):
 | `/requests` | done — `+새 요청` (requesters), all reference filters (title/ID search debounced 250ms), table, recall/후속/긴급/지연 tags, empty / loading / error / no-permission states |
 | `/review` | done — 내 검수 (진행 중 / 완료: `MY_ASSIGNED_ACTIVE` / `MY_ASSIGNED_DONE`, 내 역할 주담당 / 공동 검수, 검수량, 지연 / 임박) for reviewers; 배정 관리 for the lead (배정 대기 with 배정 → request tab + assignment modal, 지연, 납기 임박, workload table from `GET /api/projects/{id}/workload`) |
 | `/approval` | done — 승인 대기 (`APPROVAL_QUEUE`, 처리 가능 = listed in `APPROVAL_PENDING`, else 본인 관여 요청), 내가 처리한 요청 (`APPROVAL_PROCESSED`), no-active-approver banner |
-| `/requests/{id}` | draft authoring and review workflow (below) — header (breadcrumb, chips, round, tags, meta, status track, sub tabs), banners, work grid (content list with 편집 중 / 수정 중 markers, type editors, lock bars, guide drawer, version compare), side panel (교정 frame, 미리보기 mockups, 의견 + form, 확인 요청 thread + ask / answer forms), 요청 정보, 히스토리 (merged, round separators, filter), 완료 결과 (bundle, XLSX/ZIP export, copy, variables). Not-found / denied states |
+| `/requests/{id}` | draft authoring and review workflow (below) — header (breadcrumb, chips, round, tags, meta, status track, sub tabs), banners, work grid (content list with 편집 중 / 수정 중 markers, type editors, lock bars, guide drawer, version compare), side panel (교정 panel and result cards, 미리보기 mockups, 의견 + form, 확인 요청 thread + ask / answer forms), 요청 정보, 히스토리 (merged, round separators, filter), 완료 결과 (bundle, XLSX/ZIP export, copy, variables). Not-found / denied states |
 | `/requests/{id}/contents/{key}` | content header + two-column work grid (draft autosave or review-time revision editing) |
 | `/contents` | done — completed contents by lineage (`GET /api/archive/contents`, 20 per page + 더 보기), filters (text debounced 250ms, type, campaign from `GET /api/archive/campaigns`, status, completion date, 초기화), expand past completions / follow-ups, 복사, 새 탭, 후속 요청 (requesters), empty / loading / error / no-permission states |
 | other routes | not listed in menus; direct URL shows "아직 제공되지 않는 화면입니다" |
@@ -292,6 +314,39 @@ URL scheme (`src/shared/config/routes.ts`, `pathToTab` / `tabToPath`):
   expanded rows list `과거 완료본` and open `후속 요청` with links to their requests. 복사 uses `latest.resolvedText`.
 - Filter bars use `FilterBar` / `FilterField` / `DateRangeFilter` from `shared/ui` (request list and archive).
 
+### Text correction (M4)
+
+- **Panel** (`features/text-correction`, 교정 tab of the side panel): `이 콘텐츠 검사`, `전체 검사 {n}건` (2+ contents; n =
+  contents without attachments), `교정 데이터셋 · {label}` from `GET …/corrections/dataset` + `교정 실행은 검수 요청·완료 조건이
+  아닙니다.`. Unassigned dataset: the buttons look disabled (`aria-disabled`), the line says `배정 필요`, and a click still
+  calls the check so the server message is shown. Checking is open to every viewer (`POST …/corrections/check` with the
+  tab's current buffer — draft edits or the revision buffer — and `hasFiles`).
+- **Results** live in tab memory per content (`useCorrection`) together with the normalized payload string and the
+  `variablesRevision` they refer to. Freshness: a different payload, or a project `variablesRevision` newer than the
+  result's (registering a variable refetches the project), shows `최신 내용과 불일치 · …` and disables apply / restore;
+  apply / restore move the snapshot along, so a result stays valid while it is used. Attaching a file to a 자유입력형 drops
+  its result (it does not come back after the file is removed); such contents show the exclusion note and are listed as
+  `{key} · 첨부파일로 제외` by 전체 검사.
+- **Cards** (result screen design, PNG 261007): header = 교정 유형 라벨 (`descriptionLabel`) + field + ④ 건의하기 (send icon);
+  ① 기존 표현; ② one recommendation = button that applies at once (applied: navy fill, `aria-pressed`); 2-2 several = select
+  `권장 표현 선택` that applies on choice and swaps directly between options (`before` = the applied text), label and reason
+  follow the chosen option; ③ 복원 always shown, enabled once applied, always returns the original; ⑤ description-only rules
+  show no recommendation area. Toasts `교정이 적용되었습니다.` / `교정이 취소되었습니다.`, then the new text is selected in the
+  editor (`setSelectionRange` + a short highlight ring). Card click or Enter selects the expression too; a card of another
+  content switches the request tab to it, or — in a content tab — opens that content's tab and hands the result over.
+- **Offsets** (`model/run.ts`): a replacement shifts later groups of the same field by the length difference; partially
+  overlapping groups (same field, not containing each other) never move — while one is applied the others are disabled
+  with the reason shown, and they are valid again after its restore.
+- **Editing**: drafts (author) write into the draft session (autosave); review-time edits (assigned reviewer in 검수 중,
+  requester in 확인 요청) first open the revision buffer and take the edit lock (refused → nothing changes), then write the
+  buffer (수정본 저장 as usual). Each apply / restore then records `POST …/corrections/events` (a failure only shows a toast).
+  Viewers without editing rights see results read-only; 건의하기 needs `EDIT_CONTENT` or `REVIEW`.
+- **전체 검사**: groups per content (`C1 · 제목 (n)`, collapsible, the shown content marked), bottom bar `콘텐츠 n · 교정 적용 n ·
+  교정 결과 n` and `교정 완료` (closes the full-check view). In a content tab, cards of other contents are applied in their
+  own tab.
+- **건의하기** modal: content key, matched text and the current options, required `건의 이유` (2,000자) → `POST …/suggestions`
+  (`ruleIds` = the group's rules) → `건의를 보냈습니다`.
+
 ## shared/ui components
 
 Button (default/pri/ok/warn/ghost, sm) · IconButton (badge) · Tag (hot/flag/recall/fill) · StatusChip ·
@@ -300,7 +355,7 @@ PanelBody · FilterBar/FilterField/DateRangeFilter (+ `filterClasses`) · Table 
 Label/Hint/ErrorMessage/Input/Select/Textarea/Checkbox · Modal (focus trap, Escape, scrim, busy-safe async
 `onOk`, 560/900, ok variant default/pri/ok/warn) · Popover (+ header/body/section/item) · Drawer · Toaster/`toast()` (single, 2.8s,
 `role=status`) · LockBar · ReadOnlyBox · KeyValueList · Bar · SaveIndicator · ProgressTrack · BrandMark ·
-Page/PageHeader (`rawEyebrow` for the dashboard date) · Icon (all reference icons) · TypeGlyph.
+Page/PageHeader (`rawEyebrow` for the dashboard date) · Icon (all reference icons + `send` for 건의하기) · TypeGlyph.
 
 Accessibility fixes over the reference (no visual change): tab title button is the `role=tab`
 (`aria-selected`) with the close button as a sibling, `aria-current` on the active menu, `aria-selected` /
@@ -309,7 +364,6 @@ the bell's accessible name, Escape/outside click closes the mobile menu.
 
 ## Not implemented yet / stubs
 
-- Correction engine and result cards (panel frame only) — M4.
 - Performance, notices, admin and ops screens.
 - Dark theme (light only).
 

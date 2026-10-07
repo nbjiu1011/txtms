@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { isApiError } from "@/shared/api";
+import { projectKeys } from "@/entities/project";
 import {
   Button,
   ErrorMessage,
@@ -120,6 +121,8 @@ function RegisterForm(props: { projectId: number; onRegistered: (key: string) =>
     try {
       const created = await createVariable(props.projectId, values);
       await client.invalidateQueries({ queryKey: variableKeys.byProject(props.projectId) });
+      // The project's `variablesRevision` moved on (correction results become stale).
+      void client.invalidateQueries({ queryKey: projectKeys.detail(props.projectId) });
       toast(`${created.key} 변수를 등록했습니다. 프로젝트 구성원 모두 쓸 수 있습니다`);
       props.onRegistered(created.key);
     } catch (error) {

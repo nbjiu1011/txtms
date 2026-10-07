@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test, type Page } from "@playwright/test";
 import { history105, request105U1, variablesP1 } from "../fixtures/draft-snapshot";
+import { CORRECTION_DATASETS } from "../fixtures/correction-snapshot";
 import { mockApiAs, type MockWrite } from "../fixtures/mock-api";
 import { PROTOTYPE_URL, compose, settle } from "./fixtures";
 
@@ -119,6 +120,7 @@ for (const screen of SCREENS) {
     const app = await context.newPage();
     await mockApiAs(app, 1, {
       extra: {
+        ...CORRECTION_DATASETS,
         "/requests/REQ-2609-105": screen.detail ?? request105U1,
         "/requests/REQ-2609-105/history": history105,
         "/projects/1/variables": variablesP1,

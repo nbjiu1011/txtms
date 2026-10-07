@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test, type Page } from "@playwright/test";
+import { CORRECTION_DATASETS } from "../fixtures/correction-snapshot";
 import { mockApiAs } from "../fixtures/mock-api";
 import { REVIEW_SNAPSHOT } from "../fixtures/review-snapshot";
 import { PROTOTYPE_URL, compose, settle } from "./fixtures";
@@ -85,7 +86,9 @@ for (const screen of SCREENS) {
     const protoPng = screen.modal ? await proto.locator(".modal").screenshot() : await proto.screenshot();
 
     const app = await context.newPage();
-    await mockApiAs(app, USER_ID[screen.persona], { extra: REVIEW_SNAPSHOT[USER_ID[screen.persona]] });
+    await mockApiAs(app, USER_ID[screen.persona], {
+      extra: { ...CORRECTION_DATASETS, ...REVIEW_SNAPSHOT[USER_ID[screen.persona]] },
+    });
     await app.goto(screen.path);
     await app.locator("main h1").first().waitFor();
     await app.addStyleTag({ content: "nextjs-portal{display:none!important}" });

@@ -2,7 +2,8 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test, type Page } from "@playwright/test";
 import { ARCHIVE_EXTRA_U1 } from "../fixtures/archive-snapshot";
-import { mockApiAs } from "../fixtures/mock-api";
+import { CHECK_101, CORRECTION_DATASETS } from "../fixtures/correction-snapshot";
+import { mockApiAs, type MockWrite } from "../fixtures/mock-api";
 import { PROTOTYPE_URL, compose, settle } from "./fixtures";
 
 const OUT = join(__dirname, "out");
@@ -23,7 +24,16 @@ interface Screen {
   scroll?: number;
   /** Extra mocked GET responses. */
   extra?: Record<string, unknown>;
+  /** Mocked write calls. */
+  onWrite?: (write: MockWrite) => { status: number; body?: unknown } | undefined;
 }
+
+/** 이 콘텐츠 검사 of REQ-2609-101 answers with the captured result of the requested contents. */
+const checkWrite = (w: MockWrite) => {
+  if (!w.path.endsWith("/corrections/check")) return undefined;
+  const keys = (w.body as { contents: { contentKey: string }[] }).contents.map((c) => c.contentKey);
+  return { status: 200, body: { results: CHECK_101.results.filter((r) => keys.includes(r.contentKey)) } };
+};
 
 const openReq = (id: string) => `A.openReq({dataset:{id:'${id}'}});`;
 
@@ -33,6 +43,16 @@ const SCREENS: Screen[] = [
   { name: "dashboard-u11", persona: "u11", path: "/" },
   { name: "requests-u1", persona: "u1", path: "/requests", proto: "A.nav({dataset:{r:'requests'}});" },
   { name: "request-101-u2", persona: "u2", path: "/requests/REQ-2609-101", proto: openReq("REQ-2609-101") },
+  {
+    // Correction cards follow the 화면설계 PNG (261007), not the prototype card: compared for the frame
+    // (panel head, dataset line) and kept as a capture of the PNG-style cards.
+    name: "request-101-u2-proof-checked",
+    persona: "u2",
+    path: "/requests/REQ-2609-101",
+    app: (p) => p.getByRole("button", { name: "이 콘텐츠 검사" }).click(),
+    proto: `${openReq("REQ-2609-101")}A.check();`,
+    onWrite: checkWrite,
+  },
   {
     name: "request-101-u2-preview",
     persona: "u2",
@@ -112,7 +132,10 @@ for (const screen of SCREENS) {
     const protoPng = await proto.screenshot();
 
     const app = await context.newPage();
-    await mockApiAs(app, USER_ID[screen.persona], { extra: screen.extra });
+    await mockApiAs(app, USER_ID[screen.persona], {
+      extra: { ...CORRECTION_DATASETS, ...screen.extra },
+      onWrite: screen.onWrite,
+    });
     await app.goto(screen.path);
     await app.locator("main h1").first().waitFor();
     await app.addStyleTag({ content: "nextjs-portal{display:none!important}" });
