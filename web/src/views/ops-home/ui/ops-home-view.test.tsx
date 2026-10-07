@@ -19,6 +19,7 @@ const customer = (id: number, name: string, patch: Partial<OpsCustomer> = {}): O
   dueSoonDays: 3,
   createdAt: "2026-10-01T01:00:00Z",
   createdBy: 5,
+  createdByName: "정우진",
   deactivationReason: null,
   projectCount: 1,
   userCount: 2,

@@ -2,7 +2,7 @@
 import type { ArchiveLine } from "@/entities/request";
 import type { Page } from "@/shared/api";
 
-export const ARCHIVE_CAPTURED_AT = "2026-10-07T13:05:40.680Z";
+export const ARCHIVE_CAPTURED_AT = "2026-10-07T16:17:09.537Z";
 
 /** `GET /api/archive/contents?projectId=1&size=20&page=0` as 김서연 (seed lineages). */
 export const archiveContentsU1: Page<ArchiveLine> = {
@@ -16,19 +16,21 @@ export const archiveContentsU1: Page<ArchiveLine> = {
         "version": 1,
         "type": "ALIMTALK",
         "status": "APPROVED",
-        "completedAt": "2026-10-02T02:00:00Z",
+        "completedAt": "2026-10-03T02:00:00Z",
         "campaign": null,
         "preview": "홍길동님, 9월 청구 금액은 152,300원입니다.\n결제일: 25일\n결제일 전날까지 계좌 잔액을 확인해 주세요.",
+        "previewRaw": "#{customer_name}님, 9월 청구 금액은 #{billing_amount}입니다.\n결제일: #{payment_day}\n결제일 전날까지 계좌 잔액을 확인해 주세요.",
         "fileNames": [],
         "resolvedText": "홍길동님, 9월 청구 금액은 152,300원입니다.\n결제일: 25일\n결제일 전날까지 계좌 잔액을 확인해 주세요."
       },
       "past": [
         {
           "requestId": "REQ-2609-088",
+          "requestTitle": "청구 금액 안내 (8월)",
           "contentKey": "C1",
           "title": "청구 금액 안내",
           "version": 1,
-          "completedAt": "2026-09-07T01:00:00Z"
+          "completedAt": "2026-09-08T01:00:00Z"
         }
       ],
       "followUps": [],

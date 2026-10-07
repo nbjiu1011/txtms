@@ -163,8 +163,9 @@ export interface ListItemProps {
   trailing?: ReactNode;
   onClick?: () => void;
   /**
-   * The trailing content holds its own buttons: the clickable row is then a `div[role=button]`
-   * (a button cannot contain buttons). Clicks on those buttons should stop propagation.
+   * The trailing content holds its own buttons: the row is then a clickable `div` whose leading + title
+   * part is the `role=button` (a button cannot contain buttons). Clicks on those buttons should stop
+   * propagation.
    */
   nestedActions?: boolean;
   /** Extra content under the meta line inside the main column (e.g. an expanded notice body). */
@@ -198,20 +199,29 @@ export function ListItem({
     </>
   );
   if (onClick && nestedActions) {
+    // The whole row is clickable, but only the leading visual + title part is the button: the trailing
+    // buttons must not be nested inside another interactive element.
     return (
-      <div
-        role="button"
-        tabIndex={0}
-        className={cn(styles.listItem, className)}
-        onClick={onClick}
-        onKeyDown={(e) => {
-          if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
-            e.preventDefault();
-            onClick();
-          }
-        }}
-      >
-        {content}
+      <div className={cn(styles.listItem, className)} onClick={onClick}>
+        <span
+          role="button"
+          tabIndex={0}
+          className={styles.nestedMain}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onClick();
+            }
+          }}
+        >
+          {leading}
+          <span className={styles.main}>
+            <b>{title}</b>
+            {meta ? <span>{meta}</span> : null}
+            {extra}
+          </span>
+        </span>
+        {trailing}
       </div>
     );
   }

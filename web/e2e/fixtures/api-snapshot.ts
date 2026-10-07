@@ -4,7 +4,7 @@ import type { HistoryEntry, RequestDetail, RequestSummary } from "@/entities/req
 import type { Page } from "@/shared/api";
 import type { DemoPersona } from "@/entities/me";
 
-export const CAPTURED_AT = "2026-10-07T10:23:04.695Z";
+export const CAPTURED_AT = "2026-10-07T16:24:55.139Z";
 
 export const demoPersonas: DemoPersona[] = [
   {
@@ -91,6 +91,12 @@ export const dashboardU1: Dashboard = {
       "label": "진행 중",
       "tone": "IN_REVIEW",
       "count": 5
+    },
+    {
+      "view": "DUE_SOON",
+      "label": "납기 임박",
+      "tone": "WAITING",
+      "count": 4
     }
   ],
   "pipeline": [
@@ -129,7 +135,7 @@ export const dashboardU1: Dashboard = {
       "title": "연말 캐시백 알림톡",
       "type": "ALIMTALK",
       "projectName": "카드 혜택 알림",
-      "dueDate": "2026-10-15",
+      "dueDate": "2026-10-16",
       "overdue": false,
       "dueSoon": false
     },
@@ -141,7 +147,7 @@ export const dashboardU1: Dashboard = {
       "title": "해외 결제 수수료 면제 안내 문자",
       "type": "SMS",
       "projectName": "카드 혜택 알림",
-      "dueDate": "2026-10-08",
+      "dueDate": "2026-10-09",
       "overdue": false,
       "dueSoon": true
     }
@@ -158,11 +164,11 @@ export const dashboardU1: Dashboard = {
       "reviewerIds": [],
       "primaryReviewerId": null,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-15",
-      "dueDate": "2026-10-15",
+      "hopeDueDate": "2026-10-16",
+      "dueDate": "2026-10-16",
       "urgency": "NORMAL",
       "submittedAt": null,
-      "createdAt": "2026-10-07T02:00:00Z",
+      "createdAt": "2026-10-08T02:00:00Z",
       "completedAt": null,
       "recallRequested": false,
       "parentRequestId": null,
@@ -182,7 +188,8 @@ export const dashboardU1: Dashboard = {
       "volume": {
         "chars": 79,
         "files": []
-      }
+      },
+      "approvable": false
     },
     {
       "id": "REQ-2609-104",
@@ -195,11 +202,11 @@ export const dashboardU1: Dashboard = {
       "reviewerIds": [],
       "primaryReviewerId": null,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-08",
-      "dueDate": "2026-10-08",
+      "hopeDueDate": "2026-10-09",
+      "dueDate": "2026-10-09",
       "urgency": "URGENT",
-      "submittedAt": "2026-10-06T01:00:00Z",
-      "createdAt": "2026-10-06T00:00:00Z",
+      "submittedAt": "2026-10-07T01:00:00Z",
+      "createdAt": "2026-10-07T00:00:00Z",
       "completedAt": null,
       "recallRequested": false,
       "parentRequestId": null,
@@ -219,7 +226,8 @@ export const dashboardU1: Dashboard = {
       "volume": {
         "chars": 71,
         "files": []
-      }
+      },
+      "approvable": false
     },
     {
       "id": "REQ-2609-107",
@@ -235,11 +243,11 @@ export const dashboardU1: Dashboard = {
       ],
       "primaryReviewerId": 2,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-11",
-      "dueDate": "2026-10-11",
+      "hopeDueDate": "2026-10-12",
+      "dueDate": "2026-10-12",
       "urgency": "NORMAL",
-      "submittedAt": "2026-10-05T05:00:00Z",
-      "createdAt": "2026-10-05T01:00:00Z",
+      "submittedAt": "2026-10-06T05:00:00Z",
+      "createdAt": "2026-10-06T01:00:00Z",
       "completedAt": null,
       "recallRequested": true,
       "parentRequestId": null,
@@ -264,7 +272,8 @@ export const dashboardU1: Dashboard = {
             "amount": 6
           }
         ]
-      }
+      },
+      "approvable": false
     },
     {
       "id": "REQ-2609-101",
@@ -280,11 +289,11 @@ export const dashboardU1: Dashboard = {
       ],
       "primaryReviewerId": 2,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-09",
-      "dueDate": "2026-10-09",
+      "hopeDueDate": "2026-10-10",
+      "dueDate": "2026-10-10",
       "urgency": "NORMAL",
-      "submittedAt": "2026-10-04T01:00:00Z",
-      "createdAt": "2026-10-04T00:00:00Z",
+      "submittedAt": "2026-10-05T01:00:00Z",
+      "createdAt": "2026-10-05T00:00:00Z",
       "completedAt": null,
       "recallRequested": false,
       "parentRequestId": null,
@@ -314,7 +323,8 @@ export const dashboardU1: Dashboard = {
       "volume": {
         "chars": 247,
         "files": []
-      }
+      },
+      "approvable": false
     },
     {
       "id": "REQ-2609-102",
@@ -329,11 +339,11 @@ export const dashboardU1: Dashboard = {
       ],
       "primaryReviewerId": 3,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-08",
-      "dueDate": "2026-10-08",
+      "hopeDueDate": "2026-10-09",
+      "dueDate": "2026-10-09",
       "urgency": "NORMAL",
-      "submittedAt": "2026-10-03T02:00:00Z",
-      "createdAt": "2026-10-03T01:00:00Z",
+      "submittedAt": "2026-10-04T02:00:00Z",
+      "createdAt": "2026-10-04T01:00:00Z",
       "completedAt": null,
       "recallRequested": false,
       "parentRequestId": null,
@@ -358,7 +368,8 @@ export const dashboardU1: Dashboard = {
       "volume": {
         "chars": 121,
         "files": []
-      }
+      },
+      "approvable": false
     },
     {
       "id": "REQ-2609-113",
@@ -373,11 +384,11 @@ export const dashboardU1: Dashboard = {
       ],
       "primaryReviewerId": 6,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-06",
-      "dueDate": "2026-10-06",
+      "hopeDueDate": "2026-10-07",
+      "dueDate": "2026-10-07",
       "urgency": "URGENT",
-      "submittedAt": "2026-10-01T01:00:00Z",
-      "createdAt": "2026-10-01T01:00:00Z",
+      "submittedAt": "2026-10-02T01:00:00Z",
+      "createdAt": "2026-10-02T01:00:00Z",
       "completedAt": null,
       "recallRequested": false,
       "parentRequestId": null,
@@ -397,7 +408,8 @@ export const dashboardU1: Dashboard = {
       "volume": {
         "chars": 53,
         "files": []
-      }
+      },
+      "approvable": false
     }
   ],
   "workload": [],
@@ -408,7 +420,7 @@ export const dashboardU1: Dashboard = {
       "customerId": 1,
       "projectId": null,
       "title": "10월 정기 점검 시간 안내",
-      "createdAt": "2026-10-05T00:00:00Z"
+      "createdAt": "2026-10-06T00:00:00Z"
     },
     {
       "id": 2,
@@ -416,7 +428,7 @@ export const dashboardU1: Dashboard = {
       "customerId": 1,
       "projectId": 1,
       "title": "추석 연휴 검수 일정",
-      "createdAt": "2026-10-03T02:00:00Z"
+      "createdAt": "2026-10-04T02:00:00Z"
     }
   ],
   "adminViewing": false
@@ -435,11 +447,11 @@ export const requestListU1: Page<RequestSummary> = {
       "reviewerIds": [],
       "primaryReviewerId": null,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-15",
-      "dueDate": "2026-10-15",
+      "hopeDueDate": "2026-10-16",
+      "dueDate": "2026-10-16",
       "urgency": "NORMAL",
       "submittedAt": null,
-      "createdAt": "2026-10-07T02:00:00Z",
+      "createdAt": "2026-10-08T02:00:00Z",
       "completedAt": null,
       "recallRequested": false,
       "parentRequestId": null,
@@ -459,7 +471,8 @@ export const requestListU1: Page<RequestSummary> = {
       "volume": {
         "chars": 79,
         "files": []
-      }
+      },
+      "approvable": false
     },
     {
       "id": "REQ-2609-104",
@@ -472,11 +485,11 @@ export const requestListU1: Page<RequestSummary> = {
       "reviewerIds": [],
       "primaryReviewerId": null,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-08",
-      "dueDate": "2026-10-08",
+      "hopeDueDate": "2026-10-09",
+      "dueDate": "2026-10-09",
       "urgency": "URGENT",
-      "submittedAt": "2026-10-06T01:00:00Z",
-      "createdAt": "2026-10-06T00:00:00Z",
+      "submittedAt": "2026-10-07T01:00:00Z",
+      "createdAt": "2026-10-07T00:00:00Z",
       "completedAt": null,
       "recallRequested": false,
       "parentRequestId": null,
@@ -496,7 +509,8 @@ export const requestListU1: Page<RequestSummary> = {
       "volume": {
         "chars": 71,
         "files": []
-      }
+      },
+      "approvable": false
     },
     {
       "id": "REQ-2609-107",
@@ -512,11 +526,11 @@ export const requestListU1: Page<RequestSummary> = {
       ],
       "primaryReviewerId": 2,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-11",
-      "dueDate": "2026-10-11",
+      "hopeDueDate": "2026-10-12",
+      "dueDate": "2026-10-12",
       "urgency": "NORMAL",
-      "submittedAt": "2026-10-05T05:00:00Z",
-      "createdAt": "2026-10-05T01:00:00Z",
+      "submittedAt": "2026-10-06T05:00:00Z",
+      "createdAt": "2026-10-06T01:00:00Z",
       "completedAt": null,
       "recallRequested": true,
       "parentRequestId": null,
@@ -541,7 +555,8 @@ export const requestListU1: Page<RequestSummary> = {
             "amount": 6
           }
         ]
-      }
+      },
+      "approvable": false
     },
     {
       "id": "REQ-2609-101",
@@ -557,11 +572,11 @@ export const requestListU1: Page<RequestSummary> = {
       ],
       "primaryReviewerId": 2,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-09",
-      "dueDate": "2026-10-09",
+      "hopeDueDate": "2026-10-10",
+      "dueDate": "2026-10-10",
       "urgency": "NORMAL",
-      "submittedAt": "2026-10-04T01:00:00Z",
-      "createdAt": "2026-10-04T00:00:00Z",
+      "submittedAt": "2026-10-05T01:00:00Z",
+      "createdAt": "2026-10-05T00:00:00Z",
       "completedAt": null,
       "recallRequested": false,
       "parentRequestId": null,
@@ -591,7 +606,8 @@ export const requestListU1: Page<RequestSummary> = {
       "volume": {
         "chars": 247,
         "files": []
-      }
+      },
+      "approvable": false
     },
     {
       "id": "REQ-2609-102",
@@ -606,11 +622,11 @@ export const requestListU1: Page<RequestSummary> = {
       ],
       "primaryReviewerId": 3,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-08",
-      "dueDate": "2026-10-08",
+      "hopeDueDate": "2026-10-09",
+      "dueDate": "2026-10-09",
       "urgency": "NORMAL",
-      "submittedAt": "2026-10-03T02:00:00Z",
-      "createdAt": "2026-10-03T01:00:00Z",
+      "submittedAt": "2026-10-04T02:00:00Z",
+      "createdAt": "2026-10-04T01:00:00Z",
       "completedAt": null,
       "recallRequested": false,
       "parentRequestId": null,
@@ -635,7 +651,8 @@ export const requestListU1: Page<RequestSummary> = {
       "volume": {
         "chars": 121,
         "files": []
-      }
+      },
+      "approvable": false
     },
     {
       "id": "REQ-2609-113",
@@ -650,11 +667,11 @@ export const requestListU1: Page<RequestSummary> = {
       ],
       "primaryReviewerId": 6,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-06",
-      "dueDate": "2026-10-06",
+      "hopeDueDate": "2026-10-07",
+      "dueDate": "2026-10-07",
       "urgency": "URGENT",
-      "submittedAt": "2026-10-01T01:00:00Z",
-      "createdAt": "2026-10-01T01:00:00Z",
+      "submittedAt": "2026-10-02T01:00:00Z",
+      "createdAt": "2026-10-02T01:00:00Z",
       "completedAt": null,
       "recallRequested": false,
       "parentRequestId": null,
@@ -674,7 +691,8 @@ export const requestListU1: Page<RequestSummary> = {
       "volume": {
         "chars": 53,
         "files": []
-      }
+      },
+      "approvable": false
     },
     {
       "id": "REQ-2609-106",
@@ -690,12 +708,12 @@ export const requestListU1: Page<RequestSummary> = {
       ],
       "primaryReviewerId": 6,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-02",
-      "dueDate": "2026-10-02",
+      "hopeDueDate": "2026-10-03",
+      "dueDate": "2026-10-03",
       "urgency": "NORMAL",
-      "submittedAt": "2026-09-29T01:00:00Z",
-      "createdAt": "2026-09-29T01:00:00Z",
-      "completedAt": "2026-10-02T02:00:00Z",
+      "submittedAt": "2026-09-30T01:00:00Z",
+      "createdAt": "2026-09-30T01:00:00Z",
+      "completedAt": "2026-10-03T02:00:00Z",
       "recallRequested": false,
       "parentRequestId": "REQ-2609-088",
       "campaign": null,
@@ -714,7 +732,8 @@ export const requestListU1: Page<RequestSummary> = {
       "volume": {
         "chars": 95,
         "files": []
-      }
+      },
+      "approvable": false
     },
     {
       "id": "REQ-2609-103",
@@ -730,16 +749,16 @@ export const requestListU1: Page<RequestSummary> = {
       ],
       "primaryReviewerId": 3,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-10",
-      "dueDate": "2026-10-10",
+      "hopeDueDate": "2026-10-11",
+      "dueDate": "2026-10-11",
       "urgency": "NORMAL",
-      "submittedAt": "2026-09-28T01:00:00Z",
-      "createdAt": "2026-09-28T01:00:00Z",
+      "submittedAt": "2026-09-29T01:00:00Z",
+      "createdAt": "2026-09-29T01:00:00Z",
       "completedAt": null,
       "recallRequested": false,
       "parentRequestId": null,
       "campaign": "프리미엄 리뉴얼",
-      "dueSoon": false,
+      "dueSoon": true,
       "overdue": false,
       "contentCount": 1,
       "contentVersions": [
@@ -754,7 +773,8 @@ export const requestListU1: Page<RequestSummary> = {
       "volume": {
         "chars": 72,
         "files": []
-      }
+      },
+      "approvable": false
     },
     {
       "id": "REQ-2609-088",
@@ -769,12 +789,12 @@ export const requestListU1: Page<RequestSummary> = {
       ],
       "primaryReviewerId": 2,
       "leadUserId": 3,
-      "hopeDueDate": "2026-09-07",
-      "dueDate": "2026-09-07",
+      "hopeDueDate": "2026-09-08",
+      "dueDate": "2026-09-08",
       "urgency": "NORMAL",
-      "submittedAt": "2026-09-03T01:00:00Z",
-      "createdAt": "2026-09-03T01:00:00Z",
-      "completedAt": "2026-09-07T01:00:00Z",
+      "submittedAt": "2026-09-04T01:00:00Z",
+      "createdAt": "2026-09-04T01:00:00Z",
+      "completedAt": "2026-09-08T01:00:00Z",
       "recallRequested": false,
       "parentRequestId": null,
       "campaign": null,
@@ -793,7 +813,8 @@ export const requestListU1: Page<RequestSummary> = {
       "volume": {
         "chars": 70,
         "files": []
-      }
+      },
+      "approvable": false
     }
   ],
   "page": {
@@ -817,11 +838,11 @@ export const request102U1: RequestDetail = {
   ],
   "primaryReviewerId": 3,
   "leadUserId": 3,
-  "hopeDueDate": "2026-10-08",
-  "dueDate": "2026-10-08",
+  "hopeDueDate": "2026-10-09",
+  "dueDate": "2026-10-09",
   "urgency": "NORMAL",
-  "submittedAt": "2026-10-03T02:00:00Z",
-  "createdAt": "2026-10-03T01:00:00Z",
+  "submittedAt": "2026-10-04T02:00:00Z",
+  "createdAt": "2026-10-04T01:00:00Z",
   "completedAt": null,
   "recallRequested": false,
   "parentRequestId": null,
@@ -837,6 +858,7 @@ export const request102U1: RequestDetail = {
     "chars": 121,
     "files": []
   },
+  "approvable": false,
   "purpose": "해외 결제 수수료 면제 프로모션 안내",
   "target": "해외 결제 이력 고객",
   "background": "연말 해외 여행 수요",
@@ -859,7 +881,7 @@ export const request102U1: RequestDetail = {
       "versions": [
         {
           "version": 1,
-          "createdAt": "2026-10-03T02:00:00Z",
+          "createdAt": "2026-10-04T02:00:00Z",
           "createdBy": 1
         }
       ]
@@ -880,7 +902,7 @@ export const request102U1: RequestDetail = {
       "versions": [
         {
           "version": 1,
-          "createdAt": "2026-10-03T02:00:00Z",
+          "createdAt": "2026-10-04T02:00:00Z",
           "createdBy": 1
         }
       ]
@@ -893,7 +915,7 @@ export const request102U1: RequestDetail = {
       "askedBy": 3,
       "contentKey": "C1",
       "question": "면제 기간 종료일이 10월 31일로 되어 있는데, 상품 안내 페이지에는 11월 30일로 나옵니다. 어느 쪽이 맞을까요?",
-      "askedAt": "2026-10-06T07:00:00Z",
+      "askedAt": "2026-10-07T07:00:00Z",
       "answer": null,
       "answeredBy": null,
       "answeredAt": null,
@@ -914,9 +936,9 @@ export const request102U1: RequestDetail = {
   ],
   "historyCount": 4,
   "stageTimes": {
-    "DRAFT": "2026-10-03T01:00:00Z",
-    "WAITING": "2026-10-03T02:00:00Z",
-    "IN_REVIEW": "2026-10-03T03:00:00Z",
+    "DRAFT": "2026-10-04T01:00:00Z",
+    "WAITING": "2026-10-04T02:00:00Z",
+    "IN_REVIEW": "2026-10-04T03:00:00Z",
     "COMPLETED": null,
     "APPROVED": null
   },
@@ -926,7 +948,9 @@ export const request102U1: RequestDetail = {
     "ANSWER",
     "CLONE"
   ],
-  "rowVersion": 1
+  "rowVersion": 1,
+  "nextSubmitRound": 1,
+  "variablesRevision": 6
 };
 
 export const request088U1: RequestDetail = {
@@ -942,12 +966,12 @@ export const request088U1: RequestDetail = {
   ],
   "primaryReviewerId": 2,
   "leadUserId": 3,
-  "hopeDueDate": "2026-09-07",
-  "dueDate": "2026-09-07",
+  "hopeDueDate": "2026-09-08",
+  "dueDate": "2026-09-08",
   "urgency": "NORMAL",
-  "submittedAt": "2026-09-03T01:00:00Z",
-  "createdAt": "2026-09-03T01:00:00Z",
-  "completedAt": "2026-09-07T01:00:00Z",
+  "submittedAt": "2026-09-04T01:00:00Z",
+  "createdAt": "2026-09-04T01:00:00Z",
+  "completedAt": "2026-09-08T01:00:00Z",
   "recallRequested": false,
   "parentRequestId": null,
   "campaign": null,
@@ -961,6 +985,7 @@ export const request088U1: RequestDetail = {
     "chars": 70,
     "files": []
   },
+  "approvable": false,
   "purpose": "월 청구 금액 안내",
   "target": "전체 회원",
   "background": "정기 발송",
@@ -987,7 +1012,7 @@ export const request088U1: RequestDetail = {
       "versions": [
         {
           "version": 1,
-          "createdAt": "2026-09-03T01:00:00Z",
+          "createdAt": "2026-09-04T01:00:00Z",
           "createdBy": 1
         }
       ]
@@ -1009,15 +1034,15 @@ export const request088U1: RequestDetail = {
   ],
   "historyCount": 5,
   "stageTimes": {
-    "DRAFT": "2026-09-03T01:00:00Z",
-    "WAITING": "2026-09-03T01:00:00Z",
-    "IN_REVIEW": "2026-09-03T02:00:00Z",
-    "COMPLETED": "2026-09-06T08:00:00Z",
-    "APPROVED": "2026-09-07T01:00:00Z"
+    "DRAFT": "2026-09-04T01:00:00Z",
+    "WAITING": "2026-09-04T01:00:00Z",
+    "IN_REVIEW": "2026-09-04T02:00:00Z",
+    "COMPLETED": "2026-09-07T08:00:00Z",
+    "APPROVED": "2026-09-08T01:00:00Z"
   },
   "bundle": {
     "status": "APPROVED",
-    "completedAt": "2026-09-07T01:00:00Z",
+    "completedAt": "2026-09-08T01:00:00Z",
     "completedBy": 4,
     "variables": [
       {
@@ -1075,7 +1100,9 @@ export const request088U1: RequestDetail = {
     "FOLLOW_UP",
     "EXPORT"
   ],
-  "rowVersion": 1
+  "rowVersion": 1,
+  "nextSubmitRound": 1,
+  "variablesRevision": 6
 };
 
 export const request101U2: RequestDetail = {
@@ -1092,11 +1119,11 @@ export const request101U2: RequestDetail = {
   ],
   "primaryReviewerId": 2,
   "leadUserId": 3,
-  "hopeDueDate": "2026-10-09",
-  "dueDate": "2026-10-09",
+  "hopeDueDate": "2026-10-10",
+  "dueDate": "2026-10-10",
   "urgency": "NORMAL",
-  "submittedAt": "2026-10-04T01:00:00Z",
-  "createdAt": "2026-10-04T00:00:00Z",
+  "submittedAt": "2026-10-05T01:00:00Z",
+  "createdAt": "2026-10-05T00:00:00Z",
   "completedAt": null,
   "recallRequested": false,
   "parentRequestId": null,
@@ -1113,6 +1140,7 @@ export const request101U2: RequestDetail = {
     "chars": 247,
     "files": []
   },
+  "approvable": false,
   "purpose": "10월 적립 이벤트 참여 유도",
   "target": "최근 3개월 결제 고객",
   "background": "분기 말 이용 실적 방어",
@@ -1139,7 +1167,7 @@ export const request101U2: RequestDetail = {
       "versions": [
         {
           "version": 1,
-          "createdAt": "2026-10-04T01:00:00Z",
+          "createdAt": "2026-10-05T01:00:00Z",
           "createdBy": 1
         }
       ]
@@ -1159,12 +1187,16 @@ export const request101U2: RequestDetail = {
         "templateCode": "HB_POINT_01"
       },
       "files": [],
-      "lock": null,
+      "lock": {
+        "userId": 6,
+        "lockedAt": "2026-10-07T16:05:38.828405Z",
+        "expiresAt": "2026-10-07T16:35:38.828405Z"
+      },
       "savedAt": null,
       "versions": [
         {
           "version": 1,
-          "createdAt": "2026-10-04T01:00:00Z",
+          "createdAt": "2026-10-05T01:00:00Z",
           "createdBy": 1
         }
       ]
@@ -1189,7 +1221,7 @@ export const request101U2: RequestDetail = {
       "versions": [
         {
           "version": 1,
-          "createdAt": "2026-10-04T01:00:00Z",
+          "createdAt": "2026-10-05T01:00:00Z",
           "createdBy": 1
         }
       ]
@@ -1202,7 +1234,7 @@ export const request101U2: RequestDetail = {
       "contentKey": "C2",
       "body": "연속 공백이 있습니다. 적립일 표기를 청구 안내와 같은 형식으로 맞추면 좋겠습니다.",
       "round": 1,
-      "createdAt": "2026-10-06T06:00:00Z"
+      "createdAt": "2026-10-07T06:00:00Z"
     }
   ],
   "asks": [],
@@ -1232,9 +1264,9 @@ export const request101U2: RequestDetail = {
   ],
   "historyCount": 4,
   "stageTimes": {
-    "DRAFT": "2026-10-04T00:00:00Z",
-    "WAITING": "2026-10-04T01:00:00Z",
-    "IN_REVIEW": "2026-10-04T02:00:00Z",
+    "DRAFT": "2026-10-05T00:00:00Z",
+    "WAITING": "2026-10-05T01:00:00Z",
+    "IN_REVIEW": "2026-10-05T02:00:00Z",
     "COMPLETED": null,
     "APPROVED": null
   },
@@ -1244,13 +1276,15 @@ export const request101U2: RequestDetail = {
     "REVIEW",
     "COMPLETE"
   ],
-  "rowVersion": 1
+  "rowVersion": 1,
+  "nextSubmitRound": 1,
+  "variablesRevision": 6
 };
 
 export const history101: HistoryEntry[] = [
   {
     "id": 1,
-    "at": "2026-10-04T00:00:00Z",
+    "at": "2026-10-05T00:00:00Z",
     "actorId": 1,
     "action": "요청 작성",
     "detail": null,
@@ -1260,7 +1294,7 @@ export const history101: HistoryEntry[] = [
   },
   {
     "id": 2,
-    "at": "2026-10-04T01:00:00Z",
+    "at": "2026-10-05T01:00:00Z",
     "actorId": 1,
     "action": "검수 요청",
     "detail": null,
@@ -1270,7 +1304,7 @@ export const history101: HistoryEntry[] = [
   },
   {
     "id": 3,
-    "at": "2026-10-04T02:00:00Z",
+    "at": "2026-10-05T02:00:00Z",
     "actorId": 3,
     "action": "검수자 배정",
     "detail": "박지훈, 한가을 배정, 주담당 박지훈",
@@ -1280,7 +1314,7 @@ export const history101: HistoryEntry[] = [
   },
   {
     "id": 33,
-    "at": "2026-10-06T06:00:00Z",
+    "at": "2026-10-07T06:00:00Z",
     "actorId": 6,
     "action": "검수 의견",
     "detail": "연속 공백이 있습니다. 적립일 표기를 청구 안내와 같은 형식으로 맞추면 좋겠습니다.",
@@ -1304,11 +1338,11 @@ export const request107U2: RequestDetail = {
   ],
   "primaryReviewerId": 2,
   "leadUserId": 3,
-  "hopeDueDate": "2026-10-11",
-  "dueDate": "2026-10-11",
+  "hopeDueDate": "2026-10-12",
+  "dueDate": "2026-10-12",
   "urgency": "NORMAL",
-  "submittedAt": "2026-10-05T05:00:00Z",
-  "createdAt": "2026-10-05T01:00:00Z",
+  "submittedAt": "2026-10-06T05:00:00Z",
+  "createdAt": "2026-10-06T01:00:00Z",
   "completedAt": null,
   "recallRequested": true,
   "parentRequestId": null,
@@ -1328,12 +1362,13 @@ export const request107U2: RequestDetail = {
       }
     ]
   },
+  "approvable": false,
   "purpose": "약관 개정 사전 고지",
   "target": "전체 회원",
   "background": "11월 1일 약관 개정",
   "recall": {
     "requestedBy": 1,
-    "requestedAt": "2026-10-07T00:00:00Z",
+    "requestedAt": "2026-10-08T00:00:00Z",
     "reason": "법무팀 최종본이 변경되어 파일을 교체하려 합니다."
   },
   "parent": null,
@@ -1362,7 +1397,7 @@ export const request107U2: RequestDetail = {
             {
               "version": 1,
               "name": "회원약관_개정고지_v3.pdf",
-              "createdAt": "2026-10-05T05:00:00Z",
+              "createdAt": "2026-10-06T05:00:00Z",
               "createdBy": 1,
               "sizeBytes": 1048576
             }
@@ -1374,7 +1409,7 @@ export const request107U2: RequestDetail = {
       "versions": [
         {
           "version": 1,
-          "createdAt": "2026-10-05T05:00:00Z",
+          "createdAt": "2026-10-06T05:00:00Z",
           "createdBy": 1
         }
       ]
@@ -1403,9 +1438,9 @@ export const request107U2: RequestDetail = {
   ],
   "historyCount": 4,
   "stageTimes": {
-    "DRAFT": "2026-10-05T01:00:00Z",
-    "WAITING": "2026-10-05T05:00:00Z",
-    "IN_REVIEW": "2026-10-05T06:00:00Z",
+    "DRAFT": "2026-10-06T01:00:00Z",
+    "WAITING": "2026-10-06T05:00:00Z",
+    "IN_REVIEW": "2026-10-06T06:00:00Z",
     "COMPLETED": null,
     "APPROVED": null
   },
@@ -1415,7 +1450,9 @@ export const request107U2: RequestDetail = {
     "DECIDE_RECALL",
     "REVIEW"
   ],
-  "rowVersion": 1
+  "rowVersion": 1,
+  "nextSubmitRound": 1,
+  "variablesRevision": 6
 };
 
 export const dashboardU3: Dashboard = {
@@ -1424,6 +1461,12 @@ export const dashboardU3: Dashboard = {
       "view": "MY_REVIEW",
       "label": "내 검수",
       "tone": "IN_REVIEW",
+      "count": 1
+    },
+    {
+      "view": "MY_ASSIGNED_CONFIRMING",
+      "label": "확인 요청 중",
+      "tone": "CONFIRMING",
       "count": 1
     },
     {
@@ -1448,7 +1491,7 @@ export const dashboardU3: Dashboard = {
       "view": "DUE_SOON",
       "label": "납기 임박",
       "tone": "WAITING",
-      "count": 3
+      "count": 4
     }
   ],
   "pipeline": [
@@ -1487,7 +1530,7 @@ export const dashboardU3: Dashboard = {
       "title": "추석 연휴 고객센터 운영 안내",
       "type": "SMS",
       "projectName": "카드 혜택 알림",
-      "dueDate": "2026-10-08",
+      "dueDate": "2026-10-09",
       "overdue": false,
       "dueSoon": true
     }
@@ -1504,11 +1547,11 @@ export const dashboardU3: Dashboard = {
       "reviewerIds": [],
       "primaryReviewerId": null,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-08",
-      "dueDate": "2026-10-08",
+      "hopeDueDate": "2026-10-09",
+      "dueDate": "2026-10-09",
       "urgency": "URGENT",
-      "submittedAt": "2026-10-06T01:00:00Z",
-      "createdAt": "2026-10-06T00:00:00Z",
+      "submittedAt": "2026-10-07T01:00:00Z",
+      "createdAt": "2026-10-07T00:00:00Z",
       "completedAt": null,
       "recallRequested": false,
       "parentRequestId": null,
@@ -1528,7 +1571,8 @@ export const dashboardU3: Dashboard = {
       "volume": {
         "chars": 71,
         "files": []
-      }
+      },
+      "approvable": false
     },
     {
       "id": "REQ-2609-107",
@@ -1544,11 +1588,11 @@ export const dashboardU3: Dashboard = {
       ],
       "primaryReviewerId": 2,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-11",
-      "dueDate": "2026-10-11",
+      "hopeDueDate": "2026-10-12",
+      "dueDate": "2026-10-12",
       "urgency": "NORMAL",
-      "submittedAt": "2026-10-05T05:00:00Z",
-      "createdAt": "2026-10-05T01:00:00Z",
+      "submittedAt": "2026-10-06T05:00:00Z",
+      "createdAt": "2026-10-06T01:00:00Z",
       "completedAt": null,
       "recallRequested": true,
       "parentRequestId": null,
@@ -1573,7 +1617,8 @@ export const dashboardU3: Dashboard = {
             "amount": 6
           }
         ]
-      }
+      },
+      "approvable": false
     },
     {
       "id": "REQ-2609-101",
@@ -1589,11 +1634,11 @@ export const dashboardU3: Dashboard = {
       ],
       "primaryReviewerId": 2,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-09",
-      "dueDate": "2026-10-09",
+      "hopeDueDate": "2026-10-10",
+      "dueDate": "2026-10-10",
       "urgency": "NORMAL",
-      "submittedAt": "2026-10-04T01:00:00Z",
-      "createdAt": "2026-10-04T00:00:00Z",
+      "submittedAt": "2026-10-05T01:00:00Z",
+      "createdAt": "2026-10-05T00:00:00Z",
       "completedAt": null,
       "recallRequested": false,
       "parentRequestId": null,
@@ -1623,7 +1668,8 @@ export const dashboardU3: Dashboard = {
       "volume": {
         "chars": 247,
         "files": []
-      }
+      },
+      "approvable": false
     },
     {
       "id": "REQ-2609-102",
@@ -1638,11 +1684,11 @@ export const dashboardU3: Dashboard = {
       ],
       "primaryReviewerId": 3,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-08",
-      "dueDate": "2026-10-08",
+      "hopeDueDate": "2026-10-09",
+      "dueDate": "2026-10-09",
       "urgency": "NORMAL",
-      "submittedAt": "2026-10-03T02:00:00Z",
-      "createdAt": "2026-10-03T01:00:00Z",
+      "submittedAt": "2026-10-04T02:00:00Z",
+      "createdAt": "2026-10-04T01:00:00Z",
       "completedAt": null,
       "recallRequested": false,
       "parentRequestId": null,
@@ -1667,7 +1713,8 @@ export const dashboardU3: Dashboard = {
       "volume": {
         "chars": 121,
         "files": []
-      }
+      },
+      "approvable": false
     },
     {
       "id": "REQ-2609-113",
@@ -1682,11 +1729,11 @@ export const dashboardU3: Dashboard = {
       ],
       "primaryReviewerId": 6,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-06",
-      "dueDate": "2026-10-06",
+      "hopeDueDate": "2026-10-07",
+      "dueDate": "2026-10-07",
       "urgency": "URGENT",
-      "submittedAt": "2026-10-01T01:00:00Z",
-      "createdAt": "2026-10-01T01:00:00Z",
+      "submittedAt": "2026-10-02T01:00:00Z",
+      "createdAt": "2026-10-02T01:00:00Z",
       "completedAt": null,
       "recallRequested": false,
       "parentRequestId": null,
@@ -1706,7 +1753,8 @@ export const dashboardU3: Dashboard = {
       "volume": {
         "chars": 53,
         "files": []
-      }
+      },
+      "approvable": false
     },
     {
       "id": "REQ-2609-106",
@@ -1722,12 +1770,12 @@ export const dashboardU3: Dashboard = {
       ],
       "primaryReviewerId": 6,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-02",
-      "dueDate": "2026-10-02",
+      "hopeDueDate": "2026-10-03",
+      "dueDate": "2026-10-03",
       "urgency": "NORMAL",
-      "submittedAt": "2026-09-29T01:00:00Z",
-      "createdAt": "2026-09-29T01:00:00Z",
-      "completedAt": "2026-10-02T02:00:00Z",
+      "submittedAt": "2026-09-30T01:00:00Z",
+      "createdAt": "2026-09-30T01:00:00Z",
+      "completedAt": "2026-10-03T02:00:00Z",
       "recallRequested": false,
       "parentRequestId": "REQ-2609-088",
       "campaign": null,
@@ -1746,7 +1794,8 @@ export const dashboardU3: Dashboard = {
       "volume": {
         "chars": 95,
         "files": []
-      }
+      },
+      "approvable": false
     }
   ],
   "workload": [
@@ -1754,7 +1803,7 @@ export const dashboardU3: Dashboard = {
       "userId": 2,
       "active": 3,
       "primary": 2,
-      "dueSoonOrOverdue": 1,
+      "dueSoonOrOverdue": 2,
       "chars": 319,
       "files": [
         {
@@ -1767,7 +1816,7 @@ export const dashboardU3: Dashboard = {
       "userId": 3,
       "active": 3,
       "primary": 2,
-      "dueSoonOrOverdue": 1,
+      "dueSoonOrOverdue": 2,
       "chars": 193,
       "files": [
         {
@@ -1792,7 +1841,7 @@ export const dashboardU3: Dashboard = {
       "customerId": 1,
       "projectId": null,
       "title": "10월 정기 점검 시간 안내",
-      "createdAt": "2026-10-05T00:00:00Z"
+      "createdAt": "2026-10-06T00:00:00Z"
     },
     {
       "id": 2,
@@ -1800,7 +1849,7 @@ export const dashboardU3: Dashboard = {
       "customerId": 1,
       "projectId": 1,
       "title": "추석 연휴 검수 일정",
-      "createdAt": "2026-10-03T02:00:00Z"
+      "createdAt": "2026-10-04T02:00:00Z"
     }
   ],
   "adminViewing": false
@@ -1820,16 +1869,16 @@ export const request103U4: RequestDetail = {
   ],
   "primaryReviewerId": 3,
   "leadUserId": 3,
-  "hopeDueDate": "2026-10-10",
-  "dueDate": "2026-10-10",
+  "hopeDueDate": "2026-10-11",
+  "dueDate": "2026-10-11",
   "urgency": "NORMAL",
-  "submittedAt": "2026-09-28T01:00:00Z",
-  "createdAt": "2026-09-28T01:00:00Z",
+  "submittedAt": "2026-09-29T01:00:00Z",
+  "createdAt": "2026-09-29T01:00:00Z",
   "completedAt": null,
   "recallRequested": false,
   "parentRequestId": null,
   "campaign": "프리미엄 리뉴얼",
-  "dueSoon": false,
+  "dueSoon": true,
   "overdue": false,
   "contentCount": 1,
   "contentVersions": [
@@ -1839,6 +1888,7 @@ export const request103U4: RequestDetail = {
     "chars": 72,
     "files": []
   },
+  "approvable": true,
   "purpose": "리뉴얼 카드 혜택 소개",
   "target": "프리미엄 카드 보유 고객",
   "background": "10월 리뉴얼 출시",
@@ -1875,12 +1925,12 @@ export const request103U4: RequestDetail = {
       "versions": [
         {
           "version": 1,
-          "createdAt": "2026-09-28T01:00:00Z",
+          "createdAt": "2026-09-29T01:00:00Z",
           "createdBy": 1
         },
         {
           "version": 2,
-          "createdAt": "2026-10-03T04:00:00Z",
+          "createdAt": "2026-10-04T04:00:00Z",
           "createdBy": 2
         }
       ]
@@ -1909,10 +1959,10 @@ export const request103U4: RequestDetail = {
   ],
   "historyCount": 8,
   "stageTimes": {
-    "DRAFT": "2026-09-28T01:00:00Z",
-    "WAITING": "2026-09-28T01:00:00Z",
-    "IN_REVIEW": "2026-09-28T02:00:00Z",
-    "COMPLETED": "2026-10-04T08:00:00Z",
+    "DRAFT": "2026-09-29T01:00:00Z",
+    "WAITING": "2026-09-29T01:00:00Z",
+    "IN_REVIEW": "2026-09-29T02:00:00Z",
+    "COMPLETED": "2026-10-05T08:00:00Z",
     "APPROVED": null
   },
   "bundle": null,
@@ -1921,13 +1971,15 @@ export const request103U4: RequestDetail = {
     "APPROVE",
     "REVISE"
   ],
-  "rowVersion": 1
+  "rowVersion": 1,
+  "nextSubmitRound": 2,
+  "variablesRevision": 6
 };
 
 export const history103: HistoryEntry[] = [
   {
     "id": 7,
-    "at": "2026-09-28T01:00:00Z",
+    "at": "2026-09-29T01:00:00Z",
     "actorId": 1,
     "action": "요청 작성",
     "detail": null,
@@ -1937,7 +1989,7 @@ export const history103: HistoryEntry[] = [
   },
   {
     "id": 8,
-    "at": "2026-09-28T01:00:00Z",
+    "at": "2026-09-29T01:00:00Z",
     "actorId": 1,
     "action": "검수 요청",
     "detail": null,
@@ -1947,7 +1999,7 @@ export const history103: HistoryEntry[] = [
   },
   {
     "id": 9,
-    "at": "2026-09-28T02:00:00Z",
+    "at": "2026-09-29T02:00:00Z",
     "actorId": 3,
     "action": "검수자 배정",
     "detail": "박지훈, 이도현 배정, 주담당 이도현",
@@ -1957,7 +2009,7 @@ export const history103: HistoryEntry[] = [
   },
   {
     "id": 35,
-    "at": "2026-10-01T02:00:00Z",
+    "at": "2026-10-02T02:00:00Z",
     "actorId": 3,
     "action": "검수 완료",
     "detail": "주담당 검수 완료, 승인 대기로 전환",
@@ -1967,7 +2019,7 @@ export const history103: HistoryEntry[] = [
   },
   {
     "id": 36,
-    "at": "2026-10-02T01:00:00Z",
+    "at": "2026-10-03T01:00:00Z",
     "actorId": 4,
     "action": "수정 요청",
     "detail": "사유: 라운지 이용 횟수 표기 근거 필요\n위치: 카드 1 본문\n기대 내용: 정확한 횟수(연 4회→8회)로 표기",
@@ -1977,7 +2029,7 @@ export const history103: HistoryEntry[] = [
   },
   {
     "id": 37,
-    "at": "2026-10-02T01:01:00Z",
+    "at": "2026-10-03T01:01:00Z",
     "actorId": 4,
     "action": "재검수 시작",
     "detail": "승인자 수정 요청으로 2차 검수 시작",
@@ -1987,7 +2039,7 @@ export const history103: HistoryEntry[] = [
   },
   {
     "id": 38,
-    "at": "2026-10-03T04:00:00Z",
+    "at": "2026-10-04T04:00:00Z",
     "actorId": 2,
     "action": "문안 수정",
     "detail": "v1 → v2  카드 1 본문 수정",
@@ -1997,7 +2049,7 @@ export const history103: HistoryEntry[] = [
   },
   {
     "id": 39,
-    "at": "2026-10-04T08:00:00Z",
+    "at": "2026-10-05T08:00:00Z",
     "actorId": 3,
     "action": "검수 완료",
     "detail": "주담당 검수 완료, 승인 대기로 전환",
@@ -2062,11 +2114,11 @@ export const dashboardU11: Dashboard = {
       "reviewerIds": [],
       "primaryReviewerId": null,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-08",
-      "dueDate": "2026-10-08",
+      "hopeDueDate": "2026-10-09",
+      "dueDate": "2026-10-09",
       "urgency": "URGENT",
-      "submittedAt": "2026-10-06T01:00:00Z",
-      "createdAt": "2026-10-06T00:00:00Z",
+      "submittedAt": "2026-10-07T01:00:00Z",
+      "createdAt": "2026-10-07T00:00:00Z",
       "completedAt": null,
       "recallRequested": false,
       "parentRequestId": null,
@@ -2086,7 +2138,8 @@ export const dashboardU11: Dashboard = {
       "volume": {
         "chars": 71,
         "files": []
-      }
+      },
+      "approvable": false
     },
     {
       "id": "REQ-2609-107",
@@ -2102,11 +2155,11 @@ export const dashboardU11: Dashboard = {
       ],
       "primaryReviewerId": 2,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-11",
-      "dueDate": "2026-10-11",
+      "hopeDueDate": "2026-10-12",
+      "dueDate": "2026-10-12",
       "urgency": "NORMAL",
-      "submittedAt": "2026-10-05T05:00:00Z",
-      "createdAt": "2026-10-05T01:00:00Z",
+      "submittedAt": "2026-10-06T05:00:00Z",
+      "createdAt": "2026-10-06T01:00:00Z",
       "completedAt": null,
       "recallRequested": true,
       "parentRequestId": null,
@@ -2131,7 +2184,8 @@ export const dashboardU11: Dashboard = {
             "amount": 6
           }
         ]
-      }
+      },
+      "approvable": false
     },
     {
       "id": "REQ-2609-101",
@@ -2147,11 +2201,11 @@ export const dashboardU11: Dashboard = {
       ],
       "primaryReviewerId": 2,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-09",
-      "dueDate": "2026-10-09",
+      "hopeDueDate": "2026-10-10",
+      "dueDate": "2026-10-10",
       "urgency": "NORMAL",
-      "submittedAt": "2026-10-04T01:00:00Z",
-      "createdAt": "2026-10-04T00:00:00Z",
+      "submittedAt": "2026-10-05T01:00:00Z",
+      "createdAt": "2026-10-05T00:00:00Z",
       "completedAt": null,
       "recallRequested": false,
       "parentRequestId": null,
@@ -2181,7 +2235,8 @@ export const dashboardU11: Dashboard = {
       "volume": {
         "chars": 247,
         "files": []
-      }
+      },
+      "approvable": false
     },
     {
       "id": "REQ-2609-102",
@@ -2196,11 +2251,11 @@ export const dashboardU11: Dashboard = {
       ],
       "primaryReviewerId": 3,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-08",
-      "dueDate": "2026-10-08",
+      "hopeDueDate": "2026-10-09",
+      "dueDate": "2026-10-09",
       "urgency": "NORMAL",
-      "submittedAt": "2026-10-03T02:00:00Z",
-      "createdAt": "2026-10-03T01:00:00Z",
+      "submittedAt": "2026-10-04T02:00:00Z",
+      "createdAt": "2026-10-04T01:00:00Z",
       "completedAt": null,
       "recallRequested": false,
       "parentRequestId": null,
@@ -2225,7 +2280,8 @@ export const dashboardU11: Dashboard = {
       "volume": {
         "chars": 121,
         "files": []
-      }
+      },
+      "approvable": false
     },
     {
       "id": "REQ-2609-113",
@@ -2240,11 +2296,11 @@ export const dashboardU11: Dashboard = {
       ],
       "primaryReviewerId": 6,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-06",
-      "dueDate": "2026-10-06",
+      "hopeDueDate": "2026-10-07",
+      "dueDate": "2026-10-07",
       "urgency": "URGENT",
-      "submittedAt": "2026-10-01T01:00:00Z",
-      "createdAt": "2026-10-01T01:00:00Z",
+      "submittedAt": "2026-10-02T01:00:00Z",
+      "createdAt": "2026-10-02T01:00:00Z",
       "completedAt": null,
       "recallRequested": false,
       "parentRequestId": null,
@@ -2264,7 +2320,8 @@ export const dashboardU11: Dashboard = {
       "volume": {
         "chars": 53,
         "files": []
-      }
+      },
+      "approvable": false
     },
     {
       "id": "REQ-2609-106",
@@ -2280,12 +2337,12 @@ export const dashboardU11: Dashboard = {
       ],
       "primaryReviewerId": 6,
       "leadUserId": 3,
-      "hopeDueDate": "2026-10-02",
-      "dueDate": "2026-10-02",
+      "hopeDueDate": "2026-10-03",
+      "dueDate": "2026-10-03",
       "urgency": "NORMAL",
-      "submittedAt": "2026-09-29T01:00:00Z",
-      "createdAt": "2026-09-29T01:00:00Z",
-      "completedAt": "2026-10-02T02:00:00Z",
+      "submittedAt": "2026-09-30T01:00:00Z",
+      "createdAt": "2026-09-30T01:00:00Z",
+      "completedAt": "2026-10-03T02:00:00Z",
       "recallRequested": false,
       "parentRequestId": "REQ-2609-088",
       "campaign": null,
@@ -2304,7 +2361,8 @@ export const dashboardU11: Dashboard = {
       "volume": {
         "chars": 95,
         "files": []
-      }
+      },
+      "approvable": false
     }
   ],
   "workload": [],
@@ -2315,7 +2373,7 @@ export const dashboardU11: Dashboard = {
       "customerId": 1,
       "projectId": null,
       "title": "10월 정기 점검 시간 안내",
-      "createdAt": "2026-10-05T00:00:00Z"
+      "createdAt": "2026-10-06T00:00:00Z"
     },
     {
       "id": 2,
@@ -2323,7 +2381,7 @@ export const dashboardU11: Dashboard = {
       "customerId": 1,
       "projectId": 1,
       "title": "추석 연휴 검수 일정",
-      "createdAt": "2026-10-03T02:00:00Z"
+      "createdAt": "2026-10-04T02:00:00Z"
     }
   ],
   "adminViewing": true
@@ -2354,7 +2412,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
       ],
       "session": {
         "remember": false,
-        "expiresAt": "2026-10-07T10:53:03.187919Z"
+        "expiresAt": "2026-10-07T16:54:53.407871Z"
       }
     },
     "/customers": [
@@ -2367,7 +2425,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
         "sample": true,
         "notifyChannel": "IN_APP",
         "dueSoonDays": 3,
-        "createdAt": "2026-06-09T01:00:00Z"
+        "createdAt": "2026-06-10T01:00:00Z"
       }
     ],
     "/requests?projectId=1&view=MY_DRAFT&page=0&size=1": {
@@ -2383,11 +2441,11 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "reviewerIds": [],
           "primaryReviewerId": null,
           "leadUserId": 3,
-          "hopeDueDate": "2026-10-15",
-          "dueDate": "2026-10-15",
+          "hopeDueDate": "2026-10-16",
+          "dueDate": "2026-10-16",
           "urgency": "NORMAL",
           "submittedAt": null,
-          "createdAt": "2026-10-07T02:00:00Z",
+          "createdAt": "2026-10-08T02:00:00Z",
           "completedAt": null,
           "recallRequested": false,
           "parentRequestId": null,
@@ -2407,7 +2465,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "volume": {
             "chars": 79,
             "files": []
-          }
+          },
+          "approvable": false
         }
       ],
       "page": {
@@ -2432,11 +2491,11 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           ],
           "primaryReviewerId": 3,
           "leadUserId": 3,
-          "hopeDueDate": "2026-10-08",
-          "dueDate": "2026-10-08",
+          "hopeDueDate": "2026-10-09",
+          "dueDate": "2026-10-09",
           "urgency": "NORMAL",
-          "submittedAt": "2026-10-03T02:00:00Z",
-          "createdAt": "2026-10-03T01:00:00Z",
+          "submittedAt": "2026-10-04T02:00:00Z",
+          "createdAt": "2026-10-04T01:00:00Z",
           "completedAt": null,
           "recallRequested": false,
           "parentRequestId": null,
@@ -2461,7 +2520,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "volume": {
             "chars": 121,
             "files": []
-          }
+          },
+          "approvable": false
         }
       ],
       "page": {
@@ -2646,7 +2706,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "kind": "ASK",
           "requestId": "REQ-2609-102",
           "text": "이도현님이 확인을 요청했습니다: 면제 기간 종료일",
-          "createdAt": "2026-10-06T07:00:00Z",
+          "createdAt": "2026-10-07T07:00:00Z",
           "read": false,
           "renotify": false,
           "pending": true
@@ -2656,7 +2716,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "kind": "FINAL",
           "requestId": "REQ-2609-106",
           "text": "청구 금액 안내 (9월) 요청이 승인 완료되었습니다.",
-          "createdAt": "2026-10-02T02:00:00Z",
+          "createdAt": "2026-10-03T02:00:00Z",
           "read": true,
           "renotify": false,
           "pending": false
@@ -2728,7 +2788,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
     "/requests/REQ-2609-088/history": [
       {
         "id": 13,
-        "at": "2026-09-03T01:00:00Z",
+        "at": "2026-09-04T01:00:00Z",
         "actorId": 1,
         "action": "요청 작성",
         "detail": null,
@@ -2738,7 +2798,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
       },
       {
         "id": 14,
-        "at": "2026-09-03T01:00:00Z",
+        "at": "2026-09-04T01:00:00Z",
         "actorId": 1,
         "action": "검수 요청",
         "detail": null,
@@ -2748,7 +2808,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
       },
       {
         "id": 15,
-        "at": "2026-09-03T02:00:00Z",
+        "at": "2026-09-04T02:00:00Z",
         "actorId": 3,
         "action": "검수자 배정",
         "detail": "박지훈 배정, 주담당 박지훈",
@@ -2758,7 +2818,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
       },
       {
         "id": 43,
-        "at": "2026-09-06T08:00:00Z",
+        "at": "2026-09-07T08:00:00Z",
         "actorId": 2,
         "action": "검수 완료",
         "detail": "승인 대기로 전환",
@@ -2768,7 +2828,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
       },
       {
         "id": 44,
-        "at": "2026-09-07T01:00:00Z",
+        "at": "2026-09-08T01:00:00Z",
         "actorId": 4,
         "action": "승인 완료",
         "detail": "완료 묶음 고정",
@@ -2829,7 +2889,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
       ],
       "session": {
         "remember": false,
-        "expiresAt": "2026-10-07T10:53:03.564584Z"
+        "expiresAt": "2026-10-07T16:54:53.820023Z"
       }
     },
     "/customers": [
@@ -2842,7 +2902,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
         "sample": true,
         "notifyChannel": "IN_APP",
         "dueSoonDays": 3,
-        "createdAt": "2026-06-09T01:00:00Z"
+        "createdAt": "2026-06-10T01:00:00Z"
       }
     ],
     "/requests?projectId=1&view=MY_DRAFT&page=0&size=1": {
@@ -2879,11 +2939,11 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           ],
           "primaryReviewerId": 2,
           "leadUserId": 3,
-          "hopeDueDate": "2026-10-11",
-          "dueDate": "2026-10-11",
+          "hopeDueDate": "2026-10-12",
+          "dueDate": "2026-10-12",
           "urgency": "NORMAL",
-          "submittedAt": "2026-10-05T05:00:00Z",
-          "createdAt": "2026-10-05T01:00:00Z",
+          "submittedAt": "2026-10-06T05:00:00Z",
+          "createdAt": "2026-10-06T01:00:00Z",
           "completedAt": null,
           "recallRequested": true,
           "parentRequestId": null,
@@ -2908,7 +2968,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
                 "amount": 6
               }
             ]
-          }
+          },
+          "approvable": false
         }
       ],
       "page": {
@@ -3115,15 +3176,15 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
       }
     ],
     "/notifications": {
-      "unreadCount": 0,
+      "unreadCount": 1,
       "items": [
         {
           "id": 3,
           "kind": "RECALL",
           "requestId": "REQ-2609-107",
           "text": "김서연님이 회수를 요청했습니다. 승인 또는 거절이 필요합니다.",
-          "createdAt": "2026-10-07T00:00:00Z",
-          "read": true,
+          "createdAt": "2026-10-08T00:00:00Z",
+          "read": false,
           "renotify": false,
           "pending": true
         }
@@ -3196,6 +3257,12 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "count": 2
         },
         {
+          "view": "MY_ASSIGNED_CONFIRMING",
+          "label": "확인 요청 중",
+          "tone": "CONFIRMING",
+          "count": 0
+        },
+        {
           "view": "RECALL_PENDING",
           "label": "회수 처리 필요",
           "tone": "CONFIRMING",
@@ -3205,7 +3272,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "view": "DUE_SOON",
           "label": "납기 임박",
           "tone": "WAITING",
-          "count": 1
+          "count": 2
         }
       ],
       "pipeline": [
@@ -3244,7 +3311,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "title": "회원 약관 개정 고지문",
           "type": "FREEFORM",
           "projectName": "카드 혜택 알림",
-          "dueDate": "2026-10-11",
+          "dueDate": "2026-10-12",
           "overdue": false,
           "dueSoon": false
         },
@@ -3256,7 +3323,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "title": "10월 포인트 적립 이벤트 알림톡",
           "type": "ALIMTALK",
           "projectName": "카드 혜택 알림",
-          "dueDate": "2026-10-09",
+          "dueDate": "2026-10-10",
           "overdue": false,
           "dueSoon": true
         }
@@ -3273,11 +3340,11 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "reviewerIds": [],
           "primaryReviewerId": null,
           "leadUserId": 3,
-          "hopeDueDate": "2026-10-08",
-          "dueDate": "2026-10-08",
+          "hopeDueDate": "2026-10-09",
+          "dueDate": "2026-10-09",
           "urgency": "URGENT",
-          "submittedAt": "2026-10-06T01:00:00Z",
-          "createdAt": "2026-10-06T00:00:00Z",
+          "submittedAt": "2026-10-07T01:00:00Z",
+          "createdAt": "2026-10-07T00:00:00Z",
           "completedAt": null,
           "recallRequested": false,
           "parentRequestId": null,
@@ -3297,7 +3364,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "volume": {
             "chars": 71,
             "files": []
-          }
+          },
+          "approvable": false
         },
         {
           "id": "REQ-2609-107",
@@ -3313,11 +3381,11 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           ],
           "primaryReviewerId": 2,
           "leadUserId": 3,
-          "hopeDueDate": "2026-10-11",
-          "dueDate": "2026-10-11",
+          "hopeDueDate": "2026-10-12",
+          "dueDate": "2026-10-12",
           "urgency": "NORMAL",
-          "submittedAt": "2026-10-05T05:00:00Z",
-          "createdAt": "2026-10-05T01:00:00Z",
+          "submittedAt": "2026-10-06T05:00:00Z",
+          "createdAt": "2026-10-06T01:00:00Z",
           "completedAt": null,
           "recallRequested": true,
           "parentRequestId": null,
@@ -3342,7 +3410,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
                 "amount": 6
               }
             ]
-          }
+          },
+          "approvable": false
         },
         {
           "id": "REQ-2609-101",
@@ -3358,11 +3427,11 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           ],
           "primaryReviewerId": 2,
           "leadUserId": 3,
-          "hopeDueDate": "2026-10-09",
-          "dueDate": "2026-10-09",
+          "hopeDueDate": "2026-10-10",
+          "dueDate": "2026-10-10",
           "urgency": "NORMAL",
-          "submittedAt": "2026-10-04T01:00:00Z",
-          "createdAt": "2026-10-04T00:00:00Z",
+          "submittedAt": "2026-10-05T01:00:00Z",
+          "createdAt": "2026-10-05T00:00:00Z",
           "completedAt": null,
           "recallRequested": false,
           "parentRequestId": null,
@@ -3392,7 +3461,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "volume": {
             "chars": 247,
             "files": []
-          }
+          },
+          "approvable": false
         },
         {
           "id": "REQ-2609-102",
@@ -3407,11 +3477,11 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           ],
           "primaryReviewerId": 3,
           "leadUserId": 3,
-          "hopeDueDate": "2026-10-08",
-          "dueDate": "2026-10-08",
+          "hopeDueDate": "2026-10-09",
+          "dueDate": "2026-10-09",
           "urgency": "NORMAL",
-          "submittedAt": "2026-10-03T02:00:00Z",
-          "createdAt": "2026-10-03T01:00:00Z",
+          "submittedAt": "2026-10-04T02:00:00Z",
+          "createdAt": "2026-10-04T01:00:00Z",
           "completedAt": null,
           "recallRequested": false,
           "parentRequestId": null,
@@ -3436,7 +3506,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "volume": {
             "chars": 121,
             "files": []
-          }
+          },
+          "approvable": false
         },
         {
           "id": "REQ-2609-113",
@@ -3451,11 +3522,11 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           ],
           "primaryReviewerId": 6,
           "leadUserId": 3,
-          "hopeDueDate": "2026-10-06",
-          "dueDate": "2026-10-06",
+          "hopeDueDate": "2026-10-07",
+          "dueDate": "2026-10-07",
           "urgency": "URGENT",
-          "submittedAt": "2026-10-01T01:00:00Z",
-          "createdAt": "2026-10-01T01:00:00Z",
+          "submittedAt": "2026-10-02T01:00:00Z",
+          "createdAt": "2026-10-02T01:00:00Z",
           "completedAt": null,
           "recallRequested": false,
           "parentRequestId": null,
@@ -3475,7 +3546,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "volume": {
             "chars": 53,
             "files": []
-          }
+          },
+          "approvable": false
         },
         {
           "id": "REQ-2609-106",
@@ -3491,12 +3563,12 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           ],
           "primaryReviewerId": 6,
           "leadUserId": 3,
-          "hopeDueDate": "2026-10-02",
-          "dueDate": "2026-10-02",
+          "hopeDueDate": "2026-10-03",
+          "dueDate": "2026-10-03",
           "urgency": "NORMAL",
-          "submittedAt": "2026-09-29T01:00:00Z",
-          "createdAt": "2026-09-29T01:00:00Z",
-          "completedAt": "2026-10-02T02:00:00Z",
+          "submittedAt": "2026-09-30T01:00:00Z",
+          "createdAt": "2026-09-30T01:00:00Z",
+          "completedAt": "2026-10-03T02:00:00Z",
           "recallRequested": false,
           "parentRequestId": "REQ-2609-088",
           "campaign": null,
@@ -3515,7 +3587,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "volume": {
             "chars": 95,
             "files": []
-          }
+          },
+          "approvable": false
         }
       ],
       "workload": [],
@@ -3526,7 +3599,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "customerId": 1,
           "projectId": null,
           "title": "10월 정기 점검 시간 안내",
-          "createdAt": "2026-10-05T00:00:00Z"
+          "createdAt": "2026-10-06T00:00:00Z"
         },
         {
           "id": 2,
@@ -3534,13 +3607,36 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "customerId": 1,
           "projectId": 1,
           "title": "추석 연휴 검수 일정",
-          "createdAt": "2026-10-03T02:00:00Z"
+          "createdAt": "2026-10-04T02:00:00Z"
         }
       ],
       "adminViewing": false
     },
     "/requests/REQ-2609-101": request101U2,
     "/requests/REQ-2609-101/history": history101,
+    "/requests/REQ-2609-101/locks": [
+      {
+        "contentKey": "C1",
+        "userId": null,
+        "lockedAt": null,
+        "expiresAt": null,
+        "version": 1
+      },
+      {
+        "contentKey": "C2",
+        "userId": 6,
+        "lockedAt": "2026-10-07T16:05:38.828405Z",
+        "expiresAt": "2026-10-07T16:35:38.828405Z",
+        "version": 1
+      },
+      {
+        "contentKey": "C3",
+        "userId": null,
+        "lockedAt": null,
+        "expiresAt": null,
+        "version": 1
+      }
+    ],
     "/requests/REQ-2609-107": request107U2,
     "/guides/ALIMTALK": {
       "type": "ALIMTALK",
@@ -3594,7 +3690,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
       ],
       "session": {
         "remember": false,
-        "expiresAt": "2026-10-07T10:53:03.880831Z"
+        "expiresAt": "2026-10-07T16:54:54.223134Z"
       }
     },
     "/customers": [
@@ -3607,7 +3703,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
         "sample": true,
         "notifyChannel": "IN_APP",
         "dueSoonDays": 3,
-        "createdAt": "2026-06-09T01:00:00Z"
+        "createdAt": "2026-06-10T01:00:00Z"
       }
     ],
     "/requests?projectId=1&view=MY_DRAFT&page=0&size=1": {
@@ -3644,11 +3740,11 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           ],
           "primaryReviewerId": 2,
           "leadUserId": 3,
-          "hopeDueDate": "2026-10-11",
-          "dueDate": "2026-10-11",
+          "hopeDueDate": "2026-10-12",
+          "dueDate": "2026-10-12",
           "urgency": "NORMAL",
-          "submittedAt": "2026-10-05T05:00:00Z",
-          "createdAt": "2026-10-05T01:00:00Z",
+          "submittedAt": "2026-10-06T05:00:00Z",
+          "createdAt": "2026-10-06T01:00:00Z",
           "completedAt": null,
           "recallRequested": true,
           "parentRequestId": null,
@@ -3673,7 +3769,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
                 "amount": 6
               }
             ]
-          }
+          },
+          "approvable": false
         }
       ],
       "page": {
@@ -3696,11 +3793,11 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "reviewerIds": [],
           "primaryReviewerId": null,
           "leadUserId": 3,
-          "hopeDueDate": "2026-10-08",
-          "dueDate": "2026-10-08",
+          "hopeDueDate": "2026-10-09",
+          "dueDate": "2026-10-09",
           "urgency": "URGENT",
-          "submittedAt": "2026-10-06T01:00:00Z",
-          "createdAt": "2026-10-06T00:00:00Z",
+          "submittedAt": "2026-10-07T01:00:00Z",
+          "createdAt": "2026-10-07T00:00:00Z",
           "completedAt": null,
           "recallRequested": false,
           "parentRequestId": null,
@@ -3720,7 +3817,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "volume": {
             "chars": 71,
             "files": []
-          }
+          },
+          "approvable": false
         }
       ],
       "page": {
@@ -3902,8 +4000,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "id": 1,
           "kind": "ASSIGN",
           "requestId": "REQ-2609-104",
-          "text": "신규 검수 요청이 배정을 기다립니다. 확정 납기 10월 8일",
-          "createdAt": "2026-10-06T01:00:00Z",
+          "text": "신규 검수 요청이 배정을 기다립니다. 확정 납기 10월 9일",
+          "createdAt": "2026-10-07T01:00:00Z",
           "read": false,
           "renotify": false,
           "pending": true
@@ -4001,7 +4099,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
       ],
       "session": {
         "remember": false,
-        "expiresAt": "2026-10-07T10:53:04.120419Z"
+        "expiresAt": "2026-10-07T16:54:54.614315Z"
       }
     },
     "/customers": [
@@ -4014,7 +4112,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
         "sample": true,
         "notifyChannel": "IN_APP",
         "dueSoonDays": 3,
-        "createdAt": "2026-06-09T01:00:00Z"
+        "createdAt": "2026-06-10T01:00:00Z"
       }
     ],
     "/requests?projectId=1&view=MY_DRAFT&page=0&size=1": {
@@ -4069,16 +4167,16 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           ],
           "primaryReviewerId": 3,
           "leadUserId": 3,
-          "hopeDueDate": "2026-10-10",
-          "dueDate": "2026-10-10",
+          "hopeDueDate": "2026-10-11",
+          "dueDate": "2026-10-11",
           "urgency": "NORMAL",
-          "submittedAt": "2026-09-28T01:00:00Z",
-          "createdAt": "2026-09-28T01:00:00Z",
+          "submittedAt": "2026-09-29T01:00:00Z",
+          "createdAt": "2026-09-29T01:00:00Z",
           "completedAt": null,
           "recallRequested": false,
           "parentRequestId": null,
           "campaign": "프리미엄 리뉴얼",
-          "dueSoon": false,
+          "dueSoon": true,
           "overdue": false,
           "contentCount": 1,
           "contentVersions": [
@@ -4093,7 +4191,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "volume": {
             "chars": 72,
             "files": []
-          }
+          },
+          "approvable": true
         }
       ],
       "page": {
@@ -4282,14 +4381,24 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
       }
     ],
     "/notifications": {
-      "unreadCount": 0,
+      "unreadCount": 1,
       "items": [
+        {
+          "id": 8,
+          "kind": "DUE",
+          "requestId": "REQ-2609-103",
+          "text": "납기 임박 재통지 1/3: 프리미엄 카드 리뉴얼 RCS",
+          "createdAt": "2026-10-07T16:06:38.866414Z",
+          "read": false,
+          "renotify": true,
+          "pending": true
+        },
         {
           "id": 4,
           "kind": "APPROVAL",
           "requestId": "REQ-2609-103",
           "text": "승인 대기 요청이 있습니다: 프리미엄 카드 리뉴얼 RCS",
-          "createdAt": "2026-10-04T08:00:00Z",
+          "createdAt": "2026-10-05T08:00:00Z",
           "read": true,
           "renotify": false,
           "pending": true
@@ -4399,9 +4508,9 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "title": "프리미엄 카드 리뉴얼 RCS",
           "type": "RCS",
           "projectName": "카드 혜택 알림",
-          "dueDate": "2026-10-10",
+          "dueDate": "2026-10-11",
           "overdue": false,
-          "dueSoon": false
+          "dueSoon": true
         }
       ],
       "recent": [
@@ -4416,11 +4525,11 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "reviewerIds": [],
           "primaryReviewerId": null,
           "leadUserId": 3,
-          "hopeDueDate": "2026-10-08",
-          "dueDate": "2026-10-08",
+          "hopeDueDate": "2026-10-09",
+          "dueDate": "2026-10-09",
           "urgency": "URGENT",
-          "submittedAt": "2026-10-06T01:00:00Z",
-          "createdAt": "2026-10-06T00:00:00Z",
+          "submittedAt": "2026-10-07T01:00:00Z",
+          "createdAt": "2026-10-07T00:00:00Z",
           "completedAt": null,
           "recallRequested": false,
           "parentRequestId": null,
@@ -4440,7 +4549,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "volume": {
             "chars": 71,
             "files": []
-          }
+          },
+          "approvable": false
         },
         {
           "id": "REQ-2609-107",
@@ -4456,11 +4566,11 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           ],
           "primaryReviewerId": 2,
           "leadUserId": 3,
-          "hopeDueDate": "2026-10-11",
-          "dueDate": "2026-10-11",
+          "hopeDueDate": "2026-10-12",
+          "dueDate": "2026-10-12",
           "urgency": "NORMAL",
-          "submittedAt": "2026-10-05T05:00:00Z",
-          "createdAt": "2026-10-05T01:00:00Z",
+          "submittedAt": "2026-10-06T05:00:00Z",
+          "createdAt": "2026-10-06T01:00:00Z",
           "completedAt": null,
           "recallRequested": true,
           "parentRequestId": null,
@@ -4485,7 +4595,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
                 "amount": 6
               }
             ]
-          }
+          },
+          "approvable": false
         },
         {
           "id": "REQ-2609-101",
@@ -4501,11 +4612,11 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           ],
           "primaryReviewerId": 2,
           "leadUserId": 3,
-          "hopeDueDate": "2026-10-09",
-          "dueDate": "2026-10-09",
+          "hopeDueDate": "2026-10-10",
+          "dueDate": "2026-10-10",
           "urgency": "NORMAL",
-          "submittedAt": "2026-10-04T01:00:00Z",
-          "createdAt": "2026-10-04T00:00:00Z",
+          "submittedAt": "2026-10-05T01:00:00Z",
+          "createdAt": "2026-10-05T00:00:00Z",
           "completedAt": null,
           "recallRequested": false,
           "parentRequestId": null,
@@ -4535,7 +4646,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "volume": {
             "chars": 247,
             "files": []
-          }
+          },
+          "approvable": false
         },
         {
           "id": "REQ-2609-102",
@@ -4550,11 +4662,11 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           ],
           "primaryReviewerId": 3,
           "leadUserId": 3,
-          "hopeDueDate": "2026-10-08",
-          "dueDate": "2026-10-08",
+          "hopeDueDate": "2026-10-09",
+          "dueDate": "2026-10-09",
           "urgency": "NORMAL",
-          "submittedAt": "2026-10-03T02:00:00Z",
-          "createdAt": "2026-10-03T01:00:00Z",
+          "submittedAt": "2026-10-04T02:00:00Z",
+          "createdAt": "2026-10-04T01:00:00Z",
           "completedAt": null,
           "recallRequested": false,
           "parentRequestId": null,
@@ -4579,7 +4691,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "volume": {
             "chars": 121,
             "files": []
-          }
+          },
+          "approvable": false
         },
         {
           "id": "REQ-2609-113",
@@ -4594,11 +4707,11 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           ],
           "primaryReviewerId": 6,
           "leadUserId": 3,
-          "hopeDueDate": "2026-10-06",
-          "dueDate": "2026-10-06",
+          "hopeDueDate": "2026-10-07",
+          "dueDate": "2026-10-07",
           "urgency": "URGENT",
-          "submittedAt": "2026-10-01T01:00:00Z",
-          "createdAt": "2026-10-01T01:00:00Z",
+          "submittedAt": "2026-10-02T01:00:00Z",
+          "createdAt": "2026-10-02T01:00:00Z",
           "completedAt": null,
           "recallRequested": false,
           "parentRequestId": null,
@@ -4618,7 +4731,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "volume": {
             "chars": 53,
             "files": []
-          }
+          },
+          "approvable": false
         },
         {
           "id": "REQ-2609-106",
@@ -4634,12 +4748,12 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           ],
           "primaryReviewerId": 6,
           "leadUserId": 3,
-          "hopeDueDate": "2026-10-02",
-          "dueDate": "2026-10-02",
+          "hopeDueDate": "2026-10-03",
+          "dueDate": "2026-10-03",
           "urgency": "NORMAL",
-          "submittedAt": "2026-09-29T01:00:00Z",
-          "createdAt": "2026-09-29T01:00:00Z",
-          "completedAt": "2026-10-02T02:00:00Z",
+          "submittedAt": "2026-09-30T01:00:00Z",
+          "createdAt": "2026-09-30T01:00:00Z",
+          "completedAt": "2026-10-03T02:00:00Z",
           "recallRequested": false,
           "parentRequestId": "REQ-2609-088",
           "campaign": null,
@@ -4658,7 +4772,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "volume": {
             "chars": 95,
             "files": []
-          }
+          },
+          "approvable": false
         }
       ],
       "workload": [],
@@ -4669,7 +4784,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "customerId": 1,
           "projectId": null,
           "title": "10월 정기 점검 시간 안내",
-          "createdAt": "2026-10-05T00:00:00Z"
+          "createdAt": "2026-10-06T00:00:00Z"
         },
         {
           "id": 2,
@@ -4677,7 +4792,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "customerId": 1,
           "projectId": 1,
           "title": "추석 연휴 검수 일정",
-          "createdAt": "2026-10-03T02:00:00Z"
+          "createdAt": "2026-10-04T02:00:00Z"
         }
       ],
       "adminViewing": false
@@ -4708,7 +4823,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
         ]
       },
       "files": [],
-      "createdAt": "2026-09-28T01:00:00Z",
+      "createdAt": "2026-09-29T01:00:00Z",
       "createdBy": 1
     },
     "/requests/REQ-2609-103/contents/C1/versions/2": {
@@ -4735,7 +4850,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
         ]
       },
       "files": [],
-      "createdAt": "2026-10-03T04:00:00Z",
+      "createdAt": "2026-10-04T04:00:00Z",
       "createdBy": 2
     }
   },
@@ -4755,7 +4870,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
       "memberships": [],
       "session": {
         "remember": false,
-        "expiresAt": "2026-10-07T10:53:04.491091Z"
+        "expiresAt": "2026-10-07T16:54:54.924462Z"
       }
     },
     "/customers": [
@@ -4768,7 +4883,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
         "sample": true,
         "notifyChannel": "IN_APP",
         "dueSoonDays": 3,
-        "createdAt": "2026-06-09T01:00:00Z"
+        "createdAt": "2026-06-10T01:00:00Z"
       }
     ],
     "/requests?projectId=1&view=MY_DRAFT&page=0&size=1": {
@@ -4873,7 +4988,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
             ]
           }
         ],
-        "variablesRevision": 6
+        "variablesRevision": 6,
+        "activeRequestCount": 6
       },
       {
         "id": 2,
@@ -4911,7 +5027,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
             ]
           }
         ],
-        "variablesRevision": 2
+        "variablesRevision": 2,
+        "activeRequestCount": 1
       }
     ],
     "/customers/1/users": [

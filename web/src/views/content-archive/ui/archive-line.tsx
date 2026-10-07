@@ -49,13 +49,14 @@ export function ArchiveLineItem(props: ArchiveLineItemProps) {
         </b>
         <span className={styles.meta}>{lineMeta(latest)}</span>
         <div className={styles.preview}>
-          <VariableText text={latest.preview} />
+          {/* reference `renderVars`: the raw text with variable chips (the resolved text is what 복사 copies) */}
+          <VariableText text={latest.previewRaw} />
         </div>
         {open ? (
           <div className={styles.history} id={historyId}>
             {line.past.map((p) => (
               <div key={`${p.requestId}:${p.contentKey}`} className={styles.histRow}>
-                과거 완료본 <RequestLink id={p.requestId} onOpen={onOpenRequest} /> {p.title} v{p.version}{" "}
+                과거 완료본 <RequestLink id={p.requestId} onOpen={onOpenRequest} /> {p.requestTitle} v{p.version}{" "}
                 {formatDate(p.completedAt)}
               </div>
             ))}

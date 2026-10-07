@@ -70,7 +70,7 @@ function ProjectEditBody({ onClose, customer, project, users, inProgress }: Proj
           <option value="">선택</option>
           {candidates.map((u) => (
             <option key={u.id} value={u.id}>
-              {`${u.name}  ${u.dept}`}
+              {`${u.name}  ${u.dept ?? ""}`}
             </option>
           ))}
         </Select>

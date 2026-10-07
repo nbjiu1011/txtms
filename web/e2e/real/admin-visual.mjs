@@ -1,7 +1,7 @@
 /**
  * Side-by-side capture of the M5 / M6 / M7 screens and modals: the prototype (persona login + its own
  * actions) next to this app against a running API in demo mode (same persona).
- *   node e2e/real/admin-visual.mjs [name…]    (BASE=http://localhost:3000)
+ *   node e2e/real/admin-visual.mjs [name…]    (BASE=http://localhost:3000, VISUAL_SIZES=1440x900,1180x800,860x900)
  * Writes `visual-{name}.prototype.png`, `.app.png` and `.side-by-side.png` (prototype | app | diff) to
  * e2e/real/out and prints the share of differing pixels. Data differs on purpose (prototype seed vs
  * the dev DB), so the numbers are a guide; read the images.
@@ -192,11 +192,18 @@ async function compose(page, a, b) {
   return { image: Buffer.from(result.dataUrl.split(",")[1], "base64"), mismatch: result.mismatch };
 }
 
+/** `VISUAL_SIZES` (default 1440x900); other sizes get a `-{w}x{h}` file suffix. */
+const SIZES = (process.env.VISUAL_SIZES ?? "1440x900").split(",").map((name) => {
+  const [width, height] = name.trim().split("x").map(Number);
+  return { name: name.trim(), width, height, suffix: name.trim() === "1440x900" ? "" : `-${name.trim()}` };
+});
+
 mkdirSync(OUT, { recursive: true });
 const only = process.argv.slice(2);
 const browser = await chromium.launch();
+for (const size of SIZES)
 for (const screen of SCREENS.filter((s) => !only.length || only.includes(s.name))) {
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, locale: "ko-KR", timezoneId: "Asia/Seoul" });
+  const context = await browser.newContext({ viewport: { width: size.width, height: size.height }, deviceScaleFactor: 1, locale: "ko-KR", timezoneId: "Asia/Seoul" });
 
   const proto = await context.newPage();
   await proto.goto(PROTOTYPE_URL);
@@ -205,7 +212,7 @@ for (const screen of SCREENS.filter((s) => !only.length || only.includes(s.name)
   await proto.locator(`.persona[data-u="${screen.persona}"]`).click();
   await proto.locator("#app").waitFor();
   await proto.evaluate(screen.proto);
-  await proto.mouse.move(0, 899);
+  await proto.mouse.move(0, size.height - 1);
   await settle(proto);
   const protoPng = await proto.screenshot();
 
@@ -218,17 +225,17 @@ for (const screen of SCREENS.filter((s) => !only.length || only.includes(s.name)
   await app.addStyleTag({ content: "nextjs-portal{display:none!important}" });
   await app.waitForTimeout(800);
   if (screen.app) await screen.app(app);
-  await app.mouse.move(0, 899);
+  await app.mouse.move(0, size.height - 1);
   await app.waitForTimeout(400);
   await settle(app);
   const appPng = await app.screenshot();
 
-  const base = join(OUT, `visual-${screen.name}`);
+  const base = join(OUT, `visual-${screen.name}${size.suffix}`);
   writeFileSync(`${base}.prototype.png`, protoPng);
   writeFileSync(`${base}.app.png`, appPng);
   const { image, mismatch } = await compose(await context.newPage(), protoPng, appPng);
   writeFileSync(`${base}.side-by-side.png`, image);
-  console.log(`visual-${screen.name}: ${(mismatch * 100).toFixed(2)}% differing pixels`);
+  console.log(`visual-${screen.name}${size.suffix}: ${(mismatch * 100).toFixed(2)}% differing pixels`);
   await context.close();
 }
 await browser.close();

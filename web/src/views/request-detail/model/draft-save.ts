@@ -27,6 +27,14 @@ export interface DraftEntries {
   info: Map<InfoKey, Entry<string>>;
   contents: Map<string, ContentEntry>;
   files: Map<number, FileEntry>;
+  /**
+   * Last saved copies, shown until a server copy at least as new reaches the screen. The query cache is
+   * updated with each answer, but a render that started earlier (a concurrent / transition render) can
+   * still pass the previous server copy while the saved entry is already gone — without these the editor
+   * would flash the older text and the caret would jump to the end.
+   */
+  savedInfo: Map<InfoKey, { value: string; rowVersion: number }>;
+  savedContents: Map<string, Content>;
 }
 
 /**
@@ -50,7 +58,11 @@ export async function saveEntries(entries: DraftEntries, deps: DraftSessionDeps,
       throw new ContentSaveError(error, null);
     }
     deps.onDetail(detail);
-    for (const [key, entry] of snapshot) if (entries.info.get(key)?.rev === entry.rev) entries.info.delete(key);
+    for (const [key, entry] of snapshot) {
+      if (entries.info.get(key)?.rev !== entry.rev) continue;
+      entries.info.delete(key);
+      entries.savedInfo.set(key, { value: entry.value, rowVersion: detail.rowVersion });
+    }
     savedAt = now();
     emit();
   }
@@ -72,6 +84,7 @@ export async function saveEntries(entries: DraftEntries, deps: DraftSessionDeps,
       throw new ContentSaveError(error, key);
     }
     deps.onContent(saved);
+    entries.savedContents.set(key, saved);
     const current = entries.contents.get(key);
     if (current?.rev === entry.rev) entries.contents.delete(key);
     else if (current) current.base = saved.savedAt;

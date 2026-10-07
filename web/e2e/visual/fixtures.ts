@@ -9,6 +9,32 @@ export const VIEWPORTS = [
   { name: "820x1000", width: 820, height: 1000 },
 ] as const;
 
+export interface Size {
+  name: string;
+  width: number;
+  height: number;
+}
+
+/**
+ * Viewports of the screen comparisons (`screens`, `review`): `VISUAL_SIZES=1440x900,1180x800,860x900`
+ * (the reference breakpoints are max-width 1180px and 860px). Default 1440×900.
+ */
+export function compareSizes(value = process.env.VISUAL_SIZES): Size[] {
+  const sizes = (value ?? "1440x900")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((name) => {
+      const [width, height] = name.split("x").map(Number);
+      if (!width || !height) throw new Error(`VISUAL_SIZES: bad size "${name}"`);
+      return { name, width, height };
+    });
+  return sizes.length ? sizes : [{ name: "1440x900", width: 1440, height: 900 }];
+}
+
+/** File name suffix of a size: none for the default 1440×900 (keeps the existing names). */
+export const sizeSuffix = (size: Size) => (size.name === "1440x900" ? "" : `-${size.name}`);
+
 /**
  * Demo personas as the API returns them in demo mode (same people/order as the reference
  * login screen) — test fixture only, used to render the persona list without a running API.

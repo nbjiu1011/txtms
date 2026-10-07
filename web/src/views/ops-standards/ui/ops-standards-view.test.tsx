@@ -21,6 +21,7 @@ const customer = (id: number, name: string, patch: Partial<OpsCustomer> = {}): O
   dueSoonDays: 3,
   createdAt: "2026-10-01T01:00:00Z",
   createdBy: 5,
+  createdByName: "정우진",
   deactivationReason: null,
   projectCount: 1,
   userCount: 2,
@@ -50,8 +51,10 @@ const assignment = (customerId: number, type: DatasetAssignment["type"], dataset
   datasetId,
   assignedAt: "2026-10-01T01:00:00Z",
   assignedBy: 5,
+  assignedByName: "정우진",
   checkedAt: checked ? "2026-10-02T01:00:00Z" : null,
   checkedBy: checked ? 5 : null,
+  checkedByName: checked ? "정우진" : null,
 });
 const types: ContentTypeSetting[] = [
   { type: "ALIMTALK", active: true, mockEnabled: true },

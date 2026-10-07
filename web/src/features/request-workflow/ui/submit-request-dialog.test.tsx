@@ -14,7 +14,7 @@ function setup(overrides: Partial<SubmitRequestDialogProps> = {}) {
   const props: SubmitRequestDialogProps = {
     open: true,
     onClose: vi.fn(),
-    request: { id: "REQ-2609-105", contents: request102U1.contents, round: 1 },
+    request: { id: "REQ-2609-105", contents: request102U1.contents, round: 1, nextSubmitRound: 1 },
     projectName: "카드 혜택 알림",
     leadName: "이도현",
     rowVersion: () => 7,

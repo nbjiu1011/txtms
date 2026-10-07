@@ -8,12 +8,13 @@ import {
   useDatasetAssignments,
   useDatasets,
   useOpsContentTypes,
+  useOpsCustomerMembers,
+  useOpsCustomerProjects,
   useOpsCustomers,
   type Dataset,
 } from "@/entities/ops";
-import { useCustomerProjects, type Project } from "@/entities/project";
+import type { Project } from "@/entities/project";
 import type { ContentType } from "@/entities/request";
-import { useCustomerUsers } from "@/entities/user";
 import {
   ClearSamplesDialog,
   DatasetRegisterDialog,
@@ -51,8 +52,9 @@ export function OpsSetupView({ context, openTab }: WorkViewProps) {
   const list = customers.data ?? [];
   const wanted = intent?.customerId ?? picked ?? context.customerId;
   const customer = list.find((c) => c.id === wanted) ?? list[0] ?? null;
-  const projects = useCustomerProjects(customer?.id ?? null);
-  const users = useCustomerUsers(customer?.id ?? null);
+  // operator lists (contract §14.7): stopped projects, pending invitations and inactive customers included
+  const projects = useOpsCustomerProjects(customer?.id ?? null);
+  const members = useOpsCustomerMembers(customer?.id ?? null);
   const datasets = useDatasets();
   const assignments = useDatasetAssignments();
   const contentTypes = useOpsContentTypes();
@@ -126,7 +128,7 @@ export function OpsSetupView({ context, openTab }: WorkViewProps) {
       )}
       <div className={styles.setupGrid}>
         <SetupStepsPanel
-          steps={setupSteps(customer, projectList)}
+          steps={setupSteps(customer, projectList, members.data ?? [])}
           onInviteAdmin={() => setDialog({ kind: "invite", mode: "admin" })}
           onCreateProject={() => setDialog({ kind: "project" })}
           onInviteMember={() => setDialog({ kind: "invite", mode: "member" })}
@@ -144,7 +146,7 @@ export function OpsSetupView({ context, openTab }: WorkViewProps) {
           onRegister={() => setDialog({ kind: "register" })}
         />
       </div>
-      <OpsOutboxPanel customers={list} />
+      <OpsOutboxPanel customer={customer} />
       <SendingPanel
         projects={projectList}
         loading={projects.isPending}
@@ -163,7 +165,7 @@ export function OpsSetupView({ context, openTab }: WorkViewProps) {
         open={dialog?.kind === "project"}
         onClose={close}
         customer={customer}
-        users={users.data ?? []}
+        users={(members.data ?? []).map((m) => m.user)}
       />
       <SeedUserDialog
         open={dialog?.kind === "invite"}

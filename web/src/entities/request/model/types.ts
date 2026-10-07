@@ -95,6 +95,11 @@ export interface RequestSummary {
   /** Keys and titles of the current contents (detail narrows this to full `Content`). */
   contents: ContentRef[];
   volume: RequestVolume;
+  /**
+   * The viewer is an eligible approver and the request waits for approval (contract §14.2). False in
+   * viewer-independent lists (workload, deactivation impact).
+   */
+  approvable: boolean;
 }
 
 /* ---------- content payloads (§3.4) ---------- */
@@ -176,6 +181,23 @@ export interface ContentLock {
   userId: number;
   lockedAt: string;
   expiresAt: string;
+}
+
+/** `POST …/contents/{key}/lock` answer: the lock plus the content's current version (contract §14.2). */
+export interface ContentLockGrant extends ContentLock {
+  version: number;
+}
+
+/**
+ * One row of `GET /api/requests/{id}/locks` (contract §14.2): every content with its current version;
+ * `userId` (and the times) null when nobody holds a valid lock.
+ */
+export interface ContentLockState {
+  contentKey: string;
+  userId: number | null;
+  lockedAt: string | null;
+  expiresAt: string | null;
+  version: number;
 }
 
 export interface ContentVersionRef {
@@ -301,13 +323,10 @@ export interface RequestDetail extends RequestSummary {
   bundle: CompletionBundle | null;
   allowedActions: RequestAction[];
   rowVersion: number;
-  /**
-   * Round a submit would get now (`round + 1` after an approved recall). Newer servers only; absent
-   * means unknown.
-   */
-  nextSubmitRound?: number;
+  /** Round a submit would get now (`round + 1` after an approved recall). */
+  nextSubmitRound: number;
   /** Project variable revision at read time (correction result freshness, contract §14.4). */
-  variablesRevision?: number;
+  variablesRevision: number;
 }
 
 /** Editable request info keys (PATCH /api/requests/{id}). */
@@ -489,6 +508,8 @@ export interface ArchiveLatest {
   completedAt: string;
   campaign: string | null;
   preview: string;
+  /** The same preview without variable substitution (`#{key}` shown as chips, contract §14.3). */
+  previewRaw: string;
   fileNames: string[];
   resolvedText: string;
 }
@@ -496,7 +517,10 @@ export interface ArchiveLatest {
 export interface ArchivePast {
   requestId: string;
   contentKey: string;
+  /** Content item title. */
   title: string;
+  /** Title of that past completion's request (shown on the row, contract §14.3). */
+  requestTitle: string;
   version: number;
   completedAt: string;
 }

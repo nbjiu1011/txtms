@@ -10,11 +10,11 @@ export interface ApprovalQueueRow {
   /** `{n}건 v1 v2 …` */
   contents: string;
   due: string;
-  /** I am an eligible approver of this request (`APPROVAL_PENDING` contains it). */
+  /** I am an eligible approver of this request (`RequestSummary.approvable`, contract §14.2). */
   canProcess: boolean;
 }
 
-export function toApprovalQueueRow(r: RequestSummary, eligible: ReadonlySet<string>): ApprovalQueueRow {
+export function toApprovalQueueRow(r: RequestSummary): ApprovalQueueRow {
   return {
     id: r.id,
     title: r.title || "제목 없는 요청",
@@ -22,7 +22,7 @@ export function toApprovalQueueRow(r: RequestSummary, eligible: ReadonlySet<stri
     primaryReviewerId: r.primaryReviewerId,
     contents: [`${r.contentCount}건`, ...r.contentVersions.map((v) => `v${v}`)].join(" "),
     due: formatDate(r.dueDate),
-    canProcess: eligible.has(r.id),
+    canProcess: r.approvable,
   };
 }
 

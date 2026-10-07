@@ -5,7 +5,8 @@ import type { RequestSummary } from "@/entities/request/@x/user";
 export interface UserSummary {
   id: number;
   name: string;
-  dept: string;
+  /** Null for a user invited without a department (contract §14.6). */
+  dept: string | null;
   email: string;
   active: boolean;
   avatarColor: string;

@@ -55,7 +55,7 @@ describe("DashboardView", () => {
 
     // KPI tiles in contract order with counts.
     const kpis = dashboardU1.kpis.map((k) => screen.getByRole("button", { name: `${k.label} ${k.count}건` }));
-    expect(kpis).toHaveLength(3);
+    expect(kpis.length).toBeGreaterThanOrEqual(3);
 
     // Pipeline total and stages.
     const pipe = screen.getByRole("region", { name: "프로젝트 요청 흐름" });

@@ -19,7 +19,7 @@ import { CustomerDetail } from "./customer-detail";
 import styles from "./ops-customers.module.css";
 
 /** `opsCust` tab — 고객사 관리 (reference `vOpsCust`): list, detail of the selected customer, 운영 이력. */
-export function OpsCustomersView({ me, context, openTab }: WorkViewProps) {
+export function OpsCustomersView({ context, openTab }: WorkViewProps) {
   const client = useQueryClient();
   const customers = useOpsCustomers();
   const intent = useOpsIntent("opsCustomers");
@@ -135,7 +135,6 @@ export function OpsCustomersView({ me, context, openTab }: WorkViewProps) {
       {selected ? (
         <CustomerDetail
           customer={selected}
-          me={me}
           onOpenSetup={() => continueToSetup(selected.id, openTab)}
         />
       ) : null}

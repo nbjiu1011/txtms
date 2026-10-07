@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { isApiError } from "@/shared/api";
 import { useCustomers, type Customer } from "@/entities/customer";
 import { useProject, type Project } from "@/entities/project";
-import { useContentTypes, useRequestDetail, type RequestDetail } from "@/entities/request";
+import { useContentTypes, useRequestDetail, useRequestLockWatch, type RequestDetail } from "@/entities/request";
 import { useUserDirectory, type UserDirectory } from "@/entities/user";
 import { useProjectVariables } from "@/entities/variable";
 
@@ -30,6 +30,7 @@ export interface RequestPage {
 export function useRequestPage(id: string): RequestPageState {
   const detail = useRequestDetail(id);
   const request = detail.data;
+  useRequestLockWatch(request);
   const projectQuery = useProject(request?.projectId ?? null);
   const project = projectQuery.data ?? null;
   const customers = useCustomers();

@@ -146,7 +146,7 @@ export function RuleSeedPanel({ customer, datasets, assignments, contentTypes, o
 export interface SendingPanelProps {
   projects: Project[];
   loading: boolean;
-  /** Projects of an inactive customer cannot be read (the API answers 404). */
+  /** Inactive customer: its projects are listed (operator API) but cannot be changed. */
   inactive: boolean;
   onEdit: (project: Project) => void;
 }
@@ -175,10 +175,10 @@ export function SendingPanel({ projects, loading, inactive, onEdit }: SendingPan
           {projects.length === 0 ? (
             <tr>
               <td colSpan={5} className={styles.muted}>
-                {inactive
-                  ? "비활성 고객사입니다. 사용 재개 후 발신 정보를 설정하세요."
-                  : loading
-                    ? "불러오는 중입니다."
+                {loading
+                  ? "불러오는 중입니다."
+                  : inactive
+                    ? "프로젝트가 없습니다."
                     : "프로젝트가 없습니다. 초기 프로젝트를 먼저 만드세요."}
               </td>
             </tr>
@@ -208,7 +208,12 @@ export function SendingPanel({ projects, loading, inactive, onEdit }: SendingPan
                 </td>
                 <td>{p.active ? <Tag>사용</Tag> : <Tag variant="hot">중지</Tag>}</td>
                 <td>
-                  <Button size="sm" onClick={() => onEdit(p)}>
+                  <Button
+                    size="sm"
+                    disabled={inactive}
+                    title={inactive ? "비활성 고객사입니다. 사용 재개 후 발신 정보를 설정하세요." : undefined}
+                    onClick={() => onEdit(p)}
+                  >
                     발신 정보
                   </Button>
                 </td>

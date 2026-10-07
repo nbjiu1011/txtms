@@ -17,7 +17,8 @@ export interface MeSession {
 export interface Me {
   id: number;
   name: string;
-  dept: string;
+  /** Null for a user invited without a department. */
+  dept: string | null;
   email: string;
   customerId: number | null;
   /** Solution operator (솔루션 운영 담당자). */

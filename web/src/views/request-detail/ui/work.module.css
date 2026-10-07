@@ -48,6 +48,14 @@
 .citem:hover {
   background: color-mix(in srgb, var(--surface) 60%, transparent);
 }
+/* key + title (the pressable part of the row); lays out like the row itself */
+.citemMain {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 10px;
+  align-items: flex-start;
+}
 .citem.on {
   background: var(--surface);
   box-shadow: inset 3px 0 0 var(--brand);

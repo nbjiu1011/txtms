@@ -16,10 +16,11 @@ function line(overrides: Partial<ArchiveLine> = {}): ArchiveLine {
       completedAt: "2026-10-02T02:00:00Z",
       campaign: null,
       preview: "홍길동님, 9월 청구 금액은 152,300원입니다.",
+      previewRaw: "#{customer_name}님, 9월 청구 금액은 #{amount}원입니다.",
       fileNames: [],
       resolvedText: "홍길동님, 9월 청구 금액은 152,300원입니다.",
     },
-    past: [{ requestId: "REQ-2609-088", contentKey: "C1", title: "청구 금액 안내", version: 1, completedAt: "2026-09-07T01:00:00Z" }],
+    past: [{ requestId: "REQ-2609-088", contentKey: "C1", title: "청구 금액 안내", requestTitle: "청구 금액 안내 (8월)", version: 1, completedAt: "2026-09-07T01:00:00Z" }],
     followUps: [{ requestId: "REQ-2610-130", status: "DRAFT", title: "" }],
     campaigns: [],
     ...overrides,
@@ -45,7 +46,10 @@ describe("ArchiveLineItem", () => {
   it("renders the latest completion: title, version, meta and preview", () => {
     const { item } = setup();
     expect(within(item).getByText("REQ-2609-106  알림톡  승인 완료", { exact: false, normalizer: (s) => s })).toBeTruthy();
-    expect(within(item).getByText("홍길동님, 9월 청구 금액은 152,300원입니다.")).toBeTruthy();
+    // reference `renderVars`: the raw preview with variable chips (contract §14.3 `previewRaw`)
+    expect(within(item).getByText("customer_name")).toBeTruthy();
+    expect(within(item).getByText("amount")).toBeTruthy();
+    expect(within(item).queryByText(/152,300/)).toBeNull();
     expect(within(item).queryByText(/과거 완료본/)).toBeNull();
   });
 
@@ -58,7 +62,7 @@ describe("ArchiveLineItem", () => {
   it("expanded rows link the requests; a titleless follow-up reads 제목 없음", () => {
     const { item } = setup({ open: true });
     expect(within(item).getByRole("button", { name: "접기" }).getAttribute("aria-expanded")).toBe("true");
-    expect(within(item).getByText(/과거 완료본/).textContent).toContain("REQ-2609-088 청구 금액 안내 v1");
+    expect(within(item).getByText(/과거 완료본/).textContent).toContain("REQ-2609-088 청구 금액 안내 (8월) v1");
     const follow = within(item).getByRole("link", { name: "REQ-2610-130" }).parentElement!;
     expect(follow.textContent).toMatch(/^후속 요청 REQ-2610-130/);
     expect(follow.textContent).toContain("작성 중");

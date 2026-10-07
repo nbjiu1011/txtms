@@ -9,6 +9,10 @@
   overflow-x: auto;
   scrollbar-width: none;
 }
+/* tablist wrapper: no box of its own, the tabs stay items of the `.tabs` flex row */
+.list {
+  display: contents;
+}
 .tabs::-webkit-scrollbar {
   display: none;
 }

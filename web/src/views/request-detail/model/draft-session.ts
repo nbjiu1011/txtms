@@ -22,7 +22,13 @@ export type { DraftSessionApi, DraftSessionDeps, InfoKey } from "./draft-session
 export class DraftSession {
   private readonly deps: DraftSessionDeps;
   private readonly saver: Autosaver;
-  private readonly entries: DraftEntries = { info: new Map(), contents: new Map(), files: new Map() };
+  private readonly entries: DraftEntries = {
+    info: new Map(),
+    contents: new Map(),
+    files: new Map(),
+    savedInfo: new Map(),
+    savedContents: new Map(),
+  };
   private get info() {
     return this.entries.info;
   }
@@ -89,13 +95,20 @@ export class DraftSession {
   infoValue(key: InfoKey, server: RequestDetail): string {
     const entry = this.info.get(key);
     if (entry) return entry.value;
+    const saved = this.entries.savedInfo.get(key);
+    if (saved && server.rowVersion < saved.rowVersion) return saved.value;
     return (server[key] as string | null | undefined) ?? "";
   }
 
   /** The content as the editor shows it (local title/payload over the server copy). */
   content(server: Content): Content {
     const entry = this.contents.get(server.key);
-    if (!entry) return server;
+    if (!entry) {
+      const saved = this.entries.savedContents.get(server.key);
+      return saved && isOlder(server.savedAt, saved.savedAt)
+        ? { ...server, title: saved.title, payload: saved.payload }
+        : server;
+    }
     return { ...server, title: entry.title ?? server.title, payload: entry.payload ?? server.payload };
   }
 
@@ -146,11 +159,17 @@ export class DraftSession {
     this.contents.set(server.key, {
       title: prev?.title,
       payload: prev?.payload,
-      base: prev ? prev.base : server.savedAt,
+      // the server copy passed in may be the one before my last save (see `content`): start from the newer
+      base: prev ? prev.base : this.latestSavedAt(server),
       ...patch,
       rev: ++this.rev,
     });
     this.touch();
+  }
+
+  private latestSavedAt(server: Content): string | null {
+    const saved = this.entries.savedContents.get(server.key);
+    return saved && isOlder(server.savedAt, saved.savedAt) ? saved.savedAt : server.savedAt;
   }
 
   private touch() {
@@ -163,12 +182,14 @@ export class DraftSession {
   /** Forgets local edits of one content (deleted, reset by a type change, reloaded after a conflict). */
   discardContent(key: string) {
     this.contents.delete(key);
+    this.entries.savedContents.delete(key);
     for (const [id, f] of this.files) if (f.contentKey === key) this.files.delete(id);
     this.emit();
   }
 
   discardContents() {
     this.contents.clear();
+    this.entries.savedContents.clear();
     this.files.clear();
     this.emit();
   }
@@ -209,6 +230,12 @@ export class DraftSession {
     }
     return saveEntries(this.entries, this.deps, () => this.emit());
   }
+}
+
+/** `server` (ISO time or null) is older than `saved`: the screen still has the copy before that save. */
+function isOlder(server: string | null, saved: string | null): boolean {
+  if (saved === null) return false;
+  return server === null || Date.parse(server) < Date.parse(saved);
 }
 
 function contentKeyOf(error: unknown): string | null {

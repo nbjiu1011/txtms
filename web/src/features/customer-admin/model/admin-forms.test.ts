@@ -69,13 +69,15 @@ describe("variable admin", () => {
     value: "홍길동",
     active: true,
     inUse: true,
+    deleted: false,
     createdBy: 1,
     createdAt: "",
     updatedAt: "",
   };
   it("shows usage and protects keys in use", () => {
     expect(variableUsageText(v)).toBe("활성 · 사용 중");
-    expect(variableUsageText({ active: false, inUse: false })).toBe("중지");
+    expect(variableUsageText({ active: false, inUse: false, deleted: false })).toBe("중지");
+    expect(variableUsageText({ active: false, inUse: false, deleted: true })).toBe("삭제");
     expect(variableFormProblem({ ...v, key: "renamed" }, v)).toBe("사용 중인 변수는 키를 변경할 수 없습니다");
     expect(variableFormProblem({ ...v, key: "Bad-Key" }, null)).toBe("변수 키는 영문 소문자, 숫자, 밑줄만 사용하세요");
     expect(variableFormProblem({ ...v, type: "NUMBER", value: "abc" }, null)).toBe("정수 또는 소수를 입력하세요");

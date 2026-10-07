@@ -105,7 +105,7 @@ describe("CorrectionPanel", { timeout: 20_000 }, () => {
     // Applying awaits the editor's begin() before writing; wait for the write instead of assuming one tick.
     await waitFor(() => expect(writes.at(-1)?.payload).toEqual(alimtalk("참여는 할 수 있습니다")));
     await waitFor(() => expect(lastToast()).toBe("교정이 적용되었습니다."));
-    await waitFor(() => expect(api.event).toHaveBeenCalledWith("REQ-T", { contentKey: "C1", action: "APPLY", field: "body", before: "할수", after: "할 수" }));
+    await waitFor(() => expect(api.event).toHaveBeenCalledWith("REQ-T", { contentKey: "C1", action: "APPLY", field: "body", before: "할수", after: "할 수", ruleId: "R-할 수" }));
     rerender(<Harness contents={[{ key: "C1", title: "안내", fileCount: 0, payload: alimtalk("참여는 할수 있습니다") }]} />);
     expect(screen.getByRole("button", { name: "할 수" }).getAttribute("aria-pressed")).toBe("true");
     expect(screen.queryByText(STALE_NOTE)).toBeNull();
@@ -113,7 +113,7 @@ describe("CorrectionPanel", { timeout: 20_000 }, () => {
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "할수(으)로 복원" })));
     await waitFor(() => expect(writes.at(-1)?.payload).toEqual(alimtalk("참여는 할수 있습니다")));
     await waitFor(() => expect(lastToast()).toBe("교정이 취소되었습니다."));
-    await waitFor(() => expect(api.event).toHaveBeenLastCalledWith("REQ-T", { contentKey: "C1", action: "RESTORE", field: "body", before: "할 수", after: "할수" }));
+    await waitFor(() => expect(api.event).toHaveBeenLastCalledWith("REQ-T", { contentKey: "C1", action: "RESTORE", field: "body", before: "할 수", after: "할수", ruleId: "R-할 수" }));
   });
 
   it("1:N select applies at once and swaps directly; description-only shows no recommendation", async () => {
@@ -125,7 +125,7 @@ describe("CorrectionPanel", { timeout: 20_000 }, () => {
     await waitFor(() => expect(writes.at(-1)?.payload).toEqual(alimtalk("받는 사람 처리")));
     await act(async () => fireEvent.change(select, { target: { value: "1" } }));
     await waitFor(() => expect(writes.at(-1)?.payload).toEqual(alimtalk("받는 분 처리")));
-    await waitFor(() => expect(api.event).toHaveBeenLastCalledWith("REQ-T", expect.objectContaining({ before: "받는 사람", after: "받는 분" })));
+    await waitFor(() => expect(api.event).toHaveBeenLastCalledWith("REQ-T", expect.objectContaining({ before: "받는 사람", after: "받는 분", ruleId: "R-받는 분" })));
     expect(screen.getByText("높임 표현")).toBeTruthy();
     expect(screen.getByText("분 설명")).toBeTruthy();
     // 처리: label + reason only
@@ -223,5 +223,17 @@ describe("CorrectionPanel", { timeout: 20_000 }, () => {
       body: "받으시는 분도 넣어 주세요",
     });
     expect(lastToast()).toBe("건의를 보냈습니다");
+  });
+
+  it("sends the optional 제안 표현 with the suggestion", async () => {
+    render(<Harness contents={[{ key: "C1", title: "안내", fileCount: 0, payload: alimtalk("수령인") }]} />);
+    fireEvent.click(screen.getByRole("button", { name: "이 콘텐츠 검사" }));
+    fireEvent.click(await screen.findByRole("button", { name: "건의하기" }));
+    await screen.findByRole("dialog", { name: "교정 건의하기" });
+    fireEvent.change(screen.getByRole("textbox", { name: /건의 이유/ }), { target: { value: "추가 표현" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "제안 표현" }), { target: { value: "받으시는 분" } });
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "건의 보내기" })));
+    await waitFor(() => expect(api.suggest).toHaveBeenCalled());
+    expect(api.suggest.mock.calls[0][1]).toMatchObject({ body: "추가 표현", suggestedExpr: "받으시는 분" });
   });
 });

@@ -107,7 +107,7 @@ export function SubmitRequestDialog(props: SubmitRequestDialogProps) {
       cancelled = true;
     };
   }, [open]);
-  const bump = request.nextSubmitRound !== undefined && request.nextSubmitRound > request.round;
+  const bump = request.nextSubmitRound > request.round;
 
   const submit = async () => {
     if (!(await props.beforeSubmit())) {

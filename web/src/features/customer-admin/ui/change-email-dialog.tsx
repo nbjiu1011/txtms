@@ -6,7 +6,7 @@ import { serverFormError } from "@/shared/api";
 import { Banner, ErrorDetails, Field, Input, Modal, toast } from "@/shared/ui";
 import { memberApi, type Member } from "@/entities/user";
 import { isEmailFormat, isExternalEmail } from "@/shared/lib";
-import { EXTERNAL_DOMAIN_TOAST } from "@/entities/user";
+import { EMAIL_CHANGE_EXTERNAL_TOAST } from "@/entities/user";
 import { normalizeEmail } from "../model/invite-form";
 import { invalidateUserData } from "../model/invalidate";
 import { useServerError } from "@/shared/ui";
@@ -41,7 +41,7 @@ function ChangeEmailBody({ onClose, customer, member }: ChangeEmailDialogProps &
     if (value === member.user.email.toLowerCase()) return undefined;
     if (external && confirmedEmail !== value) {
       setConfirmedEmail(value);
-      toast(EXTERNAL_DOMAIN_TOAST);
+      toast(EMAIL_CHANGE_EXTERNAL_TOAST);
       return false;
     }
     server.clear();

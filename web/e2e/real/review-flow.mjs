@@ -48,10 +48,11 @@ const u3 = await persona("u3", "이도현");
 await step("u3 assigns 박지훈 (primary) + 한가을 from 배정 관리", async () => {
   await u3.goto(`${BASE}/review`);
   const queue = u3.getByRole("region", { name: "배정 대기" });
-  const row = queue.locator("[role=button]", { hasText: id });
-  await expect(row).toBeVisible();
+  // the row's title part is the button; 배정 sits next to it (no nested interactive elements)
+  const title = queue.getByRole("button", { name: new RegExp(id) });
+  await expect(title).toBeVisible();
   await shot(u3, "01-review-assign-u3");
-  await row.getByRole("button", { name: "배정", exact: true }).click();
+  await title.locator("xpath=..").getByRole("button", { name: "배정", exact: true }).click();
   await u3.waitForURL(new RegExp(`/requests/${id}$`));
   const d = dialog(u3, "검수자 배정");
   await d.getByRole("button", { name: "배정", exact: true }).click();
@@ -88,19 +89,13 @@ await step("u6 edits C1 (edit lock) and saves v2, adds an opinion", async () => 
   await m.getByRole("button", { name: "의견 등록" }).click();
   await expect(m.getByText("문장 끝에 행동 유도 문구를 추가했습니다.")).toBeVisible();
 });
-await step("u2 saves on the stale v1 → conflict modal → 최신 버전 불러오기", async () => {
+await step("u2's open copy picks up v2 through the lock list (no stale edit)", async () => {
+  // The light lock list (polled every 15s while 검수 중) shows C1 v2, so the detail is reloaded before
+  // u2 edits on the old copy. (A lock answer with a newer version also drops a stale buffer — unit tested.)
   const m = main(u2);
-  await m.getByLabel("본문").fill("고객님, 포인트 적립 안내입니다.");
-  await m.getByRole("button", { name: "수정본 저장" }).click();
-  const d = dialog(u2, "다른 사용자가 먼저 저장했습니다");
-  await expect(d).toBeVisible();
-  await expect(d.getByText(/v1을 기준으로 수정했지만 지금 최신 버전은 v2입니다/)).toBeVisible();
-  await shot(u2, "04-conflict");
-  await d.getByRole("button", { name: "최신 버전 불러오기" }).click();
-  await expect(m.getByText("C1 v2", { exact: true })).toBeVisible();
+  await expect(m.getByText("C1 v2", { exact: true })).toBeVisible({ timeout: 25_000 });
   await expect(m.getByLabel("본문")).toHaveValue(/확인해 보세요/);
-  // 최신 버전 불러오기 released u2's lock (taken for the stale edit) in the background.
-  await u2.waitForLoadState("networkidle");
+  await shot(u2, "04-latest-from-locks");
 });
 await step("lock shown to others; lead force-releases it", async () => {
   const m6 = main(u6);

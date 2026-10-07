@@ -26,6 +26,8 @@ export interface Variable {
   value: string;
   active: boolean;
   inUse: boolean;
+  /** Logically deleted (only listed with `includeDeleted=true`, customer admin; then `active` is false). */
+  deleted: boolean;
   createdBy: number;
   createdAt: string;
   updatedAt: string;
@@ -39,6 +41,13 @@ export interface VariableLog {
   action: string;
   before: VariableSnapshot | null;
   after: VariableSnapshot | null;
+}
+
+/** One entry of `GET /api/projects/{id}/variable-logs` (every variable of the project, newest first). */
+export interface ProjectVariableLog extends VariableLog {
+  variableId: number;
+  /** Current name of the actor (null when the user is gone). */
+  actorName: string | null;
 }
 
 export type VariableCreate = Pick<Variable, "key" | "description" | "type" | "value">;

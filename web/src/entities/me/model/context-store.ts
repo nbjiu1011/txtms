@@ -17,6 +17,11 @@ interface WorkContextState extends StoredContext {
   init: (me: Me) => void;
   setCustomer: (customerId: number, projectId: number | null) => void;
   setProject: (projectId: number | null) => void;
+  /**
+   * Drops `customerId` from the selection (e.g. it was just deactivated): the work context then falls back
+   * to an available customer once the customer list is reloaded, without asking for its projects first.
+   */
+  forgetCustomer: (customerId: number) => void;
   reset: () => void;
 }
 
@@ -54,6 +59,11 @@ export const useWorkContextStore = create<WorkContextState>((set, get) => {
     },
     setProject: (projectId) => {
       set({ projectId });
+      persist();
+    },
+    forgetCustomer: (customerId) => {
+      if (get().customerId !== customerId) return;
+      set({ customerId: null, projectId: null });
       persist();
     },
     reset: () => set({ userId: null, customerId: null, projectId: null }),

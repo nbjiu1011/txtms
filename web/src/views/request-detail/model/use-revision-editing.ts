@@ -23,6 +23,11 @@ import { RevisionSession } from "./revision-session";
 export const UNSAVED_BEFORE_ASK = "저장하지 않은 수정본이 있습니다. 먼저 저장하거나 취소하세요";
 export const UNSAVED_BEFORE_ANSWER = "수정 중인 콘텐츠를 먼저 저장하세요";
 
+/** Toast when the lock answer shows a newer version than the screen (the buffer was dropped). */
+export function staleBaseMessage(key: string, version: number): string {
+  return `${key}의 최신 버전(v${version})이 저장되어 있어 불러왔습니다. 최신 내용에서 다시 수정하세요`;
+}
+
 /** A 수정본 저장 that hit a newer version (reference conflict modal). */
 export interface RevisionConflict {
   key: string;
@@ -87,6 +92,10 @@ export function useRevisionEditing(
       onDirty: (dirty) => dirtyRef.current(dirty),
       onLockDenied: (_key, error) => {
         toast(messageOf(error, "편집을 시작하지 못했습니다"));
+        void client.invalidateQueries({ queryKey: requestKeys.detail(id) });
+      },
+      onStaleBase: (key, version) => {
+        toast(staleBaseMessage(key, version));
         void client.invalidateQueries({ queryKey: requestKeys.detail(id) });
       },
     });

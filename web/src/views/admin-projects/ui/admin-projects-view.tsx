@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Button, Empty, Icon, Page, PageHeader, Panel, Table, Tag, tableClasses } from "@/shared/ui";
 import { useCustomerProjects, type Project } from "@/entities/project";
-import { useRequestTotal } from "@/entities/request";
 import { useCustomerUsers, useUserDirectory, type UserDirectory, type UserSummary } from "@/entities/user";
 import { ProjectEditDialog } from "@/features/customer-admin";
 import type { WorkViewProps } from "@/widgets/app-shell";
@@ -60,7 +59,6 @@ export function AdminProjectsView({ context }: WorkViewProps) {
                 <ProjectRow
                   key={p.id}
                   project={p}
-                  customerId={customerId ?? -1}
                   approvalEnabled={customer?.approvalEnabled ?? false}
                   users={directory}
                   onEdit={() => setEditing({ project: p })}
@@ -84,19 +82,9 @@ export function AdminProjectsView({ context }: WorkViewProps) {
 
 interface ProjectRowProps {
   project: Project;
-  customerId: number;
   approvalEnabled: boolean;
   users: UserDirectory;
   onEdit: () => void;
-}
-
-/** 진행 중 요청 = submitted and not final (the customer-wide view narrowed to one project). */
-function useInProgressCount(customerId: number, projectId: number | null): number | undefined {
-  const total = useRequestTotal(
-    { customerId, projectId: projectId ?? -1, view: "CUSTOMER_IN_PROGRESS" },
-    projectId !== null,
-  );
-  return total.data;
 }
 
 function ProjectEditor({
@@ -110,7 +98,6 @@ function ProjectEditor({
   users: UserSummary[];
   onClose: () => void;
 }) {
-  const inProgress = useInProgressCount(customer.id, project?.id ?? null) ?? 0;
   return (
     <ProjectEditDialog
       open
@@ -118,13 +105,12 @@ function ProjectEditor({
       customer={customer}
       project={project}
       users={users}
-      inProgress={inProgress}
+      inProgress={project?.activeRequestCount ?? 0}
     />
   );
 }
 
-function ProjectRow({ project: p, customerId, approvalEnabled, users, onEdit }: ProjectRowProps) {
-  const count = useInProgressCount(customerId, p.id);
+function ProjectRow({ project: p, approvalEnabled, users, onEdit }: ProjectRowProps) {
   const approvers = p.members.filter((m) => m.roles.includes("APPROVER")).map((m) => users.name(m.userId));
   return (
     <tr>
@@ -132,7 +118,8 @@ function ProjectRow({ project: p, customerId, approvalEnabled, users, onEdit }: 
       <td>{users.name(p.leadUserId)}</td>
       <td>{approvalEnabled ? approvers.join(", ") || "-" : <span className={styles.faint}>승인 단계 미사용</span>}</td>
       <td>{p.members.length}명</td>
-      <td>{count ?? "-"}</td>
+      {/* 진행 중 요청 = submitted and not final, counted by the server for the customer admin (§14.6) */}
+      <td>{p.activeRequestCount ?? "-"}</td>
       <td>{p.active ? <Tag>사용</Tag> : <Tag variant="hot">중지</Tag>}</td>
       <td>
         <Button size="sm" onClick={onEdit}>

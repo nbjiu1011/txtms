@@ -37,6 +37,7 @@ const opsCustomer = (patch: Partial<OpsCustomer> = {}): OpsCustomer => ({
   dueSoonDays: 3,
   createdAt: "2026-10-07T01:00:00Z",
   createdBy: 5,
+  createdByName: "정우진",
   deactivationReason: null,
   projectCount: 1,
   userCount: 0,
@@ -213,21 +214,22 @@ describe("SendingInfoDialog", () => {
 
 describe("SeedUserDialog", () => {
   it("asks once for an external first admin, then sends it confirmed and shows the queued mail", async () => {
-    const invite = vi.spyOn(opsApi, "invite").mockResolvedValue({} as never);
-    vi.spyOn(opsApi, "latestMails").mockResolvedValue({
-      content: [
-        {
-          id: 1,
-          customerId: 9,
-          to: "boss@partner.com",
-          subject: "TX TMS 초대",
-          body: "http://localhost:3000/invite/abc",
-          createdAt: "2026-10-07T01:00:00Z",
-          status: "PENDING",
-          masked: false,
-        },
-      ],
-      page: { number: 0, size: 10, totalElements: 1, totalPages: 1 },
+    const invite = vi.spyOn(opsApi, "invite").mockResolvedValue({ mailId: 2 } as never);
+    const mail = (id: number, body: string) => ({
+      id,
+      customerId: 9,
+      to: "boss@partner.com",
+      subject: "TX TMS 초대",
+      body,
+      createdAt: "2026-10-07T01:00:00Z",
+      status: "PENDING",
+      masked: false,
+      kind: "INVITATION" as const,
+    });
+    // a newer reissue to the same address must not be confused with the mail of this invitation
+    const latest = vi.spyOn(opsApi, "latestMails").mockResolvedValue({
+      content: [mail(3, "http://localhost:3000/invite/newer"), mail(2, "http://localhost:3000/invite/abc")],
+      page: { number: 0, size: 20, totalElements: 2, totalPages: 1 },
     });
     const customer = opsCustomer();
     wrap(<SeedUserDialog open onClose={vi.fn()} customer={customer} mode="admin" projects={[]} />);
@@ -241,6 +243,8 @@ describe("SeedUserDialog", () => {
     ok("초대 링크 생성");
     await screen.findByRole("dialog", { name: "초대 링크 생성 완료" });
     expect(invite).toHaveBeenCalledWith(9, expect.objectContaining({ email: "boss@partner.com", admin: true, externalDomainConfirmed: true }));
+    expect(latest).toHaveBeenCalledWith(9, 20);
     expect(screen.getByText("http://localhost:3000/invite/abc")).toBeTruthy();
+    expect(screen.queryByText("http://localhost:3000/invite/newer")).toBeNull();
   });
 });

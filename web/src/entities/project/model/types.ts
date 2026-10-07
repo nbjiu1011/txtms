@@ -31,6 +31,11 @@ export interface Project {
   senders: string[];
   members: ProjectMember[];
   variablesRevision: number;
+  /**
+   * Submitted, not final requests (`WAITING`…`APPROVAL_WAITING`) — only in the customer admin's
+   * `GET /api/customers/{id}/projects` (contract §14.6); absent for members and operators.
+   */
+  activeRequestCount?: number;
 }
 
 /** Customer admin create/update payload (contract §11). */

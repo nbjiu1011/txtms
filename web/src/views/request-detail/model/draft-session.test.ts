@@ -88,6 +88,32 @@ describe("DraftSession", () => {
     expect(t.session.saveState.savedAt).toBe("2026-10-07T02:00:00Z");
   });
 
+  it("keeps showing the saved text while a render still passes the server copy from before the save", async () => {
+    const t = setup();
+    const before = t.server().contents[0];
+    t.session.setPayload(before, { ...before.payload, body: "저장한 본문" } as Content["payload"]);
+    await vi.advanceTimersByTimeAsync(700);
+    expect(t.calls).toEqual(["put:C1:2026-10-07T01:00:00Z"]);
+    // a render that started before the answer reached the cache still has the old copy (savedAt 01:00)
+    expect(t.session.content(before).payload).toMatchObject({ body: "저장한 본문" });
+    // the next edit starts from the saved copy, not from the stale one (no false version conflict)
+    t.session.setContentTitle(before, "다음 제목");
+    await vi.advanceTimersByTimeAsync(700);
+    expect(t.calls[1]).toBe("put:C1:2026-10-07T02:00:00Z");
+    // once the screen has a copy at least as new, it is shown as is
+    const fresh = { ...t.server().contents[0], payload: { ...before.payload, body: "다른 곳에서 바뀜" } } as Content;
+    expect(t.session.content(fresh).payload).toMatchObject({ body: "다른 곳에서 바뀜" });
+  });
+
+  it("keeps the saved info value until the screen has the detail of that save", async () => {
+    const t = setup();
+    const stale = t.server();
+    t.session.setInfo("title", "새 제목");
+    await vi.advanceTimersByTimeAsync(700);
+    expect(t.session.infoValue("title", { ...stale, rowVersion: stale.rowVersion - 1 })).toBe("새 제목");
+    expect(t.session.infoValue("title", { ...t.server(), title: "서버 제목" })).toBe("서버 제목");
+  });
+
   it("reports a version conflict once without retrying", async () => {
     const conflict = new ApiError(409, { code: "VERSION_CONFLICT", message: "다른 탭에서 저장" });
     const t = setup({ saveContent: vi.fn(async () => Promise.reject(conflict)) });

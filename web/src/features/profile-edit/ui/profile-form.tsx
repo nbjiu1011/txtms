@@ -22,7 +22,7 @@ export function ProfileForm({ me, className }: ProfileFormProps) {
     reset,
   } = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues: { name: me.name, dept: me.dept },
+    defaultValues: { name: me.name, dept: me.dept ?? "" },
   });
 
   const save = handleSubmit(async (values) => {
@@ -30,7 +30,7 @@ export function ProfileForm({ me, className }: ProfileFormProps) {
     try {
       const updated = await meApi.patch({ name: values.name, dept: values.dept });
       useSessionStore.getState().setMe(updated);
-      reset({ name: updated.name, dept: updated.dept });
+      reset({ name: updated.name, dept: updated.dept ?? "" });
     } catch (error) {
       toast(isApiError(error) ? error.message : "저장하지 못했습니다");
     }

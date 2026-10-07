@@ -28,7 +28,7 @@ const isSub = (value: unknown): value is Sub => typeof value === "string" && (SU
  * `standards` tab — 유형·교정 기준 (reference `vStandards` + J:130): 유형 관리 / 유효 데이터셋 배정, and the
  * 데이터셋 시드 page (registered versions, registration, rules).
  */
-export function OpsStandardsView({ me, context }: WorkViewProps) {
+export function OpsStandardsView({ context }: WorkViewProps) {
   const intent = useOpsIntent("opsStandards");
   const [subPicked, setSubPicked] = useState<Sub>("assign");
   const [customerPicked, setCustomerPicked] = useState<number | null>(null);
@@ -127,7 +127,6 @@ export function OpsStandardsView({ me, context }: WorkViewProps) {
       ) : (
         <>
           <AssignMatrix
-            me={me}
             customers={list}
             datasets={dsList}
             assignments={assignments.data ?? []}

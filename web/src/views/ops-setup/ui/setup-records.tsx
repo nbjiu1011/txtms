@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { formatDateTime } from "@/shared/lib";
 import { Button, Empty, Pager, Panel, PanelBody, PanelHeader, ReadOnlyBox, Table, Tag } from "@/shared/ui";
-import { OUTBOX_STATUS_LABEL } from "@/entities/audit";
+import { OUTBOX_KIND_LABEL, OUTBOX_STATUS_LABEL } from "@/entities/audit";
 import { useOpsOutbox, useSampleOverview, useSetupLogs, type OpsCustomer } from "@/entities/ops";
 import { REQUEST_STATUS_LABEL } from "@/entities/request";
 import styles from "./ops-setup.module.css";
@@ -141,17 +141,23 @@ export function SeedLogPanel({ customerId }: { customerId: number }) {
 const OUTBOX_PAGE = 5;
 
 /**
- * 메일 발송 대기함 of every customer (operator): invitation, reset and reminder mails, newest first.
- * Token links are masked outside demo mode — only the recipient can use them.
+ * 메일 발송 대기함 of the selected customer's users (operator, `GET /api/ops/outbox?customerId=`):
+ * invitation, reset and reminder mails, newest first. Token links are masked outside demo mode — only the
+ * recipient can use them.
  */
-export function OpsOutboxPanel({ customers }: { customers: OpsCustomer[] }) {
-  const [page, setPage] = useState(0);
-  const outbox = useOpsOutbox(page, OUTBOX_PAGE);
+export function OpsOutboxPanel({ customer }: { customer: Pick<OpsCustomer, "id" | "name"> }) {
+  // the page belongs to one customer: a new customer starts on its first page
+  const [paging, setPaging] = useState({ customerId: customer.id, page: 0 });
+  const page = paging.customerId === customer.id ? paging.page : 0;
+  const setPage = (next: number) => setPaging({ customerId: customer.id, page: next });
+  const outbox = useOpsOutbox(customer.id, page, OUTBOX_PAGE);
   const mails = outbox.data?.content ?? [];
-  const name = (id: number | null) => customers.find((c) => c.id === id)?.name;
   return (
     <Panel className={styles.block} aria-label="메일 발송 대기함" aria-busy={outbox.isFetching}>
-      <PanelHeader title="메일 발송 대기함" note="실제 메일 발송 연동 전입니다. 초대·재설정 링크는 데모 모드에서만 보입니다" />
+      <PanelHeader
+        title={`메일 발송 대기함 · ${customer.name}`}
+        note="실제 메일 발송 연동 전입니다. 초대·재설정 링크는 데모 모드에서만 보입니다"
+      />
       {outbox.isPending ? (
         <PanelBody>불러오는 중입니다</PanelBody>
       ) : outbox.isError ? (
@@ -171,8 +177,8 @@ export function OpsOutboxPanel({ customers }: { customers: OpsCustomer[] }) {
             </b>
             <p className={styles.mailBody}>{m.body}</p>
             <span className={styles.mailMeta}>
-              {name(m.customerId) ? `${name(m.customerId)} · ` : ""}
-              {OUTBOX_STATUS_LABEL[m.status] ?? m.status} · {formatDateTime(m.createdAt)}
+              {OUTBOX_KIND_LABEL[m.kind] ?? m.kind} · {OUTBOX_STATUS_LABEL[m.status] ?? m.status} ·{" "}
+              {formatDateTime(m.createdAt)}
               {m.masked ? (
                 <Tag variant="fill" className={styles.masked}>
                   링크 가림

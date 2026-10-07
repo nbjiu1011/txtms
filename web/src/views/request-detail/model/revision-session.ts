@@ -1,5 +1,5 @@
 import { isApiError } from "@/shared/api";
-import type { Content, ContentLock, ContentPayload, FileMeta, RevisionFileAmount, RevisionSave } from "@/entities/request";
+import type { Content, ContentLockGrant, ContentPayload, FileMeta, RevisionFileAmount, RevisionSave } from "@/entities/request";
 import { parseFileRange, readFileRange, type FileRangeDraft } from "./file-range";
 
 /** Keep-alive: an edit refreshes the server lock when the last refresh is at least this old. */
@@ -31,7 +31,7 @@ export interface RevisionBuffer {
 }
 
 export interface RevisionSessionApi {
-  lock(key: string): Promise<ContentLock>;
+  lock(key: string): Promise<ContentLockGrant>;
   release(key: string, keepalive?: boolean): Promise<void>;
   save(key: string, body: RevisionSave): Promise<Content>;
 }
@@ -42,6 +42,11 @@ export interface RevisionSessionDeps {
   onDirty(dirty: boolean): void;
   /** The first edit could not take the lock (another editor, or editing is no longer allowed). */
   onLockDenied(key: string, error: unknown): void;
+  /**
+   * The lock answer shows a newer version than the one the buffer started from (someone saved after this
+   * screen was loaded): the buffer was dropped and the lock released — load the latest version first.
+   */
+  onStaleBase(key: string, version: number): void;
   now?: () => number;
 }
 
@@ -177,6 +182,14 @@ export class RevisionSession {
       .then((lock) => {
         const buffer = this.buffers.get(key);
         if (!buffer || buffer.lock.status === "lost") return false;
+        if (buffer.lock.status !== "held" && lock.version !== buffer.base) {
+          // contract §14.2: the screen copy is outdated — start again from the latest version
+          this.buffers.delete(key);
+          this.emit();
+          void this.deps.api.release(key).catch(() => undefined);
+          this.deps.onStaleBase(key, lock.version);
+          return false;
+        }
         buffer.lock = { status: "held", expiresAt: lock.expiresAt, refreshedAt: startedAt };
         this.emit();
         return true;

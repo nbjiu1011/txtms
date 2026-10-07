@@ -5,7 +5,7 @@ import type {
   AssignmentChange,
   BulkCommitRow,
   ChangeAssignmentBody,
-  ContentLock,
+  ContentLockGrant,
   BulkImportPreview,
   Content,
   ContentSave,
@@ -67,7 +67,7 @@ export const requestApi = {
   assignmentChanges: (id: string) => http.get<AssignmentChange[]>(`${req(id)}/assignment-changes`),
 
   /* edit lock + revisions (§4): review-time editing */
-  lock: (id: string, key: string) => http.post<ContentLock>(`${content(id, key)}/lock`),
+  lock: (id: string, key: string) => http.post<ContentLockGrant>(`${content(id, key)}/lock`),
   /** Releases my lock. `keepalive` lets it finish while the page unloads. */
   releaseLock: (id: string, key: string, keepalive = false) =>
     http.delete<void>(`${content(id, key)}/lock`, keepalive ? { keepalive: true } : undefined),

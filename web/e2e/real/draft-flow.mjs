@@ -7,6 +7,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { chromium, expect } from "@playwright/test";
+import { reportConsole, watchConsole } from "./helpers.mjs";
 
 const BASE = process.env.BASE ?? "http://localhost:3000";
 const FILES = process.env.FILES ?? "e2e/real/files";
@@ -14,8 +15,10 @@ const OUT = "e2e/real/out";
 mkdirSync(OUT, { recursive: true });
 
 const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, locale: "ko-KR", timezoneId: "Asia/Seoul" });
+const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: "ko-KR", timezoneId: "Asia/Seoul" });
+const page = await context.newPage();
 page.setDefaultTimeout(15_000);
+watchConsole(page, "u1");
 const writes = [];
 page.on("response", (r) => {
   if (r.url().includes("/api/") && !["GET", "OPTIONS"].includes(r.request().method()) && !r.url().includes("/auth/"))
@@ -33,6 +36,7 @@ async function step(name, fn) {
   } catch (error) {
     log(`FAIL ${name}: ${error.message.split("\n")[0]}`);
     await shot(`fail-${name.replace(/\W+/g, "-")}`);
+    reportConsole();
     throw error;
   }
 }
@@ -60,9 +64,8 @@ await step("edit info (autosave)", async () => {
 });
 
 await step("submit with missing fields lists them", async () => {
+  // the submit pre-check (`submit-check`) lists missing items before the confirmation opens
   await page.getByRole("button", { name: "검수 요청" }).click();
-  const confirm = page.getByRole("dialog", { name: "검수를 요청할까요?" });
-  await confirm.getByRole("button", { name: "검수 요청" }).click();
   const missing = page.getByRole("dialog", { name: "검수를 요청하려면 다음 항목을 채우세요" });
   await expect(missing).toBeVisible();
   await expect(missing.getByText("요청 정보: 대상 고객")).toBeVisible();
@@ -228,4 +231,9 @@ await step("rcs: type change with confirm + image", async () => {
 });
 
 console.log(writes.join("\n"));
+const clean = reportConsole();
 await browser.close();
+if (!clean) {
+  log("FAIL browser console has unexplained errors");
+  process.exit(1);
+}

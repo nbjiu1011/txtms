@@ -82,29 +82,32 @@ function ContentItem(props: {
   onOpen: () => void;
 }) {
   const { content: c, title, editing, on, lockedBy, onSelect, onOpen } = props;
+  // The row is clickable as a whole, but only its key + title part is the (pressable) button: the 새 탭
+  // button next to it must not be nested inside another interactive element.
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      aria-pressed={on}
-      className={cn(styles.citem, on && styles.on)}
-      onClick={onSelect}
-      onKeyDown={(e) => {
-        if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
-          e.preventDefault();
-          onSelect();
-        }
-      }}
-    >
-      <span className={styles.no}>{c.key}</span>
-      <span className={styles.ct}>
-        <b>{title}</b>
-        <span>
-          v{c.version}
-          {c.files.length ? `  파일 ${c.files.length}` : ""}
-          {editing ? "  수정 중" : ""}
+    <div className={cn(styles.citem, on && styles.on)} onClick={onSelect}>
+      <span
+        role="button"
+        tabIndex={0}
+        aria-pressed={on}
+        className={styles.citemMain}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onSelect();
+          }
+        }}
+      >
+        <span className={styles.no}>{c.key}</span>
+        <span className={styles.ct}>
+          <b>{title}</b>
+          <span>
+            v{c.version}
+            {c.files.length ? `  파일 ${c.files.length}` : ""}
+            {editing ? "  수정 중" : ""}
+          </span>
+          {lockedBy ? <span className={styles.lk}>{lockedBy} 편집 중</span> : null}
         </span>
-        {lockedBy ? <span className={styles.lk}>{lockedBy} 편집 중</span> : null}
       </span>
       <Button
         size="sm"

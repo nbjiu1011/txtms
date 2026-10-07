@@ -1,11 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { http, queryKeys } from "@/shared/api";
-import type { Variable, VariableCreate, VariableLog, VariablePatch } from "../model/types";
+import type { ProjectVariableLog, Variable, VariableCreate, VariablePatch } from "../model/types";
 
 export const variableKeys = {
   all: queryKeys.all("variables"),
   byProject: (projectId: number) => queryKeys.list("variables", { projectId }),
-  logs: (id: number) => queryKeys.detail("variable-logs", id),
+  /** Admin list with deleted variables (`includeDeleted=true`). */
+  adminByProject: (projectId: number) => queryKeys.list("variables", { projectId, includeDeleted: true }),
+  logsAll: queryKeys.all("variable-logs"),
+  projectLogs: (projectId: number) => queryKeys.list("variable-logs", { projectId }),
 };
 
 /**
@@ -22,11 +25,21 @@ export function useProjectVariables(projectId: number | null, enabled = true) {
   });
 }
 
-/** Change log of a variable, oldest first (customer admin; deleted variables too). */
-export function useVariableLogs(id: number) {
+/** Variables of a project including deleted ones (customer admin, reference 삭제 (이력 보존) rows). */
+export function useAdminVariables(projectId: number | null) {
   return useQuery({
-    queryKey: variableKeys.logs(id),
-    queryFn: () => http.get<VariableLog[]>(`/variables/${id}/logs`),
+    queryKey: variableKeys.adminByProject(projectId ?? -1),
+    queryFn: () => http.get<Variable[]>(`/projects/${projectId}/variables`, { query: { includeDeleted: true } }),
+    enabled: projectId !== null,
+  });
+}
+
+/** Change log of every variable of a project, newest first (customer admin, one call for the table). */
+export function useProjectVariableLogs(projectId: number | null) {
+  return useQuery({
+    queryKey: variableKeys.projectLogs(projectId ?? -1),
+    queryFn: () => http.get<ProjectVariableLog[]>(`/projects/${projectId}/variable-logs`),
+    enabled: projectId !== null,
   });
 }
 

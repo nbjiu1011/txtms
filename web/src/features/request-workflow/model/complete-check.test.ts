@@ -9,21 +9,23 @@ import {
   coReviewerRole,
 } from "./complete-check";
 
+// the seed holds a lock on C2 (한가을); these cases start without locks
+const unlocked = { ...request101U2, contents: request101U2.contents.map((c) => ({ ...c, lock: null })) };
 const lockedBy = (userId: number): Content[] =>
-  request101U2.contents.map((c, i) => (i === 0 ? { ...c, lock: { userId, lockedAt: "", expiresAt: "" } } : c));
+  unlocked.contents.map((c, i) => (i === 0 ? { ...c, lock: { userId, lockedAt: "", expiresAt: "" } } : c));
 
 describe("checkBeforeComplete", () => {
   const ctx = { meId: 2, approvalEnabled: true, hasUnsavedRevision: false };
 
   it("no eligible approver goes to the server first (it records the block)", () => {
-    expect(checkBeforeComplete({ ...request101U2, eligibleApproverIds: [] }, ctx)).toEqual({ kind: "noApprover" });
+    expect(checkBeforeComplete({ ...unlocked, eligibleApproverIds: [] }, ctx)).toEqual({ kind: "noApprover" });
     expect(
-      checkBeforeComplete({ ...request101U2, eligibleApproverIds: [] }, { ...ctx, approvalEnabled: false }),
+      checkBeforeComplete({ ...unlocked, eligibleApproverIds: [] }, { ...ctx, approvalEnabled: false }),
     ).toEqual({ kind: "confirm" });
   });
 
   it("another reviewer's lock, then my unsaved revision block the confirmation", () => {
-    const r = { ...request101U2, eligibleApproverIds: [4] };
+    const r = { ...unlocked, eligibleApproverIds: [4] };
     expect(checkBeforeComplete({ ...r, contents: lockedBy(6) }, { ...ctx, hasUnsavedRevision: true })).toEqual({
       kind: "blocked",
       message: LOCKED_BEFORE_COMPLETE,

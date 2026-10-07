@@ -22,6 +22,11 @@ const ME = {
 
 async function mockSignedIn(page: Page) {
   const json = (body: unknown) => ({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+  // Anything not mocked below is "not found" — also when the dev server proxies `/api` to a real API
+  // (VISUAL_PORT=3000), whose 401 for the fixture token would end the session. Later routes win.
+  await page.route("**/api/**", (r) =>
+    r.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ code: "NOT_FOUND", message: "fixture" }) }),
+  );
   await page.route("**/api/auth/refresh", (r) => r.fulfill(json({ accessToken: "fixture", me: ME })));
   await page.route("**/api/auth/demo-personas", (r) => r.fulfill(json(DEMO_PERSONAS)));
   await page.route("**/api/customers", (r) =>

@@ -51,7 +51,8 @@ export function UsersTable(props: UsersTableProps) {
                   </span>
                 </span>
               </td>
-              <td>{m.user.dept}</td>
+              {/* reference: an invited user without a department reads 초대 대기 */}
+              <td>{m.user.dept ?? (m.pending ? "초대 대기" : "")}</td>
               <td className={styles.small}>
                 {m.admin ? <Tag variant="fill">고객사 관리자</Tag> : <span className={styles.faint}>-</span>}
               </td>

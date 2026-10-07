@@ -16,11 +16,9 @@ export function ApprovalView({ context, openTab }: WorkViewProps) {
   const scope = { projectId: projectId ?? -1, page: 0, size: REQUEST_LIST_PAGE_SIZE };
   const ready = projectId !== null;
   const queue = useRequests({ ...scope, view: "APPROVAL_QUEUE" }, ready);
-  const pending = useRequests({ ...scope, view: "APPROVAL_PENDING" }, ready);
   const processed = useRequests({ ...scope, view: "APPROVAL_PROCESSED" }, ready);
   const openRequest = (id: string) => openTab({ route: "request", params: { id } });
-  const eligible = new Set((pending.data?.content ?? []).map((r) => r.id));
-  const rows = queue.isError ? [] : (queue.data?.content ?? []).map((r) => toApprovalQueueRow(r, eligible));
+  const rows = queue.isError ? [] : (queue.data?.content ?? []).map(toApprovalQueueRow);
   const noApprover =
     !!project && users.ready && !hasActiveApprover(project.members, (id) => users.get(id)?.active ?? false);
   const done = processed.isError ? [] : (processed.data?.content ?? []);

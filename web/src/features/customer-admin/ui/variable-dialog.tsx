@@ -62,7 +62,7 @@ function VariableBody({ onClose, projectId, variable }: VariableDialogProps) {
     }
     await Promise.all([
       client.invalidateQueries({ queryKey: variableKeys.all }),
-      client.invalidateQueries({ queryKey: ["variable-logs"] }),
+      client.invalidateQueries({ queryKey: variableKeys.logsAll }),
       client.invalidateQueries({ queryKey: projectKeys.all }),
     ]);
     return undefined;

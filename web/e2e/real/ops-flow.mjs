@@ -143,7 +143,9 @@ try {
     await d.getByLabel("역할").selectOption("REQUESTER");
     await d.getByRole("button", { name: "초대 링크 생성" }).click();
     await dialog(ops, "초대 링크 생성 완료").getByRole("button", { name: "닫기" }).first().click();
-    await expect(m().getByText("요청자 1명, 검수자 0명")).toBeVisible();
+    // pending invitations come from the operator members list (`GET /api/ops/customers/{id}/members`)
+    await expect(m().getByText(`요청자 1명, 검수자 0명 · 초대 대기 ${MEMBER_EMAIL}`)).toBeVisible();
+    await expect(m().getByText(`· 초대 대기 ${ADMIN_EMAIL}`, { exact: false })).toBeVisible();
   });
 
   await step("발신 정보: row validation, then templates and senders saved", async () => {
@@ -172,12 +174,21 @@ try {
     await m().getByRole("button", { name: "배정 화면" }).click();
     await ops.waitForURL(/\/ops\/standards$/);
     await expect(m().getByRole("heading", { name: `${NAME} 텍스트 교정에 실제 적용되는 기준` })).toBeVisible();
-    const alimtalk = await datasetsOf("ALIMTALK");
     const sel = (type) => m().getByLabel(`${NAME} ${LABEL[type]} 데이터셋`);
-    if (alimtalk.length > 1) {
-      await sel("ALIMTALK").selectOption(String(alimtalk[1].id));
-      await toastSeen(ops, `알림톡 v${alimtalk[1].version}을 연결했습니다. 확인 처리까지 해 주세요`);
+    // Self-contained: a version change needs two versions of a type. A freshly seeded DB has one per type,
+    // so register a second 자유입력형 version through the API (the dataset step below adds one per run anyway).
+    const counts = Object.fromEntries(await Promise.all(TYPES.map(async (t) => [t, (await datasetsOf(t)).length])));
+    const changeType = TYPES.find((t) => counts[t] > 1) ?? "FREEFORM";
+    if (counts[changeType] < 2) {
+      await apiAs(OPS, "POST", "/ops/datasets", {
+        scope: "FREEFORM",
+        rules: [{ ruleId: `E2E-${stamp}`, originalExpr: "되요", recommendedExpr: "돼요", descriptionLabel: "맞춤법" }],
+      });
     }
+    const older = (await datasetsOf(changeType))[1];
+    await sel(changeType).selectOption(String(older.id));
+    await toastSeen(ops, `${LABEL[changeType]} v${older.version}을 연결했습니다. 확인 처리까지 해 주세요`);
+    await expect(sel(changeType)).toHaveValue(String(older.id));
     for (const type of TYPES) {
       const latest = (await datasetsOf(type))[0];
       await sel(type).selectOption(String(latest.id));
@@ -330,6 +341,9 @@ try {
     await d.getByRole("button", { name: "비활성화" }).click();
     await toastSeen(ops, "비활성 처리했습니다. 데이터는 보존됩니다");
     await expect(row.getByRole("button", { name: "사용 재개" })).toBeVisible();
+    // an inactive customer still lists its projects and pending users (operator lists, contract §14.7)
+    await expect(m().getByText("기본 프로젝트 대표 미지정")).toBeVisible();
+    await expect(m().getByText(`${MEMBER_EMAIL} 초대 대기`)).toBeVisible();
     customerId = 0;
   });
 } finally {

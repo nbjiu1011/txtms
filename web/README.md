@@ -37,11 +37,59 @@ section is hidden) and protected URLs redirect to `/login?next=…`.
 | `npm run e2e:real:admin` | customer admin screens, notices and performance against a running API (see below) |
 | `npm run e2e:real:admin-visual` | M5/M6/M7 screens and modals next to the prototype, app on the running API (see below) |
 | `npm run e2e:real:ops` | solution operator screens (customers, initial setup, standards) against a running API (see below) |
+| `npm run e2e:real:a11y` | axe-core (WCAG 2.1 A/AA) check of login, dashboard, request detail, 사용자·권한 관리, 고객사 관리 (see below) |
+| `npm run e2e:origin-proxy` | pass-through proxy for the production smoke on another port (see "Production smoke") |
+
+### Running the end-to-end suites
+
+All real-API flows create their own data (requests, variables, projects, test customers) and can run in any
+order on a freshly seeded demo database; run the read-only comparisons (`e2e:visual`, `e2e:real:admin-visual`)
+first if the screenshots should show the seed data only. Each flow prints one line per step and, at the end,
+the browser console: refused API calls the flow provokes on purpose (4xx "Failed to load resource") are listed
+as expected; any other console error or uncaught page error fails the run. Warnings are listed.
+
+```bash
+API_ORIGIN=http://localhost:8080 npm run dev          # app on :3000 (the API trusts this origin)
+npm run e2e:visual                                    # mocked API, prototype comparison (see below)
+VISUAL_SIZES=1440x900,1180x800,860x900 npm run e2e:visual -- screens review
+npm run e2e:real:admin-visual                          # live API data next to the prototype
+npm run e2e:real && npm run e2e:real:review && npm run e2e:real:result   && npm run e2e:real:correction && npm run e2e:real:admin && npm run e2e:real:ops
+npm run e2e:real:a11y
+```
+
+`BASE` (default `http://localhost:3000`) points the flows at another server, `API_ORIGIN` (default
+`http://localhost:8080`) is used for API setup steps. Screenshots go to `e2e/real/out/` (gitignored).
+
+### Production smoke
+
+The flows run unchanged against a production build:
+
+```bash
+npm run build
+API_ORIGIN=http://localhost:8080 npm run start -- -p 3001
+npm run e2e:origin-proxy -- 3002 http://localhost:3001 http://localhost:3000
+BASE=http://localhost:3002 npm run e2e:real            # also :review, :correction, … and e2e:real:a11y
+```
+
+The API accepts browser calls from one web origin (`app.web-base-url` / `app.cors.allowed-origins`, in the
+dev profile `http://localhost:3000`), and the `/api` rewrite forwards the browser's `Origin`, so a build
+served on :3001 is refused with 403. `e2e/real/origin-proxy.mjs` streams every request to the production
+server unchanged and only presents the trusted origin. In a deployment, configure the web origin on the API
+instead.
+
+### Accessibility check (`e2e/real/a11y.mjs`)
+
+axe-core 4.13 (`@axe-core/playwright`) with the WCAG 2.0/2.1 A/AA and best-practice rules on five screens
+signed in as the matching demo persona. Serious / critical violations fail the run, except the known
+`color-contrast` findings of the reference palette (light grey 12–13px text), which are listed. The full
+result is written to `e2e/real/out/a11y-report.json`.
 
 ### Visual comparison harness (`e2e/visual/`)
 
 Playwright opens the prototype (`file:///E:/workspace/txtms/tx-tms-prototype.html`, needs internet for its
-Google Fonts) and this app at the same viewport (1440×900, 1024×768, 820×1000) and writes
+Google Fonts) and this app at the same viewport (login / token / shell: 1440×900, 1024×768, 820×1000; the
+screen suites: `VISUAL_SIZES`, default 1440×900 — `1180x800,860x900` are the reference breakpoints and get a
+`-{w}x{h}` file suffix) and writes
 `<screen>.prototype.png`, `<screen>.app.png` and `<screen>.side-by-side.png` (prototype | app | diff in red)
 to `e2e/visual/out/` (gitignored). API calls are mocked with Playwright routes, so no API is needed.
 The dev server is started on port 3100 (`VISUAL_PORT`), or reused if already running.
@@ -77,11 +125,13 @@ npm run e2e:visual -- login       # one file
   접수일, the prototype keeps seed order), due-date tags (the prototype pins "today"), file ranges the prototype
   seed leaves empty (`페이지 ?`) and menus of unbuilt screens.
 
-API mocks for the harness come from `e2e/fixtures/`:
+API mocks for the harness come from `e2e/fixtures/` (captured from a freshly seeded demo database — the
+seed's times are relative to the seeding moment, so recapture all of them together):
 - `api-snapshot.ts` — contract-shaped responses captured from the demo API (generated; typed exports such as
   `dashboardU1: Dashboard` are type-checked against `entities`, so contract drift fails `typecheck`).
   Regenerate with `node e2e/fixtures/capture-api.mjs [http://localhost:8080]` while the API runs in demo mode.
-- `draft-snapshot.ts` — REQ-2609-105 (detail + history) and the project 1 variables, captured from the API.
+- `draft-snapshot.ts` — REQ-2609-105 (detail + history) and the project 1 variables, regenerated with
+  `node e2e/fixtures/capture-draft.mjs [http://localhost:8080]`.
 - `review-snapshot.ts` — list views, workload and request details of the 검수 / 승인 screens (seed requests
   only), regenerated with `node e2e/fixtures/capture-review.mjs [http://localhost:8080]`.
 - `archive-snapshot.ts` — 콘텐츠 archive of project 1 as u1 (seed lineages only) and its campaign list,
@@ -106,7 +156,7 @@ go to `e2e/real/out/` (gitignored).
 
 One fresh request per run, five personas in separate browser contexts: 김서연 creates and submits → 이도현 assigns
 박지훈 (primary) + 한가을 from 검수 › 배정 관리 (validation toast, auto primary) → 한가을 edits C1 (buffer + edit lock)
-and saves v2, adds an opinion → 박지훈 saves on the stale v1 → "다른 사용자가 먼저 저장했습니다" → 최신 버전 불러오기 →
+and saves v2, adds an opinion → 박지훈's open copy shows v2 through the polled lock list (no stale edit) →
 한가을's lock is shown to others, 이도현 releases it (잠금 해제 (대표 검수자)), 한가을's buffer can no longer be saved →
 박지훈 adds an opinion and a 확인 요청 → 김서연 edits in 확인 요청, cannot answer before saving, saves v3 and answers
 (round 2) → 이도현 changes the assignment (reason + handover) → recall rejected, recall approved (박지훈 lands on
@@ -159,7 +209,7 @@ the invitee made lead of the new project, 비활성화 asks for a substitute + h
 `••••`, `링크는 수신자에게만 전달됩니다`) to its admin signed in by email; that customer is deactivated. 이도현 opens
 업무량·실적 (all projects, user filter, an invalid period shows the server error). Screenshots `admin-*.png`.
 
-`e2e/real/admin-visual.mjs` captures the prototype and the app (same persona, live API data) for 업무량·실적, 공지, the five
+`e2e/real/admin-visual.mjs` (`VISUAL_SIZES` as above) captures the prototype and the app (same persona, live API data) for 업무량·실적, 공지, the five
 admin pages and the project / variable / invite / role / notice modals as `visual-*.side-by-side.png` in `e2e/real/out`
 (1440×900: 0.3–2.6% differing pixels where the data matches; the users table and role modal differ more once E2E runs
 added projects). Intended differences: data, enum labels for variable types, no operator notices (Phase 2), the
@@ -416,24 +466,33 @@ URL scheme (`src/shared/config/routes.ts`, `pathToTab` / `tabToPath`):
   get `공지 관리`. Dashboard notice rows open this tab with that notice expanded (`useViewIntent` hand-off in
   `shared/lib`); the dashboard admin banner's `접근 기록 보기` opens 사용자·권한 관리 on `접근·변경 기록`.
 - **고객사 관리** menus (customer admins of the selected customer, also in the add-tab popover): 프로젝트 관리 (table with
-  in-progress counts, 프로젝트 추가 / 편집 modal: lead, approver checklist on approval customers, 사용 중 + stop warning),
-  변수 관리 (project select, 사용 = 활성/중지 + ` · 사용 중`, 이력 from the variable logs, 편집 / 삭제 — 삭제 disabled while in
+  in-progress counts from the admin project list (`activeRequestCount`), 프로젝트 추가 / 편집 modal: lead, approver checklist on approval customers, 사용 중 + stop warning),
+  변수 관리 (project select, deleted variables listed as `삭제` with 편집 / 삭제 disabled (`includeDeleted=true`), 사용 =
+  활성/중지 + ` · 사용 중`, 이력 from one project log call (`GET …/variable-logs`), 편집 / 삭제 — 삭제 disabled while in
   use, `PATCH` sends changed keys only), 사용자·권한 관리 (members with project role columns, pending invitations with 초대
   재발급, 역할 / 이메일 / 비활성화 / 재활성화; 사용자 초대 with the external-domain confirmation — a client warning plus a
   held first click, and a server `EXTERNAL_DOMAIN_CONFIRM_REQUIRED` also counts as that step so the next click resends
   with `externalDomainConfirmed: true`; 역할 관리 with live requester/reviewer exclusivity, the lead's reviewer locked,
   approver only on approval customers, only changed projects are sent; 비활성화 loads the deactivation impact first — a
   review in 확인 요청 / 승인 대기 is refused with the reference toast, otherwise the modal shows 진행 중 검수 / 대표 검수자 /
-  승인 대기 이후 plus blocking rows, substitute + handover when reviews or lead projects move; 메일 발송 대기함 paged, `링크
-  가림` on masked mails; `접근·변경 기록` sub tab = the customer audit log), 고객사 설정 (approval stage read-only; name saves
+  승인 대기 이후 plus blocking rows, substitute + handover when reviews or lead projects move; 메일 발송 대기함 paged, the mail kind
+  (`초대` / `비밀번호 재설정` / `재통지`) in the meta line, `링크 가림` on masked mails; `접근·변경 기록` sub tab = the customer audit log), 고객사 설정 (approval stage read-only; name saves
   on blur/Enter, channel and due-soon days at once, toasts as the reference), 공지 관리 (table with logs, 공지 작성 / 수정
   modal, 철회 confirmation).
 - Modal errors: client checks toast the first problem (reference wording); a refused write toasts the server message,
   puts `fieldErrors` under their fields and shows `details` as a list in the modal (`ErrorDetails`); the modal stays open.
 - Notification popover: `업무 처리 완료` only for a notification with a request and no pending work, plus `재통지`.
 - Dashboard KPIs are drawn from the server array as they come (requesters also get 납기 임박, reviewers 확인 요청
-  `MY_ASSIGNED_CONFIRMING`); the KPI list modal uses the same view. Correction freshness uses the newer of the request's
+  `MY_ASSIGNED_CONFIRMING`); the KPI list modal uses the same view. Correction freshness uses the newer of the request detail's
   and the project's `variablesRevision`.
+- Review-time freshness: while 검수 중 / 확인 요청 the request tab polls the light lock list (`GET …/locks`, 15s, visible
+  tab only) and reloads the detail as soon as it shows a lock or version the screen does not; a lock answer with a newer
+  version than the edit started from drops that buffer (released) and loads the latest first. 승인 › 처리 가능 comes from
+  `RequestSummary.approvable`. 콘텐츠 shows the raw preview with variable chips (`latest.previewRaw`) and the request title
+  on past completions; 건의하기 takes an optional 제안 표현, apply / restore events carry the rule id.
+- Draft autosave keeps the last saved copy of a content / info field until the screen's server copy is at least as
+  new: a render that still passes the copy from before the save no longer flashes the older text (in production builds
+  this moved the caret to the end right after a correction was selected).
 
 ### Solution operator (M7)
 
@@ -442,22 +501,25 @@ URL scheme (`src/shared/config/routes.ts`, `pathToTab` / `tabToPath`):
   `useViewIntent` hand-off `{ customerId, sub }`), 고객사 (row → 고객사 관리 on that customer), 최근 운영 이력.
 - **고객사 관리** (`views/ops-customers`): every customer (inactive included) with approval, counts, admins, unassigned
   types, state and 비활성 / 사용 재개; 상세 (domain, approval stage, admins, operation settings, state and reason) next to
-  프로젝트·요청 (projects with lead, request counts, samples, 초기 설정 열기); 운영 이력 (`GET /api/ops/audit-logs`, 12 per
+  프로젝트·요청 (projects with lead, request counts, samples, users with pending invitations, 초기 설정 열기 — operator
+  lists `GET /api/ops/customers/{id}/projects|members`, inactive customers included; 등록 shows the creating operator); 운영 이력 (`GET /api/ops/audit-logs`, 12 per
   page, all customers or one). 고객사 생성 shows the stored domain (`저장 값: …`), refuses format and duplicate domains
   client side, puts server `fieldErrors` (e.g. `DUPLICATE`) under the field, then switches the context and opens 초기
-  설정·시드 on the new customer. 비활성화 shows the impact and needs a reason.
+  설정·시드 on the new customer. 비활성화 shows the impact and needs a reason; a deactivated customer selected in the top bar
+  is dropped before the lists reload.
 - **초기 설정·시드** (`views/ops-setup`; the customer select also switches the top bar like the reference, an inactive
   customer stays a local selection with a banner): 초기 프로젝트·사용자 steps (관리자 초대 / 프로젝트 생성 / 사용자 초대 /
-  배정 화면), 유형별 교정 규칙 시드 (assigned vs newest version, 최신 배포본 시드 = assign + confirm, 데이터셋 등록), 메일
-  발송 대기함 of every customer (`GET /api/ops/outbox`, 5 per page, `링크 가림` and the note that links show in demo mode
+  배정 화면; pending invitations listed as `초대 대기 {email}`; projects and members from the operator lists, so an
+  inactive customer still shows them, 발신 정보 then read-only), 유형별 교정 규칙 시드 (assigned vs newest version, 최신 배포본 시드 = assign + confirm, 데이터셋 등록), 메일
+  발송 대기함 of the selected customer (`GET /api/ops/outbox?customerId=`, 5 per page, mail kind, `링크 가림` and the note that links show in demo mode
   only), 프로젝트 발신 정보 (알림톡 templates and 문자 senders per project; the editor validates rows like the API and puts
   `templates.{i}.code|name` / `senders.{i}` errors under the row; only changed lists are sent), 샘플 요청·콘텐츠 (sample
   customers only — others get the reason and no actions), 시드 실행 이력 (`GET /api/ops/setup-logs`, 20 per page).
   Invitations: first admin (`admin: true`) or business user (project + role) with the external-domain confirmation of
-  사용자 초대, then a result modal with the queued mail.
+  사용자 초대, then a result modal with the queued mail (found by the invitation's `mailId`).
 - **유형·교정 기준** (`views/ops-standards`): 유형 관리 (사용 toggles at once, 목업 시드 read-only), 유효 데이터셋 배정
   (customer × 4 types; picking a version assigns or changes it — the confirmation resets —, 미배정 unassigns, 확인 처리
-  confirms; stopped types are disabled; the effective datasets of a selectable customer), 데이터셋 시드 (every version,
+  confirms (`{date} 확인 {checkedByName}`); stopped types are disabled; the effective datasets of a selectable customer), 데이터셋 시드 (every version,
   규칙 보기 = `GET /api/ops/datasets/{id}`, 데이터셋 등록 by XLSX upload — multipart `scope` + `file` — or JSON paste; row
   refusals are listed from `details`).
 - Every operator write invalidates the `ops` query keys plus the shell lists (customers, projects, users, content types).
@@ -478,7 +540,10 @@ field messages cleared on edit, details). ListItem takes `extra` / `expanded` (a
 Accessibility fixes over the reference (no visual change): tab title button is the `role=tab`
 (`aria-selected`) with the close button as a sibling, `aria-current` on the active menu, `aria-selected` /
 `aria-pressed` on sub tabs and segments, modal focus trap + focus return, labelled popovers, unread count in
-the bell's accessible name, Escape/outside click closes the mobile menu.
+the bell's accessible name, Escape/outside click closes the mobile menu, the work tabs are a `nav` whose
+`tablist` (a `display: contents` wrapper) owns the tabs only — the `+` button sits next to it —, rows with their own
+buttons (content list, 배정 대기) make only the leading + title part the `role=button` (no nested interactive
+elements), and the login / invitation pages are a `main` landmark.
 
 ## Not implemented yet / stubs
 

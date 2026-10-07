@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatDate } from "@/shared/lib";
 import { Button, Panel, PanelBody, PanelHeader, Select, Table, Tag, tableClasses, toast } from "@/shared/ui";
-import type { Me } from "@/entities/me";
 import {
   ASSIGNABLE_TYPES,
   assignmentOf,
@@ -19,7 +18,6 @@ import { invalidateOps } from "@/features/ops-admin";
 import styles from "./ops-standards.module.css";
 
 export interface AssignMatrixProps {
-  me: Me;
   customers: OpsCustomer[];
   datasets: Dataset[];
   assignments: DatasetAssignment[];
@@ -28,16 +26,12 @@ export interface AssignMatrixProps {
 
 export const UNASSIGNED_TOAST = "배정을 해제했습니다. 다시 배정하기 전에는 이 조합의 텍스트 교정을 실행할 수 없습니다";
 
-/** Who confirmed an assignment: the checker is an operator (not a customer user). */
-function checkerName(me: Me, id: number | null): string {
-  return id === me.id ? me.name : "운영 담당자";
-}
 
 /**
  * 고객사 × 콘텐츠 유형 배정 (reference `vAssign`): one effective dataset per customer × type; picking a
  * version assigns (or changes, which resets the confirmation), 미배정 removes it, 확인 처리 confirms.
  */
-export function AssignMatrix({ me, customers, datasets, assignments, contentTypes }: AssignMatrixProps) {
+export function AssignMatrix({ customers, datasets, assignments, contentTypes }: AssignMatrixProps) {
   const client = useQueryClient();
   const [busy, setBusy] = useState<string | null>(null);
   /** Select value being saved per cell (shown at once; the lists refresh afterwards). */
@@ -141,7 +135,7 @@ export function AssignMatrix({ me, customers, datasets, assignments, contentType
                       {current ? (
                         current.checkedAt ? (
                           <span className={styles.ck}>
-                            {formatDate(current.checkedAt)} 확인 {checkerName(me, current.checkedBy)}
+                            {formatDate(current.checkedAt)} 확인 {current.checkedByName ?? "운영 담당자"}
                           </span>
                         ) : (
                           <>

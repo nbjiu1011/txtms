@@ -62,7 +62,11 @@ describe("ResultTab", () => {
     render(<ResultTab page={page()} performable={performableActions(request088U1.allowedActions)} onFollowUp={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: "요청 전체 XLSX 반출" }));
     const dialog = await screen.findByRole("dialog", { name: "요청 전체 XLSX 반출" });
-    expect(within(dialog).getByText(`${request088U1.title} · 콘텐츠 1건 · 2026-09-07 (KST)`)).toBeTruthy();
+    // the seed completion date moves with the seeding day: format it in KST like the dialog
+    const kstDate = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Seoul" }).format(
+      new Date(request088U1.bundle!.completedAt),
+    );
+    expect(within(dialog).getByText(`${request088U1.title} · 콘텐츠 1건 · ${kstDate} (KST)`)).toBeTruthy();
     expect(within(dialog).getByRole("button", { name: "파일 받기" })).toBeTruthy();
   });
 

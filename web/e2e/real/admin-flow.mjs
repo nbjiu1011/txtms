@@ -10,7 +10,7 @@
  * 업무량·실적. Data stays in the dev DB; the test user and the throwaway customer are deactivated.
  */
 import { expect } from "@playwright/test";
-import { API, BASE, apiAs, dialog, log, main, startRun, toastSeen } from "./helpers.mjs";
+import { API, BASE, apiAs, dialog, log, main, startRun, toastSeen, watchConsole } from "./helpers.mjs";
 
 const { browser, persona, step, shot, close } = await startRun("admin");
 const stamp = Date.now().toString(36);
@@ -36,6 +36,8 @@ let projectId = 0;
 
 await step("프로젝트 추가: required checks, then created with lead and approver", async () => {
   await go(admin, "/admin/projects", "프로젝트 관리");
+  // 진행 중 요청 comes with the admin project list (`activeRequestCount`): a number, not a separate call
+  await expect(m().getByRole("row", { name: /^카드 혜택 알림/ }).getByRole("cell").nth(4)).toHaveText(/^\d+$/);
   await m().getByRole("button", { name: "프로젝트 추가" }).click();
   const d = dialog(admin, "프로젝트 추가");
   await d.getByRole("button", { name: "저장" }).click();
@@ -88,12 +90,14 @@ await step("초대 재발급 + outbox of the sample customer shows the full link
   if (!match) throw new Error(`no full invite link in the sample outbox: ${body}`);
   inviteToken = match[1];
   await expect(mail.getByText("링크 가림")).toHaveCount(0);
+  await expect(mail.getByText(/^초대 · 발송 대기/)).toBeVisible(); // OutboxMail.kind label
   await shot(admin, "outbox-sample");
 });
 
 await step("invitee opens the link in a fresh context, sets a password and is signed in", async () => {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: "ko-KR", timezoneId: "Asia/Seoul" });
   const page = await ctx.newPage();
+  watchConsole(page, "fresh");
   await page.goto(`${BASE}/invite/${inviteToken}`);
   await expect(page.getByText(INVITEE)).toBeVisible();
   await page.locator("#invite-name").fill(INVITEE_NAME);
@@ -190,7 +194,11 @@ await step("변수: register, edit, delete; an in-use variable stays protected",
   await e.getByRole("button", { name: "저장" }).click();
   await expect(row(admin, VAR_KEY)).toContainText("변경");
   await row(admin, VAR_KEY).getByRole("button", { name: "삭제" }).click();
-  await expect(row(admin, VAR_KEY)).toHaveCount(0);
+  // the deleted variable stays listed with its history (reference 삭제 (이력 보존), `includeDeleted=true`)
+  await expect(row(admin, VAR_KEY)).toContainText("삭제 (이력 보존)");
+  await expect(row(admin, VAR_KEY).getByRole("cell").nth(4)).toHaveText("삭제");
+  await expect(row(admin, VAR_KEY).getByRole("button", { name: "편집" })).toBeDisabled();
+  await expect(row(admin, VAR_KEY).getByRole("button", { name: "삭제" })).toBeDisabled();
   const vars = await apiAs(ADMIN, "GET", "/projects/1/variables");
   const used = vars.find((v) => v.key === "customer_name");
   const refused = await apiAs(ADMIN, "DELETE", `/variables/${used.id}`).catch((err) => err.message);
@@ -274,6 +282,7 @@ await step("masked outbox for a non-sample customer (ops API setup, admin signs 
   });
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: "ko-KR", timezoneId: "Asia/Seoul" });
   const page = await ctx.newPage();
+  watchConsole(page, "fresh");
   await page.goto(`${BASE}/login`);
   await page.locator("#lg-e").fill(adminEmail);
   await page.locator("#lg-p").fill(PASSWORD);

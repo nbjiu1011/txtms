@@ -30,6 +30,7 @@ export function useDeleteVariable() {
     }
     await Promise.all([
       client.invalidateQueries({ queryKey: variableKeys.all }),
+      client.invalidateQueries({ queryKey: variableKeys.logsAll }),
       client.invalidateQueries({ queryKey: projectKeys.all }),
     ]);
   };

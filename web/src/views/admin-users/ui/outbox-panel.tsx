@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { formatDateTime } from "@/shared/lib";
 import { Button, Pager, Panel, PanelBody, PanelHeader, Tag } from "@/shared/ui";
-import { OUTBOX_STATUS_LABEL, useCustomerOutbox } from "@/entities/audit";
+import { OUTBOX_KIND_LABEL, OUTBOX_STATUS_LABEL, useCustomerOutbox } from "@/entities/audit";
 
 import styles from "./admin-users.module.css";
 
@@ -39,7 +39,8 @@ export function OutboxPanel({ customerId }: { customerId: number }) {
             </b>
             <p className={styles.mailBody}>{m.body}</p>
             <span className={styles.mailMeta}>
-              {OUTBOX_STATUS_LABEL[m.status] ?? m.status} · {formatDateTime(m.createdAt)}
+              {OUTBOX_KIND_LABEL[m.kind] ?? m.kind} · {OUTBOX_STATUS_LABEL[m.status] ?? m.status} ·{" "}
+              {formatDateTime(m.createdAt)}
               {m.masked ? (
                 <Tag variant="fill" className={styles.masked}>
                   링크 가림

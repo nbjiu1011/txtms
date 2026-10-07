@@ -33,6 +33,7 @@ const PLAN = {
     "/projects/1/dashboard": null,
     "/requests/REQ-2609-101": ["request101U2", "RequestDetail"],
     "/requests/REQ-2609-101/history": ["history101", "HistoryEntry[]"],
+    "/requests/REQ-2609-101/locks": null,
     "/requests/REQ-2609-107": ["request107U2", "RequestDetail"],
     "/guides/ALIMTALK": null,
   },

@@ -203,7 +203,9 @@ await step("archive: lineage (past + follow-ups), toggle labels", async () => {
   await expect(c2.getByText(/과거 완료본/)).toContainText(id);
   await expect(c2.getByText(/후속 요청 REQ/)).toContainText(fuWhole);
   const c1 = line(C1_TITLE);
-  await expect(c1.getByText(C1_RESOLVED)).toBeVisible();
+  // the preview is the raw text with variable chips (reference `renderVars`, `previewRaw`); 복사 uses the values
+  await expect(c1.getByText("customer_name", { exact: true })).toBeVisible();
+  await expect(c1.getByText(`님, ${stamp} 포인트가 적립되었습니다.`)).toBeVisible();
   await c1.getByRole("button", { name: "이력 1" }).click();
   await expect(c1.getByText(/후속 요청 REQ/)).toContainText(fuWhole);
   await expect(c1.getByText("작성 중")).toBeVisible();
@@ -289,8 +291,9 @@ await step("자유입력형 uploads: FILE_UNSAFE / FILE_SCAN_FAILED / SAFE", asy
   await scan.selectOption("FAILED");
   await input.setInputFiles(join(FILES, "notes.txt"));
   await expect(m().getByText(/notes\.txt · 검사 실패/).first()).toBeVisible();
-  expect(errorCodes.some((c) => c.includes("FILE_UNSAFE"))).toBe(true);
-  expect(errorCodes.some((c) => c.includes("FILE_SCAN_FAILED"))).toBe(true);
+  // the response listener reads the body asynchronously: wait for it instead of reading the list at once
+  await expect.poll(() => errorCodes.some((c) => c.includes("FILE_UNSAFE"))).toBe(true);
+  await expect.poll(() => errorCodes.some((c) => c.includes("FILE_SCAN_FAILED"))).toBe(true);
   await scan.selectOption("SAFE");
   await input.setInputFiles(join(FILES, "약관 개정안.pdf"));
   await expect(m().getByText(/약관 개정안\.pdf · 업로드 완료/)).toBeVisible();

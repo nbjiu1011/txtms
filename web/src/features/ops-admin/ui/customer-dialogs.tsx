@@ -14,6 +14,7 @@ import {
   toast,
   useServerError,
 } from "@/shared/ui";
+import { useWorkContextStore } from "@/entities/me";
 import { opsApi, type OpsCustomer } from "@/entities/ops";
 import {
   CUSTOMER_CREATED_TOAST,
@@ -135,7 +136,9 @@ function DeactivateBody({ onClose, customer }: DeactivateCustomerDialogProps & {
     } catch (error) {
       return server.fail(error);
     }
-    await invalidateOps(client);
+    // the top bar lists active customers only: leave the deactivated one before the lists reload
+    useWorkContextStore.getState().forgetCustomer(customer.id);
+    await invalidateOps(client, customer.id);
     toast("비활성 처리했습니다. 데이터는 보존됩니다");
     return undefined;
   };

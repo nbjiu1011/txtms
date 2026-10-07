@@ -1,5 +1,6 @@
 import type { OpsCustomer } from "@/entities/ops";
 import type { Project } from "@/entities/project";
+import type { Member } from "@/entities/user";
 import { CONTENT_TYPE_LABEL } from "@/entities/request";
 
 export interface SetupStep {
@@ -24,18 +25,32 @@ export function memberCounts(projects: Project[]): { requesters: number; reviewe
   return { requesters, reviewers, approvers };
 }
 
-/** The four initial setup steps of a customer (reference `SetupStepsPanel`). */
-export function setupSteps(customer: OpsCustomer, projects: Project[]): SetupStep[] {
+/** ` · 초대 대기 a@x.com, b@x.com` for invitations not accepted yet ('' when none). */
+function pendingText(members: Member[]): string {
+  return members.length ? ` · 초대 대기 ${members.map((m) => m.user.email).join(", ")}` : "";
+}
+
+/**
+ * The four initial setup steps of a customer (reference `SetupStepsPanel`). `members` (operator members
+ * list, contract §14.7) adds the pending invitations to the admin and user steps.
+ */
+export function setupSteps(customer: OpsCustomer, projects: Project[], members: Member[] = []): SetupStep[] {
   const counts = memberCounts(projects);
   const anyMember = projects.some((p) => p.members.some((m) => m.roles.length > 0));
+  const pending = members.filter((m) => m.pending);
+  const pendingAdmins = pending.filter((m) => m.admin);
+  const pendingUsers = pending.filter((m) => !m.admin);
   return [
     {
       key: "admin",
       title: "고객사 관리자 지정",
       done: customer.adminAssigned,
-      status: customer.admins.length
-        ? customer.admins.map((u) => u.name).join(", ")
-        : "아직 없습니다. 관리자를 먼저 초대하세요.",
+      status:
+        (customer.admins.length
+          ? customer.admins.map((u) => u.name).join(", ")
+          : pendingAdmins.length
+            ? "아직 수락한 관리자가 없습니다."
+            : "아직 없습니다. 관리자를 먼저 초대하세요.") + pendingText(pendingAdmins),
     },
     {
       key: "project",
@@ -51,7 +66,8 @@ export function setupSteps(customer: OpsCustomer, projects: Project[]): SetupSte
       done: anyMember,
       status:
         `요청자 ${counts.requesters}명, 검수자 ${counts.reviewers}명` +
-        (customer.approvalEnabled ? `, 승인자 ${counts.approvers}명` : ""),
+        (customer.approvalEnabled ? `, 승인자 ${counts.approvers}명` : "") +
+        pendingText(pendingUsers),
     },
     {
       key: "datasets",

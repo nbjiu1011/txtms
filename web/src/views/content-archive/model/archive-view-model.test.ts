@@ -22,6 +22,7 @@ function archiveLine(overrides: Partial<ArchiveLine> = {}): ArchiveLine {
       completedAt: "2026-10-02T02:00:00Z",
       campaign: "10월 혜택",
       preview: "홍길동님, 9월 청구 금액은 152,300원입니다.",
+      previewRaw: "#{customer_name}님, 9월 청구 금액은 #{amount}원입니다.",
       fileNames: [],
       resolvedText: "홍길동님, 9월 청구 금액은 152,300원입니다.",
     },
@@ -32,7 +33,7 @@ function archiveLine(overrides: Partial<ArchiveLine> = {}): ArchiveLine {
   };
 }
 
-const past = { requestId: "REQ-2609-088", contentKey: "C1", title: "청구 금액 안내", version: 1, completedAt: "2026-09-07T01:00:00Z" };
+const past = { requestId: "REQ-2609-088", contentKey: "C1", title: "청구 금액 안내", requestTitle: "청구 금액 안내 (8월)", version: 1, completedAt: "2026-09-07T01:00:00Z" };
 const followUp = { requestId: "REQ-2610-130", status: "DRAFT" as const, title: "청구 금액 안내 후속" };
 
 describe("lineToggleLabel", () => {

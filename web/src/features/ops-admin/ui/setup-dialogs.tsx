@@ -157,8 +157,9 @@ function SeedUserBody({
     }
     if (step.kind === "invalid") return server.reject(step.message);
     server.clear();
+    let mailId: number;
     try {
-      await opsApi.invite(customer.id, step.body);
+      mailId = (await opsApi.invite(customer.id, step.body)).mailId;
     } catch (error) {
       // The server decides what is external: its refusal is the confirmation step, the next click resends.
       const code = (error as { code?: string }).code;
@@ -166,8 +167,9 @@ function SeedUserBody({
       return server.fail(error);
     }
     await invalidateOps(client);
-    const mails = await opsApi.latestMails(10).catch(() => null);
-    const mail = mails?.content.find((m) => m.to.toLowerCase() === step.body.email);
+    // the invitation answers with its queued mail id (contract §14.7): find that mail among the customer's newest
+    const mails = await opsApi.latestMails(customer.id, 20).catch(() => null);
+    const mail = mails?.content.find((m) => m.id === mailId);
     onInvited({ email: step.body.email, body: mail?.body ?? null });
     return false;
   };

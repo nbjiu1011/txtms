@@ -53,6 +53,8 @@ export interface CorrectionEvent {
   field: string;
   before: string;
   after: string;
+  /** Rule applied (or restored); the history detail gets `({ruleId})` (contract §14.4). */
+  ruleId?: string;
 }
 
 /** `POST …/corrections/suggestions` (화면설계 ④ 건의하기). */
@@ -61,4 +63,6 @@ export interface CorrectionSuggestion {
   matchedText: string;
   ruleIds: string[];
   body: string;
+  /** Optional 제안 표현 (max 200, contract §14.4). */
+  suggestedExpr?: string;
 }

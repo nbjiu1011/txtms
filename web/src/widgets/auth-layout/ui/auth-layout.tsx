@@ -10,10 +10,11 @@ export interface AuthLayoutProps {
 /** `.login` — navy hero on the left, form panel on the right (single column ≤860px). */
 export function AuthLayout({ hero, children }: AuthLayoutProps) {
   return (
-    <div className={styles.login}>
+    // the page's main landmark (hero + form): no visual role of its own
+    <main className={styles.login}>
       {hero}
       <section className={styles.panel}>{children}</section>
-    </div>
+    </main>
   );
 }
 

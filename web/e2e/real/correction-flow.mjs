@@ -33,7 +33,7 @@ async function eventually(fn, what, timeout = 10_000) {
   const until = Date.now() + timeout;
   for (;;) {
     if (await fn()) return;
-    if (Date.now() > until) throw new Error(`timed out: ${what}`);
+    if (Date.now() > until) throw new Error(`timed out: ${what}${what.startsWith("selection") ? ` (now ${JSON.stringify(await selection(u1))})` : ""}`);
     await new Promise((r) => setTimeout(r, 300));
   }
 }
@@ -76,7 +76,7 @@ await step("할 수 applies at once: toast, text selected in the editor, autosav
   await expect(card(u1, "할수").getByRole("button", { name: "할수(으)로 복원" })).toBeEnabled();
   await eventually(async () => (await payloadOf(U.requester, SEED)).body.includes("할 수 있습니다"), "autosave of the applied text");
   await eventually(
-    async () => (await historyOf(U.requester, SEED)).some((h) => h.action === "교정 적용" && h.detail === "body: 할수 → 할 수"),
+    async () => (await historyOf(U.requester, SEED)).some((h) => h.action === "교정 적용" && /^body: 할수 → 할 수 \(.+\)$/.test(h.detail)),
     "history 교정 적용",
   );
   await shot(u1, "seed-applied");
@@ -246,7 +246,7 @@ try {
     const c1 = (await apiAs(U.reviewer, "GET", `/requests/${REVIEW}`)).contents[0];
     if (c1.version !== base + 1 || !c1.payload.body.includes("적립 돼요")) throw new Error(`saved ${c1.version}`);
     const history = await historyOf(U.reviewer, REVIEW);
-    if (!history.some((h) => h.action === "교정 적용" && h.detail === "body: 되요 → 돼요")) throw new Error("no 교정 적용 history");
+    if (!history.some((h) => h.action === "교정 적용" && /^body: 되요 → 돼요 \(.+\)$/.test(h.detail))) throw new Error("no 교정 적용 history");
     await shot(u2, "review-saved");
   });
 } finally {

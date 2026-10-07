@@ -14,6 +14,55 @@ export const OUT = "e2e/real/out";
 
 export const log = (m) => console.log(`- ${m}`);
 
+/* ---------- browser console ---------- */
+
+/** Console errors / warnings and uncaught page errors of every watched page. */
+const consoleEntries = [];
+/**
+ * Messages a flow provokes on purpose: Chrome logs every refused API call (validation, conflicts, the
+ * seed file 404, …) as "Failed to load resource" — the flows assert the refusals themselves. 5xx is never
+ * expected.
+ */
+const EXPECTED_ERRORS = [/^Failed to load resource: the server responded with a status of 4\d\d/];
+
+/** Collects console errors / warnings and page errors of `page` (and of the pages its context opens). */
+export function watchConsole(page, label) {
+  const watch = (p) => {
+    p.on("console", (m) => {
+      if (m.type() !== "error" && m.type() !== "warning") return;
+      consoleEntries.push({ label, type: m.type(), text: m.text(), url: m.location()?.url ?? "" });
+    });
+    p.on("pageerror", (e) => consoleEntries.push({ label, type: "pageerror", text: e.message, url: "" }));
+  };
+  watch(page);
+  page.context().on("page", watch);
+}
+
+/**
+ * Prints the collected console output (expected refusals grouped by URL) and returns false when an error
+ * or page error is not explained by `EXPECTED_ERRORS`. Warnings are listed but do not fail the run.
+ */
+export function reportConsole() {
+  const unexplained = consoleEntries.filter(
+    (e) => e.type !== "warning" && !EXPECTED_ERRORS.some((re) => re.test(e.text)),
+  );
+  const expected = consoleEntries.filter((e) => e.type === "error" && EXPECTED_ERRORS.some((re) => re.test(e.text)));
+  const warnings = consoleEntries.filter((e) => e.type === "warning");
+  const group = (list) => {
+    const counts = new Map();
+    for (const e of list) {
+      const key = `${e.text.slice(0, 200)}${e.url ? ` @ ${e.url.replace(/^https?:\/\/[^/]+/, "")}` : ""}`;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return [...counts].map(([k, n]) => `    ${n}× ${k}`);
+  };
+  log(`console: ${expected.length} expected API refusals, ${warnings.length} warnings, ${unexplained.length} unexplained errors`);
+  for (const line of group(expected)) console.log(line);
+  if (warnings.length) for (const line of group(warnings)) console.log(line);
+  if (unexplained.length) for (const line of group(unexplained)) console.log(line);
+  return unexplained.length === 0;
+}
+
 /** Visible work tab panel of a page. */
 export const main = (page) => page.locator("main [role=tabpanel]:visible");
 export const dialog = (page, name) => page.getByRole("dialog", { name });
@@ -43,6 +92,7 @@ export async function startRun(prefix, contextOptions = {}) {
       ...contextOptions,
     });
     const page = await context.newPage();
+    watchConsole(page, key);
     page.setDefaultTimeout(15_000);
     await page.goto(`${BASE}/login`);
     await page.getByRole("button", { name: new RegExp(name) }).click();
@@ -60,12 +110,23 @@ export async function startRun(prefix, contextOptions = {}) {
       for (const [key, page] of Object.entries(pages)) {
         await shot(page, `fail-${key}-${name.replace(/\W+/g, "-")}`).catch(() => {});
       }
+      reportConsole();
       await browser.close();
       process.exit(1);
     }
   }
 
-  return { browser, pages, persona, step, shot, close: () => browser.close() };
+  /** Ends the run: the console report decides the exit code (unexplained errors fail the flow). */
+  async function close() {
+    const clean = reportConsole();
+    await browser.close();
+    if (!clean) {
+      log("FAIL browser console has unexplained errors");
+      process.exit(1);
+    }
+  }
+
+  return { browser, pages, persona, step, shot, close };
 }
 
 /* ---------- API client for setup steps ---------- */

@@ -59,7 +59,8 @@ export function variablePatch(form: VariableForm, variable: Variable): VariableP
   return patch;
 }
 
-/** 사용 column: `활성` / `중지`, plus ` · 사용 중` while a current content uses the key. */
-export function variableUsageText(variable: Pick<Variable, "active" | "inUse">): string {
-  return `${variable.active ? "활성" : "중지"}${variable.inUse ? " · 사용 중" : ""}`;
+/** 사용 column: `삭제` / `활성` / `중지`, plus ` · 사용 중` while a current content uses the key (reference). */
+export function variableUsageText(variable: Pick<Variable, "active" | "inUse" | "deleted">): string {
+  const state = variable.deleted ? "삭제" : variable.active ? "활성" : "중지";
+  return `${state}${variable.inUse ? " · 사용 중" : ""}`;
 }

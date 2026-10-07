@@ -7,6 +7,7 @@ import { useToastStore } from "@/shared/ui";
 import { noticeApi, type Notice } from "@/entities/notice";
 import type { Project } from "@/entities/project";
 import { memberApi, type DeactivationImpact, type Member } from "@/entities/user";
+import { ChangeEmailDialog } from "./change-email-dialog";
 import { DeactivateUserDialog } from "./deactivate-user-dialog";
 import { InviteUserDialog } from "./invite-user-dialog";
 import { NoticeEditDialog, WithdrawNoticeDialog } from "./notice-edit-dialog";
@@ -104,6 +105,43 @@ describe("InviteUserDialog", () => {
     fireEvent.change(screen.getByLabelText(/^이름/), { target: { value: "가" } });
     fireEvent.click(screen.getByRole("button", { name: "초대 링크 생성" }));
     expect(await screen.findByRole("alert")).toHaveProperty("textContent", "이메일 형식을 확인하세요");
+  });
+});
+
+describe("ChangeEmailDialog", () => {
+  const customer = { id: 1, domain: "hanbitcard.co.kr" };
+  const open = () => wrap(<ChangeEmailDialog open onClose={vi.fn()} customer={customer} member={member(7, [])} />);
+
+  it("asks once with the email-change wording (not the invitation's), then saves confirmed", async () => {
+    const change = vi.spyOn(memberApi, "changeEmail").mockResolvedValue(member(7, []));
+    open();
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "Seven@Partner.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    await waitFor(() => expect(lastToast()).toBe("회사 도메인이 아닌 이메일입니다. 확인 후 다시 저장하세요"));
+    expect(change).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    await waitFor(() => expect(change).toHaveBeenCalledWith(1, 7, "seven@partner.com", true));
+  });
+
+  it("shows the server's 409 message and treats it as the confirmation step", async () => {
+    const change = vi
+      .spyOn(memberApi, "changeEmail")
+      .mockRejectedValueOnce(
+        new ApiError(409, {
+          code: "EXTERNAL_DOMAIN_CONFIRM_REQUIRED",
+          message: "회사 도메인이 아닌 이메일입니다. 확인 후 다시 저장하세요",
+        }),
+      )
+      .mockResolvedValueOnce(member(7, []));
+    open();
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "new7@hanbitcard.co.kr" } });
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    await waitFor(() => expect(change).toHaveBeenCalledTimes(1));
+    expect(change.mock.calls[0][3]).toBe(false);
+    await waitFor(() => expect(lastToast()).toBe("회사 도메인이 아닌 이메일입니다. 확인 후 다시 저장하세요"));
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    await waitFor(() => expect(change).toHaveBeenCalledTimes(2));
+    expect(change.mock.calls[1][3]).toBe(true);
   });
 });
 

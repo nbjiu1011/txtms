@@ -14,6 +14,7 @@ import type {
   OpsCustomer,
   OpsDashboard,
   OpsInvitation,
+  OpsInvited,
   SampleOverview,
   SampleRequest,
   SampleRequestCreate,
@@ -36,7 +37,10 @@ export const opsKeys = {
   assignments: () => ["ops", "dataset-assignments", "list", {}] as const,
   setupLogs: (customerId: number) => ["ops", "setup-logs", "list", { customerId }] as const,
   auditLogs: (params: OpsAuditParams) => ["ops", "audit-logs", "list", params] as const,
-  outbox: (page: number, size: number) => ["ops", "outbox", "list", { page, size }] as const,
+  outbox: (customerId: number | null, page: number, size: number) =>
+    ["ops", "outbox", "list", { customerId, page, size }] as const,
+  members: (customerId: number) => ["ops", "members", "list", { customerId }] as const,
+  projects: (customerId: number) => ["ops", "projects", "list", { customerId }] as const,
   samples: (customerId: number) => ["ops", "sample-requests", "list", { customerId }] as const,
 };
 
@@ -97,12 +101,33 @@ export function useOpsAuditLogs(params: OpsAuditParams) {
   });
 }
 
-/** Every queued mail, newest first; token links are masked outside demo mode. */
-export function useOpsOutbox(page: number, size: number) {
+/**
+ * Queued mails of one customer's users (`customerId`) or of everyone (null), newest first; token links
+ * are masked outside demo mode.
+ */
+export function useOpsOutbox(customerId: number | null, page: number, size: number) {
   return useQuery({
-    queryKey: opsKeys.outbox(page, size),
-    queryFn: () => http.get<Page<OutboxMail>>("/ops/outbox", { query: { page, size } }),
+    queryKey: opsKeys.outbox(customerId, page, size),
+    queryFn: () => http.get<Page<OutboxMail>>("/ops/outbox", { query: { customerId, page, size } }),
     placeholderData: keepPreviousData,
+  });
+}
+
+/** Members of a customer, pending invitations and inactive customers included (contract §14.7). */
+export function useOpsCustomerMembers(customerId: number | null) {
+  return useQuery({
+    queryKey: opsKeys.members(customerId ?? -1),
+    queryFn: () => http.get<Member[]>(`/ops/customers/${customerId}/members`),
+    enabled: customerId !== null,
+  });
+}
+
+/** Projects of a customer, stopped ones and inactive customers included (contract §14.7). */
+export function useOpsCustomerProjects(customerId: number | null) {
+  return useQuery({
+    queryKey: opsKeys.projects(customerId ?? -1),
+    queryFn: () => http.get<Project[]>(`/ops/customers/${customerId}/projects`),
+    enabled: customerId !== null,
   });
 }
 
@@ -123,7 +148,8 @@ export const opsApi = {
   reactivateCustomer: (id: number) => http.post<OpsCustomer>(`/ops/customers/${id}/reactivate`),
   createProject: (customerId: number, body: SetupProjectCreate) =>
     http.post<Project>(`/ops/customers/${customerId}/projects`, body),
-  invite: (customerId: number, body: OpsInvitation) => http.post<Member>(`/ops/customers/${customerId}/invitations`, body),
+  invite: (customerId: number, body: OpsInvitation) =>
+    http.post<OpsInvited>(`/ops/customers/${customerId}/invitations`, body),
   putTemplates: (projectId: number, templates: ProjectTemplate[]) =>
     http.put<Project>(`/ops/projects/${projectId}/templates`, templates),
   putSenders: (projectId: number, senders: string[]) => http.put<Project>(`/ops/projects/${projectId}/senders`, senders),
@@ -142,6 +168,7 @@ export const opsApi = {
     http.post<SampleRequest>(`/ops/customers/${customerId}/sample-requests`, body),
   clearSamples: (customerId: number) => http.delete<void>(`/ops/customers/${customerId}/sample-data`),
   sampleReset: () => http.post<SampleResetResult>("/ops/sample-reset"),
-  /** Newest outbox mails (used to show the invitation just created). */
-  latestMails: (size: number) => http.get<Page<OutboxMail>>("/ops/outbox", { query: { page: 0, size } }),
+  /** Newest mails of a customer's users (used to find the invitation just created by its `mailId`). */
+  latestMails: (customerId: number, size: number) =>
+    http.get<Page<OutboxMail>>("/ops/outbox", { query: { customerId, page: 0, size } }),
 };

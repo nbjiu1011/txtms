@@ -5,23 +5,23 @@ import type { CorrectionDataset, CorrectionResult } from "@/entities/correction"
 export const CORRECTION_DATASETS: Record<string, CorrectionDataset> = {
   "/requests/REQ-2609-101/corrections/dataset": {
     "assigned": true,
-    "datasetLabel": "알림톡 v4"
+    "datasetLabel": "알림톡 v1"
   },
   "/requests/REQ-2609-103/corrections/dataset": {
     "assigned": true,
-    "datasetLabel": "RCS v2"
+    "datasetLabel": "RCS v1"
   },
   "/requests/REQ-2609-088/corrections/dataset": {
     "assigned": true,
-    "datasetLabel": "알림톡 v4"
+    "datasetLabel": "알림톡 v1"
   },
   "/requests/REQ-2609-105/corrections/dataset": {
     "assigned": true,
-    "datasetLabel": "알림톡 v4"
+    "datasetLabel": "알림톡 v1"
   },
   "/requests/REQ-2609-104/corrections/dataset": {
     "assigned": true,
-    "datasetLabel": "문자 v2"
+    "datasetLabel": "문자 v1"
   }
 };
 
@@ -31,8 +31,8 @@ export const CHECK_101: { results: CorrectionResult[] } = {
     {
       "contentKey": "C1",
       "checkedAt": "2026-10-07T05:00:00Z",
-      "datasetLabel": "알림톡 v4",
-      "variablesRevision": 15,
+      "datasetLabel": "알림톡 v1",
+      "variablesRevision": 6,
       "excluded": false,
       "groups": [
         {
@@ -70,16 +70,16 @@ export const CHECK_101: { results: CorrectionResult[] } = {
     {
       "contentKey": "C2",
       "checkedAt": "2026-10-07T05:00:00Z",
-      "datasetLabel": "알림톡 v4",
-      "variablesRevision": 15,
+      "datasetLabel": "알림톡 v1",
+      "variablesRevision": 6,
       "excluded": false,
       "groups": []
     },
     {
       "contentKey": "C3",
       "checkedAt": "2026-10-07T05:00:00Z",
-      "datasetLabel": "알림톡 v4",
-      "variablesRevision": 15,
+      "datasetLabel": "알림톡 v1",
+      "variablesRevision": 6,
       "excluded": false,
       "groups": [
         {

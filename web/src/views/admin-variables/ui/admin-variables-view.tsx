@@ -5,8 +5,10 @@ import { formatDateTime } from "@/shared/lib";
 import { Button, Empty, Page, PageHeader, Panel, Select, Table } from "@/shared/ui";
 import {
   VARIABLE_TYPE_LABEL,
-  useProjectVariables,
-  useVariableLogs,
+  logsByVariable,
+  useAdminVariables,
+  useProjectVariableLogs,
+  type ProjectVariableLog,
   type Variable,
 } from "@/entities/variable";
 import { VariableDialog, useDeleteVariable, variableUsageText } from "@/features/customer-admin";
@@ -21,7 +23,10 @@ export function AdminVariablesView({ context }: WorkViewProps) {
   const [selected, setSelected] = useState<number | null>(null);
   const projectId =
     selected !== null && projects.some((p) => p.id === selected) ? selected : (currentProjectId ?? projects[0]?.id ?? null);
-  const variables = useProjectVariables(projectId);
+  // Deleted variables stay listed as 삭제 with their history (reference 삭제 (이력 보존)); one log call per project.
+  const variables = useAdminVariables(projectId);
+  const logs = useProjectVariableLogs(projectId);
+  const history = logs.data ? logsByVariable(logs.data) : null;
   const [editing, setEditing] = useState<Editing>(null);
   const deletion = useDeleteVariable();
 
@@ -86,16 +91,16 @@ export function AdminVariablesView({ context }: WorkViewProps) {
                     <td>{v.value}</td>
                     <td>{variableUsageText(v)}</td>
                     <td>
-                      <VariableHistory id={v.id} />
+                      <VariableHistory logs={history ? (history.get(v.id) ?? []) : null} failed={logs.isError} />
                     </td>
                     <td className={styles.actions}>
-                      <Button size="sm" onClick={() => setEditing({ variable: v })}>
+                      <Button size="sm" disabled={v.deleted} onClick={() => setEditing({ variable: v })}>
                         편집
                       </Button>
                       <Button
                         size="sm"
                         variant="warn"
-                        disabled={v.inUse || deletion.busyId === v.id}
+                        disabled={v.inUse || v.deleted || deletion.busyId === v.id}
                         title={v.inUse ? "사용 중인 변수는 삭제할 수 없습니다" : undefined}
                         onClick={() => void deletion.remove(v)}
                       >
@@ -122,14 +127,13 @@ export function AdminVariablesView({ context }: WorkViewProps) {
   );
 }
 
-/** 이력 cell: `{M/D HH:mm} {action}` lines (reference). */
-function VariableHistory({ id }: { id: number }) {
-  const logs = useVariableLogs(id);
-  if (logs.isPending) return <span className={styles.faint}>…</span>;
-  if (logs.isError) return <span className={styles.faint}>-</span>;
+/** 이력 cell: `{M/D HH:mm} {action}` lines, oldest first (reference). `logs` null = still loading. */
+function VariableHistory({ logs, failed }: { logs: ProjectVariableLog[] | null; failed: boolean }) {
+  if (failed) return <span className={styles.faint}>-</span>;
+  if (!logs) return <span className={styles.faint}>…</span>;
   return (
     <>
-      {logs.data.map((l, i) => (
+      {logs.map((l, i) => (
         <Fragment key={i}>
           {i > 0 ? <br /> : null}
           {`${formatDateTime(l.at)} ${l.action}`}

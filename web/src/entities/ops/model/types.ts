@@ -3,13 +3,15 @@ import type { AuditLog } from "@/entities/audit/@x/ops";
 import type { Customer } from "@/entities/customer/@x/ops";
 import type { ProjectRole, ProjectTemplate } from "@/entities/project/@x/ops";
 import type { ContentType, RequestStatus } from "@/entities/request/@x/ops";
-import type { UserSummary } from "@/entities/user/@x/ops";
+import type { Member, UserSummary } from "@/entities/user/@x/ops";
 
 export type DatasetScope = "COMMON" | ContentType;
 
 /** Customer with operator counts (numbers only — operators never see request contents). */
 export interface OpsCustomer extends Customer {
   createdBy: number | null;
+  /** Current name of the creating operator (null when unknown). */
+  createdByName: string | null;
   deactivationReason: string | null;
   projectCount: number;
   /** Includes pending invitations and inactive users. */
@@ -94,8 +96,11 @@ export interface DatasetAssignment {
   datasetId: number;
   assignedAt: string;
   assignedBy: number;
+  /** Current name of the assigning operator (null when unknown). */
+  assignedByName: string | null;
   checkedAt: string | null;
   checkedBy: number | null;
+  checkedByName: string | null;
 }
 
 export interface SetupLog {
@@ -155,6 +160,9 @@ export interface OpsInvitation {
   role: ProjectRole | null;
   externalDomainConfirmed: boolean;
 }
+
+/** `POST /api/ops/customers/{id}/invitations` answer: the Member plus the queued mail id (contract §14.7). */
+export type OpsInvited = Member & { mailId: number };
 
 export type TemplatesPut = ProjectTemplate[];
 

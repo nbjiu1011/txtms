@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { isApiError } from "@/shared/api";
-import { Field, Modal, Textarea, toast } from "@/shared/ui";
+import { Field, Input, Modal, Textarea, toast } from "@/shared/ui";
 import { correctionApi } from "@/entities/correction";
 import type { GroupState } from "../model/run";
 import styles from "./correction.module.css";
@@ -10,6 +10,7 @@ import styles from "./correction.module.css";
 export const SUGGESTION_SENT = "건의를 보냈습니다";
 export const SUGGESTION_REQUIRED = "건의 이유을(를) 입력하세요";
 const MAX_BODY = 2000;
+const MAX_SUGGESTED = 200;
 
 export interface SuggestionTarget {
   contentKey: string;
@@ -30,6 +31,7 @@ export function SuggestionDialog(props: SuggestionDialogProps) {
 
 function SuggestionBody({ requestId, target, onClose }: SuggestionDialogProps & { target: SuggestionTarget }) {
   const [body, setBody] = useState("");
+  const [suggested, setSuggested] = useState("");
   const { group, contentKey } = target;
   const options = group.options.map((o) => o.recommended ?? `(${o.descriptionLabel} · 설명만)`);
   return (
@@ -52,6 +54,7 @@ function SuggestionBody({ requestId, target, onClose }: SuggestionDialogProps & 
             matchedText: group.matchedText,
             ruleIds: group.options.map((o) => o.ruleId),
             body: text,
+            ...(suggested.trim() ? { suggestedExpr: suggested } : {}),
           });
           toast(SUGGESTION_SENT);
           return undefined;
@@ -75,6 +78,15 @@ function SuggestionBody({ requestId, target, onClose }: SuggestionDialogProps & 
           placeholder="오탐, 더 나은 권장 표현 등 건의할 내용을 적어 주세요"
           value={body}
           onChange={(e) => setBody(e.target.value)}
+        />
+      </Field>
+      {/* reference `correctionSuggestion`: an optional 제안 표현 next to the reason */}
+      <Field label="제안 표현" htmlFor="correction-suggested">
+        <Input
+          id="correction-suggested"
+          maxLength={MAX_SUGGESTED}
+          value={suggested}
+          onChange={(e) => setSuggested(e.target.value)}
         />
       </Field>
     </Modal>

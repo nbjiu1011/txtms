@@ -21,6 +21,8 @@ export type {
   ContentRef,
   ContentSave,
   ContentLock,
+  ContentLockGrant,
+  ContentLockState,
   ContentPayload,
   ContentPayloadByType,
   ContentType,
@@ -91,11 +93,14 @@ export {
   useContentVersion,
   useRequestDetail,
   useRequestHistory,
+  useRequestLockWatch,
   useRequests,
   useRequestTotal,
   useWritingGuide,
   DETAIL_POLL_MS,
+  LOCKS_POLL_MS,
 } from "./api/request-queries";
+export { locksDiffer } from "./model/locks";
 export {
   SMS_CUSTOMER_CENTER_LINE,
   SMS_MAX_BYTES,

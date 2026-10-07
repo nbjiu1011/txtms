@@ -1,6 +1,8 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { http, queryKeys, type Page } from "@/shared/api";
 import type {
+  ContentLockState,
   ContentType,
   ContentTypeSetting,
   ContentVersion,
@@ -11,12 +13,14 @@ import type {
   RequestSummary,
   WritingGuide,
 } from "../model/types";
+import { locksDiffer } from "../model/locks";
 
 export const requestKeys = {
   all: queryKeys.all("requests"),
   list: (params: RequestListParams) => queryKeys.list("requests", params),
   detail: (id: string) => queryKeys.detail("requests", id),
   history: (id: string) => ["requests", "history", id] as const,
+  locks: (id: string) => ["requests", "locks", id] as const,
   version: (id: string, key: string, version: number) => ["requests", "version", id, key, version] as const,
   image: (id: string, imageKey: string) => ["requests", "image", id, imageKey] as const,
 };
@@ -67,6 +71,34 @@ export function useRequestDetail(id: string, enabled = true) {
     refetchInterval: (query) =>
       query.state.data && LIVE_STATUSES.includes(query.state.data.status) ? DETAIL_POLL_MS : false,
   });
+}
+
+export const LOCKS_POLL_MS = 15_000;
+
+/**
+ * While review is going on (`IN_REVIEW` / `CONFIRMING`), polls the light lock list every 15s (visible tab
+ * only) and refreshes the detail as soon as it shows a lock or version the cached detail does not —
+ * force releases, expiries and other users' saves show up without waiting for the 30s detail poll.
+ */
+export function useRequestLockWatch(request: Pick<RequestDetail, "id" | "status" | "contents"> | undefined) {
+  const client = useQueryClient();
+  const id = request?.id ?? "";
+  const live = !!request && LIVE_STATUSES.includes(request.status);
+  const locks = useQuery({
+    queryKey: requestKeys.locks(id),
+    queryFn: () => http.get<ContentLockState[]>(`/requests/${encodeURIComponent(id)}/locks`),
+    enabled: live,
+    refetchInterval: live ? LOCKS_POLL_MS : false,
+    staleTime: 0,
+  });
+  // Compare once per new lock list (structural sharing keeps the same object while nothing changed).
+  const handled = useRef<ContentLockState[] | undefined>(undefined);
+  const contents = request?.contents;
+  useEffect(() => {
+    if (!locks.data || !contents || handled.current === locks.data) return;
+    handled.current = locks.data;
+    if (locksDiffer(contents, locks.data)) void client.invalidateQueries({ queryKey: requestKeys.detail(id) });
+  }, [client, id, contents, locks.data]);
 }
 
 export function useRequestHistory(id: string, enabled = true) {

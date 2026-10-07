@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/shared/api";
-import type { AlimtalkPayload, Content, ContentLock, FileMeta, RevisionSave } from "@/entities/request";
+import type { AlimtalkPayload, Content, ContentLockGrant, FileMeta, RevisionSave } from "@/entities/request";
 import { request101U2 } from "@fixtures/api-snapshot";
 import { LOCK_EXPIRED_MESSAGE, LOCK_REFRESH_MS, RevisionSession, revisionFiles, type RevisionSessionApi } from "./revision-session";
 
@@ -10,7 +10,12 @@ const FILE: FileMeta = {
 };
 const C1: Content = { ...request101U2.contents[0], key: "C1", version: 2, lock: null };
 const payload = (body: string): AlimtalkPayload => ({ ...(C1.payload as AlimtalkPayload), body });
-const lock = (at = "2026-10-07T05:00:00Z"): ContentLock => ({ userId: 2, lockedAt: at, expiresAt: "2026-10-07T05:30:00Z" });
+const lock = (at = "2026-10-07T05:00:00Z", version = 2): ContentLockGrant => ({
+  userId: 2,
+  lockedAt: at,
+  expiresAt: "2026-10-07T05:30:00Z",
+  version,
+});
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
 function setup(api: Partial<RevisionSessionApi> = {}) {
@@ -23,8 +28,9 @@ function setup(api: Partial<RevisionSessionApi> = {}) {
   };
   const dirty = vi.fn();
   const denied = vi.fn();
-  const session = new RevisionSession({ api: full, onDirty: dirty, onLockDenied: denied, now: () => now });
-  return { session, api: full, dirty, denied, advance: (ms: number) => (now += ms), now: () => now };
+  const stale = vi.fn();
+  const session = new RevisionSession({ api: full, onDirty: dirty, onLockDenied: denied, onStaleBase: stale, now: () => now });
+  return { session, api: full, dirty, denied, stale, advance: (ms: number) => (now += ms), now: () => now };
 }
 
 describe("RevisionSession — buffer and edit lock", () => {
@@ -52,6 +58,29 @@ describe("RevisionSession — buffer and edit lock", () => {
     session.setPayload(C1, payload("abcd"));
     await flush();
     expect(api.lock).toHaveBeenCalledTimes(2);
+  });
+
+  it("a lock answer with a newer version drops the buffer, releases the lock and asks for the latest", async () => {
+    const { session, api, stale, dirty } = setup({ lock: vi.fn(async () => lock(undefined, 3)) });
+    session.setPayload(C1, payload("on v2"));
+    await flush();
+    expect(session.has("C1")).toBe(false);
+    expect(api.release).toHaveBeenCalledWith("C1");
+    expect(stale).toHaveBeenCalledWith("C1", 3);
+    expect(dirty).toHaveBeenLastCalledWith(false);
+  });
+
+  it("a keep-alive refresh never drops a held buffer over the version (my own lock)", async () => {
+    const lockCall = vi.fn().mockResolvedValueOnce(lock()).mockResolvedValue(lock(undefined, 3));
+    const { session, stale, advance } = setup({ lock: lockCall });
+    session.setPayload(C1, payload("a"));
+    await flush();
+    advance(LOCK_REFRESH_MS);
+    session.setPayload(C1, payload("ab"));
+    await flush();
+    expect(lockCall).toHaveBeenCalledTimes(2);
+    expect(session.buffer("C1")?.lock.status).toBe("held");
+    expect(stale).not.toHaveBeenCalled();
   });
 
   it("drops the buffer when another user holds the lock (LOCKED_BY_OTHER)", async () => {

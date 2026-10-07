@@ -4,8 +4,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { useViewIntent } from "@/shared/lib";
 import type { Me } from "@/entities/me";
 import { opsKeys, type OpsCustomer, type SampleOverview } from "@/entities/ops";
-import { projectKeys, type Project } from "@/entities/project";
-import { userKeys } from "@/entities/user";
+import type { Project } from "@/entities/project";
+import type { Member } from "@/entities/user";
 import { decodeOpsIntent, requestOpsIntent } from "@/features/ops-admin";
 import type { WorkViewProps } from "@/widgets/app-shell";
 import { memberCounts, setupSteps } from "../model/setup-steps";
@@ -22,6 +22,7 @@ const customer = (id: number, name: string, patch: Partial<OpsCustomer> = {}): O
   dueSoonDays: 3,
   createdAt: "2026-10-01T01:00:00Z",
   createdBy: 5,
+  createdByName: "정우진",
   deactivationReason: null,
   projectCount: 1,
   userCount: 2,
@@ -53,12 +54,19 @@ const sampleCustomer = customer(1, "한빛카드", {
   adminAssigned: true,
   admins: [{ id: 11, name: "강민호", dept: "경영지원팀", email: "minho@c1.com", active: true, avatarColor: "#000" }],
 });
+const pendingAdmin: Member = {
+  user: { id: 31, name: "한봄", dept: null, email: "admin@c3.com", active: false, avatarColor: "#000" },
+  pending: true,
+  admin: true,
+  projects: [],
+  invitationExpiresAt: "2026-10-14T05:00:00Z",
+};
 const realCustomer = customer(3, "새봄은행", { approvalEnabled: false, unassignedDatasetTypes: ["SMS", "RCS"] });
 
 function setup(customerId: number) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
   client.setQueryData(opsKeys.customers(), [sampleCustomer, realCustomer]);
-  client.setQueryData(projectKeys.byCustomer(1), [
+  client.setQueryData(opsKeys.projects(1), [
     project(1, 1, {
       name: "카드 혜택 알림",
       templates: [{ code: "HB_POINT_01", name: "포인트" }],
@@ -69,9 +77,9 @@ function setup(customerId: number) {
       ],
     }),
   ]);
-  client.setQueryData(projectKeys.byCustomer(3), [project(7, 3, { name: "기본 프로젝트" })]);
-  client.setQueryData(userKeys.byCustomer(1), []);
-  client.setQueryData(userKeys.byCustomer(3), []);
+  client.setQueryData(opsKeys.projects(3), [project(7, 3, { name: "기본 프로젝트" })]);
+  client.setQueryData(opsKeys.members(1), []);
+  client.setQueryData(opsKeys.members(3), [pendingAdmin]);
   client.setQueryData(opsKeys.datasets(), []);
   client.setQueryData(opsKeys.assignments(), []);
   client.setQueryData(opsKeys.contentTypes(), []);
@@ -79,7 +87,9 @@ function setup(customerId: number) {
   client.setQueryData(opsKeys.setupLogs(3), [
     { id: 1, customerId: 3, at: "2026-10-07T05:00:00Z", actorId: 5, actorName: "정우진", action: "기본 프로젝트 생성", target: "기본 프로젝트", result: "첫 고객사 관리자 초대 필요" },
   ]);
-  client.setQueryData(opsKeys.outbox(0, 5), { content: [], page: { number: 0, size: 5, totalElements: 0, totalPages: 0 } });
+  const emptyPage = { content: [], page: { number: 0, size: 5, totalElements: 0, totalPages: 0 } };
+  client.setQueryData(opsKeys.outbox(1, 0, 5), emptyPage);
+  client.setQueryData(opsKeys.outbox(3, 0, 5), emptyPage);
   const overview: SampleOverview = {
     customerId: 1,
     sample: true,
@@ -146,6 +156,8 @@ describe("초기 설정·시드", () => {
     const { openTab } = setup(1);
     fireEvent.change(screen.getByRole("combobox", { name: "고객사 선택" }), { target: { value: "3" } });
     expect(screen.getByText("미배정 문자, RCS")).toBeTruthy();
+    // pending invitations come from the operator members list (contract §14.7)
+    expect(screen.getByText("아직 수락한 관리자가 없습니다. · 초대 대기 admin@c3.com")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "배정 화면" }));
     expect(openTab).toHaveBeenCalledWith({ route: "opsStandards", params: {} });
     expect(decodeOpsIntent(useViewIntent.getState().intents.opsStandards)).toEqual({ customerId: 3, sub: "assign" });

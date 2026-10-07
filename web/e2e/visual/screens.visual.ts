@@ -4,7 +4,7 @@ import { test, type Page } from "@playwright/test";
 import { ARCHIVE_EXTRA_U1 } from "../fixtures/archive-snapshot";
 import { CHECK_101, CORRECTION_DATASETS } from "../fixtures/correction-snapshot";
 import { mockApiAs, type MockWrite } from "../fixtures/mock-api";
-import { PROTOTYPE_URL, compose, settle } from "./fixtures";
+import { PROTOTYPE_URL, compareSizes, compose, settle, sizeSuffix } from "./fixtures";
 
 const OUT = join(__dirname, "out");
 
@@ -114,10 +114,11 @@ async function scrollMain(page: Page, top: number) {
  * built yet, action buttons whose flows come in later milestones, editors shown read-only, the
  * prototype-only "기능 대응표" / "첨부 검사 시연" UI, and variable values in previews (variables API).
  */
+for (const size of compareSizes())
 for (const screen of SCREENS) {
-  test(`screen ${screen.name}`, async ({ browser }) => {
+  test(`screen ${screen.name}${sizeSuffix(size)}`, async ({ browser }) => {
     mkdirSync(OUT, { recursive: true });
-    const viewport = { width: 1440, height: 900 };
+    const viewport = { width: size.width, height: size.height };
     const context = await browser.newContext({ viewport, deviceScaleFactor: 1 });
 
     const proto = await context.newPage();
@@ -141,11 +142,14 @@ for (const screen of SCREENS) {
     await app.addStyleTag({ content: "nextjs-portal{display:none!important}" });
     if (screen.app) await screen.app(app);
     await app.waitForTimeout(300);
-    if (screen.scroll) await scrollMain(app, screen.scroll);
+    // a click scrolls its target into view (narrow viewports stack the side panel below the editor);
+    // the prototype runs its action by script, so both are compared from the same scroll position
+    await app.evaluate(() => window.scrollTo(0, 0));
+    await scrollMain(app, screen.scroll ?? 0);
     await settle(app);
     const appPng = await app.screenshot();
 
-    const base = `screen-${screen.name}`;
+    const base = `screen-${screen.name}${sizeSuffix(size)}`;
     writeFileSync(join(OUT, `${base}.prototype.png`), protoPng);
     writeFileSync(join(OUT, `${base}.app.png`), appPng);
     const { image, mismatch } = await compose(await context.newPage(), protoPng, appPng);

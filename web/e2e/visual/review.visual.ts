@@ -3,8 +3,10 @@ import { join } from "node:path";
 import { test, type Page } from "@playwright/test";
 import { CORRECTION_DATASETS } from "../fixtures/correction-snapshot";
 import { mockApiAs } from "../fixtures/mock-api";
+import { API_SNAPSHOT } from "../fixtures/api-snapshot";
 import { REVIEW_SNAPSHOT } from "../fixtures/review-snapshot";
-import { PROTOTYPE_URL, compose, settle } from "./fixtures";
+import type { RequestDetail } from "@/entities/request";
+import { PROTOTYPE_URL, compareSizes, compose, settle, sizeSuffix } from "./fixtures";
 
 const OUT = join(__dirname, "out");
 
@@ -21,6 +23,28 @@ interface Screen {
   proto: string;
   /** Screenshot of the open modal only (both sides) instead of the viewport. */
   modal?: boolean;
+  /** Extra mocked GET responses (win over the snapshot). */
+  extra?: Record<string, unknown>;
+}
+
+/**
+ * A seed request without edit locks (detail + lock list). The seed gives 한가을 a lock on REQ-2609-101 C2
+ * that is valid for 30 minutes after seeding, so a fresh capture shows it.
+ */
+function withoutLocks(userId: number, id: string): Record<string, unknown> {
+  const path = `/requests/${id}`;
+  const detail = (REVIEW_SNAPSHOT[userId]?.[path] ?? API_SNAPSHOT[userId]?.[path]) as RequestDetail;
+  const contents = detail.contents.map((c) => ({ ...c, lock: null }));
+  return {
+    [`/requests/${id}`]: { ...detail, contents },
+    [`/requests/${id}/locks`]: contents.map((c) => ({
+      contentKey: c.key,
+      userId: null,
+      lockedAt: null,
+      expiresAt: null,
+      version: c.version,
+    })),
+  };
 }
 
 const nav = (r: string) => `A.nav({dataset:{r:'${r}'}});`;
@@ -58,9 +82,10 @@ const SCREENS: Screen[] = [
     persona: "u2",
     path: "/requests/REQ-2609-101",
     app: (p) => p.getByRole("button", { name: "검수 완료" }).click(),
-    // The seed's edit lock of 한가을 is long expired on the server; release it in the prototype too.
+    // Without 한가을's seed edit lock on both sides (a lock blocks 검수 완료 with a toast).
     proto: `S.requests.find((r) => r.id === 'REQ-2609-101').contents.forEach((c) => { c.lockBy = null; });${openReq("REQ-2609-101")}A.complete();`,
     modal: true,
+    extra: withoutLocks(2, "REQ-2609-101"),
   },
 ];
 
@@ -69,10 +94,11 @@ const SCREENS: Screen[] = [
  * persona (API mocked from the demo seed). Intended differences: today's date, due-date tags
  * computed by the server (the prototype pins "today" to 9월 21일), menus of screens not built yet.
  */
+for (const size of compareSizes())
 for (const screen of SCREENS) {
-  test(`review ${screen.name}`, async ({ browser }) => {
+  test(`review ${screen.name}${sizeSuffix(size)}`, async ({ browser }) => {
     mkdirSync(OUT, { recursive: true });
-    const viewport = { width: 1440, height: 900 };
+    const viewport = { width: size.width, height: size.height };
     const context = await browser.newContext({ viewport, deviceScaleFactor: 1 });
 
     const proto = await context.newPage();
@@ -87,7 +113,7 @@ for (const screen of SCREENS) {
 
     const app = await context.newPage();
     await mockApiAs(app, USER_ID[screen.persona], {
-      extra: { ...CORRECTION_DATASETS, ...REVIEW_SNAPSHOT[USER_ID[screen.persona]] },
+      extra: { ...CORRECTION_DATASETS, ...REVIEW_SNAPSHOT[USER_ID[screen.persona]], ...screen.extra },
     });
     await app.goto(screen.path);
     await app.locator("main h1").first().waitFor();
@@ -98,7 +124,7 @@ for (const screen of SCREENS) {
     await settle(app);
     const appPng = screen.modal ? await app.getByRole("dialog").screenshot() : await app.screenshot();
 
-    const base = `review-${screen.name}`;
+    const base = `review-${screen.name}${sizeSuffix(size)}`;
     writeFileSync(join(OUT, `${base}.prototype.png`), protoPng);
     writeFileSync(join(OUT, `${base}.app.png`), appPng);
     const { image, mismatch } = await compose(await context.newPage(), protoPng, appPng);

@@ -1,5 +1,6 @@
 export { VARIABLE_TYPES, VARIABLE_TYPE_LABEL, VARIABLE_TYPE_OPTION_LABEL } from "./model/types";
 export type {
+  ProjectVariableLog,
   Variable,
   VariableCreate,
   VariableLog,
@@ -7,4 +8,12 @@ export type {
   VariableSnapshot,
   VariableType,
 } from "./model/types";
-export { createVariable, useProjectVariables, useVariableLogs, variableApi, variableKeys } from "./api/variable-queries";
+export {
+  createVariable,
+  useAdminVariables,
+  useProjectVariableLogs,
+  useProjectVariables,
+  variableApi,
+  variableKeys,
+} from "./api/variable-queries";
+export { logsByVariable } from "./model/logs";

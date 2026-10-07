@@ -3,6 +3,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  /* reference `.row` wraps: in a narrow column the name/email block drops below the avatar */
+  flex-wrap: wrap;
 }
 .name {
   font-weight: 500;

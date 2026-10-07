@@ -47,45 +47,49 @@ export function WorkTabs({ tabs, activeId, visibleRoutes, projectId, onSelect, o
 
   return (
     <>
-      <div className={styles.tabs} role="tablist" aria-label="열린 탭">
-        {tabs.map((tab) => {
-          const on = tab.id === activeId;
-          const title = tabTitle(tab);
-          return (
-            <div key={tab.id} className={cn(styles.tab, on && styles.on)} title={title} onClick={() => onSelect(tab)}>
-              <button
-                type="button"
-                role="tab"
-                id={`tab-${tab.id}`}
-                aria-selected={on}
-                aria-controls={`panel-${tab.id}`}
-                tabIndex={on ? 0 : -1}
-                className={styles.tabBtn}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onSelect(tab);
-                }}
-              >
-                {tab.dirty ? <span className={styles.dirty} title="저장하지 않은 변경" /> : null}
-                <span className={styles.t}>{title}</span>
-                {tab.dirty ? <span className="sr-only">(저장하지 않은 변경)</span> : null}
-              </button>
-              {tabs.length > 1 ? (
+      {/* the tablist owns the tabs only; the `+` button sits next to it (a `display: contents` wrapper keeps
+          the reference flex row) */}
+      <nav className={styles.tabs} aria-label="업무 탭">
+        <div className={styles.list} role="tablist" aria-label="열린 탭">
+          {tabs.map((tab) => {
+            const on = tab.id === activeId;
+            const title = tabTitle(tab);
+            return (
+              <div key={tab.id} className={cn(styles.tab, on && styles.on)} title={title} onClick={() => onSelect(tab)}>
                 <button
                   type="button"
-                  className={styles.x}
-                  aria-label={`${title} 탭 닫기`}
+                  role="tab"
+                  id={`tab-${tab.id}`}
+                  aria-selected={on}
+                  aria-controls={`panel-${tab.id}`}
+                  tabIndex={on ? 0 : -1}
+                  className={styles.tabBtn}
                   onClick={(event) => {
                     event.stopPropagation();
-                    requestClose(tab);
+                    onSelect(tab);
                   }}
                 >
-                  <Icon name="x" size={12} />
+                  {tab.dirty ? <span className={styles.dirty} title="저장하지 않은 변경" /> : null}
+                  <span className={styles.t}>{title}</span>
+                  {tab.dirty ? <span className="sr-only">(저장하지 않은 변경)</span> : null}
                 </button>
-              ) : null}
-            </div>
-          );
-        })}
+                {tabs.length > 1 ? (
+                  <button
+                    type="button"
+                    className={styles.x}
+                    aria-label={`${title} 탭 닫기`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      requestClose(tab);
+                    }}
+                  >
+                    <Icon name="x" size={12} />
+                  </button>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
         <button
           ref={setAddEl}
           type="button"
@@ -98,7 +102,7 @@ export function WorkTabs({ tabs, activeId, visibleRoutes, projectId, onSelect, o
         >
           +
         </button>
-      </div>
+      </nav>
       <Popover open={addOpen} anchor={addEl} onClose={() => setAddOpen(false)} label="새 탭으로 열기" width={320}>
         <PopoverHeader>
           <b>새 탭으로 열기</b>

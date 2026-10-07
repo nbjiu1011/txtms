@@ -205,6 +205,14 @@
   min-width: 0;
   flex: 1;
 }
+/* leading + title of a row with its own trailing buttons (laid out like the row) */
+.nestedMain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
 .main > b {
   font-weight: 500;
   display: block;

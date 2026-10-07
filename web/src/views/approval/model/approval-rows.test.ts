@@ -4,8 +4,8 @@ import { hasActiveApprover, toApprovalQueueRow } from "./approval-rows";
 
 describe("approval screen rows", () => {
   it("승인 대기 row: round, contents with versions, due date and 처리 가능", () => {
-    const r = { ...request103U4, contentCount: 2, contentVersions: [2, 1], round: 2, dueDate: "2026-10-08" };
-    expect(toApprovalQueueRow(r, new Set([r.id]))).toEqual({
+    const r = { ...request103U4, contentCount: 2, contentVersions: [2, 1], round: 2, dueDate: "2026-10-08", approvable: true };
+    expect(toApprovalQueueRow(r)).toEqual({
       id: r.id,
       title: r.title,
       round: "2차",
@@ -14,7 +14,7 @@ describe("approval screen rows", () => {
       due: "10월 8일",
       canProcess: true,
     });
-    expect(toApprovalQueueRow(r, new Set()).canProcess).toBe(false);
+    expect(toApprovalQueueRow({ ...r, approvable: false }).canProcess).toBe(false);
   });
 
   it("no-approver banner: only active members with the APPROVER role count", () => {
