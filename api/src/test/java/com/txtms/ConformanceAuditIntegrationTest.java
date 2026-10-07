@@ -32,7 +32,7 @@ import com.txtms.support.IntegrationTestBase;
 import tools.jackson.databind.JsonNode;
 
 /**
- * Requirement-conformance probes of the API audit (docs/architecture/api-conformance.md): authorization on every
+ * Requirement-conformance probes: authorization on every
  * request endpoint (other tenant 404, operator 404, same-customer non-member 403, someone else's draft
  * DRAFT_PRIVATE), invalid state transitions, round rules, error hygiene, refresh CSRF posture, token single use,
  * paging caps and Phase 2 features not being exposed. Every scenario runs on its own tenant.

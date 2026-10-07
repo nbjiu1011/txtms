@@ -340,7 +340,7 @@ curl -s -H "Authorization: Bearer $OPERATOR_TOKEN" -F scope=SMS -F file=@rules.x
   deactivation impact load the visible requests of the project (or customer) and filter in memory so KPI counts and
   lists share one predicate. Responses are paged (size ≤ 100) or capped (todos 100, recent 6, small lists 500); the
   scan itself is fine up to a few thousand requests per project. Beyond that, move the predicates to queries
-  (docs/IMPROVEMENTS.md P2).
+  (planned follow-up).
 
 ## Customer admin (M6)
 
