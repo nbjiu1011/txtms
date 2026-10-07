@@ -1,0 +1,17 @@
+# Local development profile (bootRun uses it by default).
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+app:
+  auth:
+    refresh-cookie-secure: false
+  cors:
+    allowed-origins:
+      - http://localhost:3000
+  demo:
+    enabled: true
+    # Dev-only password given to every demo account so email login can be smoke-tested.
+    default-password: "Txtms!2026"

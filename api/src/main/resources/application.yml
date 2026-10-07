@@ -1,0 +1,96 @@
+spring:
+  application:
+    name: txtms-api
+  config:
+    # Local secrets written by scripts/dev-db.ps1. Real deployments use environment variables.
+    import: optional:file:.env[.properties]
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        default_batch_fetch_size: 100
+  flyway:
+    enabled: true
+  servlet:
+    multipart:
+      # Above the attachment limit so the application can reject oversize files with its own message.
+      max-file-size: 25MB
+      max-request-size: 30MB
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+logging:
+  level:
+    org.hibernate.orm.connections.pooling: WARN
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    access-token-ttl: 15m
+  session:
+    idle-timeout: 30m
+    remember-duration: 14d
+    touch-interval: 1m
+  auth:
+    refresh-cookie-name: txtms_refresh
+    refresh-cookie-secure: true
+    login-max-failures: 5
+    login-lock-duration: 15m
+    password-reset-ttl: 1h
+    invitation-ttl: 7d
+  lock:
+    ttl: 30m
+  audit:
+    access-log-retention-days: 1095
+  web-base-url: http://localhost:3000
+  cors:
+    allowed-origins: []
+  demo:
+    # Demo personas, demo-login and the demo seed. Never enable in production.
+    enabled: false
+    default-password: ""
+  attachment:
+    max-file-size: 20MB
+    max-count: 10
+    max-total-size: 100MB
+    max-image-size: 5MB
+  storage:
+    # TODO(stub): local disk until object storage is connected. Relative paths resolve from the working directory.
+    local-root: storage
+  content:
+    max-contents-per-request: 1000
+    max-text-length: 10000
+    max-buttons: 5
+    max-cards: 5
+    max-info-text-length: 2000
+    # Submit limits (planning proposal values, client agreement 03/08 pending).
+    alimtalk-body-max: 1000
+    button-name-max: 14
+    sms-bytes-max: 2000
+  bulk:
+    max-rows: 1000
+    max-file-size: 20MB
+  sms:
+    customer-center-line: "고객센터 1588-0000"
+    opt-out-line: "무료 수신거부 080-000-0000"

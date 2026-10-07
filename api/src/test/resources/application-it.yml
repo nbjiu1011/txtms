@@ -1,0 +1,15 @@
+# Integration tests: local MySQL test database (TEST_DB_URL from the environment or api/.env).
+spring:
+  datasource:
+    url: ${TEST_DB_URL}
+  flyway:
+    clean-disabled: false
+
+app:
+  auth:
+    refresh-cookie-secure: false
+  demo:
+    enabled: true
+    default-password: "Txtms!2026"
+  storage:
+    local-root: build/it-storage
