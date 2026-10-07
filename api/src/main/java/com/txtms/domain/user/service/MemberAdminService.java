@@ -78,14 +78,27 @@ public class MemberAdminService {
 
     // ------------------------------------------------------------------ members
 
+    /** The operator's setup invitation: the new member and the outbox id of the invitation mail. */
+    public record SetupInvitation(MemberResponse member, long mailId) {
+    }
+
     @Transactional(readOnly = true)
     public List<MemberResponse> members(AuthUser auth, long customerId) {
         Admin admin = adminAccess.require(auth, customerId);
-        List<User> users = userService.byCustomer(admin.customerId()).stream().limit(LIST_LIMIT).toList();
-        List<Project> projects = projectAccess.byCustomer(admin.customerId());
+        return membersOf(admin.customer());
+    }
+
+    /**
+     * Every user of the customer (pending and inactive included) in user id order, at most 500. No access check:
+     * callers gate it (customer admin above, the operator for {@code /api/ops/customers/{id}/members}).
+     */
+    @Transactional(readOnly = true)
+    public List<MemberResponse> membersOf(Customer customer) {
+        List<User> users = userService.byCustomer(customer.getId()).stream().limit(LIST_LIMIT).toList();
+        List<Project> projects = projectAccess.byCustomer(customer.getId());
         Map<Long, Instant> expiries = invitations.usableExpiries(
                 users.stream().filter(User::isPending).map(User::getId).toList());
-        return users.stream().map(u -> member(admin.customer(), u, projects, expiries.get(u.getId()))).toList();
+        return users.stream().map(u -> member(customer, u, projects, expiries.get(u.getId()))).toList();
     }
 
     MemberResponse member(Customer customer, User user) {
@@ -234,7 +247,7 @@ public class MemberAdminService {
      * external domain confirmation. {@code admin} grants the customer admin right, effective once the invitation is
      * accepted (a pending account cannot sign in). Audited as {@code 사용자 초대} with the operator as actor.
      */
-    public MemberResponse inviteForSetup(Customer customer, long operatorId, SetupInvitationBody body) {
+    public SetupInvitation inviteForSetup(Customer customer, long operatorId, SetupInvitationBody body) {
         SetupInvitationBody b = body == null ? new SetupInvitationBody(null, null, null, null, null, null, null)
                 : body;
         boolean asAdmin = Boolean.TRUE.equals(b.admin());
@@ -285,13 +298,13 @@ public class MemberAdminService {
         if (project != null) {
             project.addRole(user.getId(), b.role());
         }
-        invitations.issue(user, operatorId, customer.getName());
+        InvitationService.Issued issued = invitations.issue(user, operatorId, customer.getName());
         String what = asAdmin ? "고객사 관리자" : "업무 사용자";
         if (project != null) {
             what += ", " + project.getName() + " " + ProjectRoleRules.label(b.role());
         }
         audit.record(operatorId, customer.getId(), "사용자 초대", name, email + " (" + what + ")");
-        return member(customer, user);
+        return new SetupInvitation(member(customer, user), issued.mailId());
     }
 
     /** Pending users only: every unused link is revoked and a new 7-day link is mailed. */

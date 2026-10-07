@@ -405,10 +405,11 @@ curl -s -H "Authorization: Bearer $ADMIN" "http://localhost:8080/api/customers/1
 |---|---|
 | Dashboard | `GET /api/ops/dashboard` (KPIs, remaining setup steps with web route keys, customer rows, 6 newest audits) |
 | Customers | `GET`/`POST /api/ops/customers`, `POST /api/ops/customers/{id}/deactivate` (`{ reason }`), `POST …/reactivate` |
-| Initial setup | `POST /api/ops/customers/{id}/projects` (`{ name, leadUserId? }`), `POST …/invitations` (`{ email, name, dept, admin, projectId, role, externalDomainConfirmed }`), `PUT /api/ops/projects/{id}/templates` (`[{ code, name }]`), `PUT /api/ops/projects/{id}/senders` (`[string]`), `GET /api/ops/setup-logs?customerId=` |
+| Initial setup | `POST /api/ops/customers/{id}/projects` (`{ name, leadUserId? }`), `POST …/invitations` (`{ email, name, dept, admin, projectId, role, externalDomainConfirmed }`, answers Member + `mailId`), `PUT /api/ops/projects/{id}/templates` (`[{ code, name }]`), `PUT /api/ops/projects/{id}/senders` (`[string]`), `GET /api/ops/setup-logs?customerId=` |
 | Content types | `GET /api/ops/content-types`, `PATCH /api/ops/content-types/{type}` (`{ active }`) |
 | Sample data | `GET`/`POST /api/ops/customers/{id}/sample-requests`, `DELETE …/sample-data`, `POST /api/ops/sample-reset` |
-| Logs | `GET /api/ops/audit-logs` (`customerId`, paging), `GET /api/ops/outbox` (paging) |
+| Customer reads | `GET /api/ops/customers/{id}/members` (Member list as the customer admin sees it), `GET /api/ops/customers/{id}/projects` (projects without `activeRequestCount`); inactive customers included |
+| Logs | `GET /api/ops/audit-logs` (`customerId`, paging), `GET /api/ops/outbox` (`customerId`, paging) |
 | Datasets (M4) | `/api/ops/datasets`, `/api/ops/dataset-assignments`, `/api/ops/customers/{id}/dataset-assignments/{type}` |
 
 - Access: `OpsAccessInterceptor` checks every `/api/ops/**` handler (403 `운영 담당자 권한이 필요합니다`, the reset
@@ -434,8 +435,15 @@ curl -s -H "Authorization: Bearer $ADMIN" "http://localhost:8080/api/customers/1
   times, history, bundles, seed notifications) in one transaction; customers that are not samples are never selected.
 - Audits: `고객사 생성/비활성/사용 재개`, `프로젝트 생성`, `사용자 초대`, `프로젝트 발신 정보 변경`, `콘텐츠 유형 변경`,
   `샘플 요청 생성`, `샘플 데이터 초기화`, `샘플 초기화`. `AuditLog` entries carry `actorName`.
+- Operator names: `OpsCustomer.createdByName` and the dataset assignment `assignedByName` / `checkedByName` are the
+  current names of those users (null when the id is null or unknown), resolved in bulk like `actorName`.
+- Operator reads of one customer (members, projects, outbox by `customerId`) work for inactive customers too (the
+  customer API answers `NOT_FOUND` for them) and return metadata only; they are not audited. `MemberAdminService.membersOf`
+  serves both member lists. The operator invitation answers `OpsInvitation` = the Member keys + `mailId` (the outbox id;
+  `MailSender.send` returns it); its link follows the operator outbox rule (full only in demo mode).
 - Tests: `CustomerRulesTest`, `OpsDashboardRulesTest`, `ProjectSendingRulesTest`, `OutboxMaskingTest` (unit);
-  `OpsIntegrationTest` (onboarding up to an Alimtalk submission, deactivation, content types, sample cleanup with a
+  `OpsIntegrationTest` (onboarding up to an Alimtalk submission, operator reads of members/projects/outbox and operator
+  names on a customer before and after deactivation, deactivation, content types, sample cleanup with a
   shared stored object, the reset with a dedicated sample tenant and a non-sample tenant that must stay unchanged).
   The reset test restores the demo tenants to their seed, which the read tests count on.
 

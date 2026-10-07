@@ -55,8 +55,16 @@ public class OpsLogService {
         return setupLogs.list(customerId);
     }
 
-    public PageResponse<OutboxMail> outbox(AuthUser auth, PageQuery page) {
+    /**
+     * Every queued mail, or the mails addressed to one customer's users (inactive customers included; missing
+     * customer {@code NOT_FOUND}), newest first.
+     */
+    public PageResponse<OutboxMail> outbox(AuthUser auth, Long customerId, PageQuery page) {
         operators.require(auth);
-        return outbox.all(page, OutboxMasking.revealForOperator(properties.demo().enabled()));
+        boolean reveal = OutboxMasking.revealForOperator(properties.demo().enabled());
+        if (customerId == null) {
+            return outbox.all(page, reveal);
+        }
+        return outbox.ofCustomer(customers.require(customerId).getId(), page, reveal);
     }
 }

@@ -5,7 +5,9 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -102,24 +104,31 @@ public class OpsCustomerService {
         Map<Long, RequestCounts> requestCounts = requestStats.countsByCustomer();
         Map<Long, Set<ContentType>> assigned = datasets.assignedTypesByCustomer();
         List<ContentType> inUse = contentTypes.activeTypes();
+        List<Customer> all = customers.all();
+        Map<Long, User> creators = users.byIds(all.stream().map(Customer::getCreatedBy).filter(Objects::nonNull)
+                .collect(Collectors.toSet()));
         List<OpsCustomer> rows = new ArrayList<>();
-        for (Customer c : customers.all()) {
-            rows.add(row(c, projectCounts, userCounts, requestCounts, assigned, inUse));
+        for (Customer c : all) {
+            rows.add(row(c, creators, projectCounts, userCounts, requestCounts, assigned, inUse));
         }
         return rows;
     }
 
     OpsCustomer row(Customer c) {
-        return row(c, projectAccess.projectCounts(), users.countByCustomer(), requestStats.countsByCustomer(),
-                datasets.assignedTypesByCustomer(), contentTypes.activeTypes());
+        Map<Long, User> creators = c.getCreatedBy() == null ? Map.of() : users.byIds(Set.of(c.getCreatedBy()));
+        return row(c, creators, projectAccess.projectCounts(), users.countByCustomer(),
+                requestStats.countsByCustomer(), datasets.assignedTypesByCustomer(), contentTypes.activeTypes());
     }
 
-    private OpsCustomer row(Customer c, Map<Long, Long> projectCounts, Map<Long, Long> userCounts,
-            Map<Long, RequestCounts> requestCounts, Map<Long, Set<ContentType>> assigned, List<ContentType> inUse) {
+    private OpsCustomer row(Customer c, Map<Long, User> creators, Map<Long, Long> projectCounts,
+            Map<Long, Long> userCounts, Map<Long, RequestCounts> requestCounts, Map<Long, Set<ContentType>> assigned,
+            List<ContentType> inUse) {
         RequestCounts counts = requestCounts.getOrDefault(c.getId(), RequestCounts.NONE);
         Set<ContentType> has = assigned.getOrDefault(c.getId(), Set.of());
         List<ContentType> unassigned = inUse.stream().filter(t -> !has.contains(t)).toList();
-        return OpsCustomer.of(c, projectCounts.getOrDefault(c.getId(), 0L), userCounts.getOrDefault(c.getId(), 0L),
+        User creator = c.getCreatedBy() == null ? null : creators.get(c.getCreatedBy());
+        return OpsCustomer.of(c, creator == null ? null : creator.getName(),
+                projectCounts.getOrDefault(c.getId(), 0L), userCounts.getOrDefault(c.getId(), 0L),
                 counts.total(), counts.active(), counts.completed(), counts.sample(),
                 users.activeAdminsOf(c.getId()).stream().map(UserService::summary).toList(), unassigned);
     }
@@ -187,6 +196,11 @@ public class OpsCustomerService {
         customer.reactivate(clock.instant());
         audit.record(operator.getId(), customer.getId(), "고객사 사용 재개", customer.getName(), null);
         return row(customer);
+    }
+
+    /** An existing customer, active or not (missing: {@code NOT_FOUND}). */
+    Customer requireExisting(long customerId) {
+        return customers.require(customerId);
     }
 
     /** An existing, active customer for a setup write (inactive: {@code REQUEST_STATE_CONFLICT}). */

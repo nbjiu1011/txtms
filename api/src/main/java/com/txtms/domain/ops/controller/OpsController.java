@@ -23,6 +23,7 @@ import com.txtms.domain.ops.dto.OpsDtos.CreateCustomerBody;
 import com.txtms.domain.ops.dto.OpsDtos.DeactivateCustomerBody;
 import com.txtms.domain.ops.dto.OpsDtos.OpsCustomer;
 import com.txtms.domain.ops.dto.OpsDtos.OpsDashboard;
+import com.txtms.domain.ops.dto.OpsDtos.OpsInvitation;
 import com.txtms.domain.ops.dto.OpsDtos.SampleOverview;
 import com.txtms.domain.ops.dto.OpsDtos.SampleRequestBody;
 import com.txtms.domain.ops.dto.OpsDtos.SampleResetResult;
@@ -101,9 +102,19 @@ public class OpsController {
 
     @PostMapping("/customers/{id}/invitations")
     @ResponseStatus(HttpStatus.CREATED)
-    public MemberResponse invite(@AuthenticationPrincipal AuthUser auth, @PathVariable long id,
+    public OpsInvitation invite(@AuthenticationPrincipal AuthUser auth, @PathVariable long id,
             @RequestBody(required = false) SetupInvitationBody body) {
         return setup.invite(auth, id, body);
+    }
+
+    @GetMapping("/customers/{id}/members")
+    public List<MemberResponse> members(@AuthenticationPrincipal AuthUser auth, @PathVariable long id) {
+        return setup.members(auth, id);
+    }
+
+    @GetMapping("/customers/{id}/projects")
+    public List<ProjectResponse> projects(@AuthenticationPrincipal AuthUser auth, @PathVariable long id) {
+        return setup.projects(auth, id);
     }
 
     @PutMapping("/projects/{id}/templates")
@@ -173,7 +184,8 @@ public class OpsController {
 
     @GetMapping("/outbox")
     public PageResponse<OutboxMail> outbox(@AuthenticationPrincipal AuthUser auth,
-            @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer size) {
-        return logs.outbox(auth, PageQuery.of(page, size));
+            @RequestParam(required = false) Long customerId, @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        return logs.outbox(auth, customerId, PageQuery.of(page, size));
     }
 }

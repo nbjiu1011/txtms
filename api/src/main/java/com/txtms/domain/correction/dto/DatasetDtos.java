@@ -36,9 +36,12 @@ public final class DatasetDtos {
     public record CreateDatasetBody(String scope, List<RuleDto> rules) {
     }
 
-    /** {@code { customerId, type, datasetId, assignedAt, assignedBy, checkedAt, checkedBy }}. */
+    /**
+     * {@code { customerId, type, datasetId, assignedAt, assignedBy, assignedByName, checkedAt, checkedBy,
+     * checkedByName }}; the names are the operators' current names (null when unknown or not confirmed).
+     */
     public record AssignmentResponse(long customerId, DatasetScope type, long datasetId, Instant assignedAt,
-            Long assignedBy, Instant checkedAt, Long checkedBy) {
+            Long assignedBy, String assignedByName, Instant checkedAt, Long checkedBy, String checkedByName) {
     }
 
     public record AssignBody(Long datasetId) {

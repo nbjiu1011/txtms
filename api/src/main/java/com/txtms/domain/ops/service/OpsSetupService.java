@@ -9,6 +9,7 @@ import com.txtms.domain.contenttype.dto.ContentTypeResponse;
 import com.txtms.domain.contenttype.entity.ContentType;
 import com.txtms.domain.contenttype.service.ContentTypeService;
 import com.txtms.domain.customer.entity.Customer;
+import com.txtms.domain.ops.dto.OpsDtos.OpsInvitation;
 import com.txtms.domain.ops.dto.OpsDtos.SetupProjectBody;
 import com.txtms.domain.ops.dto.OpsDtos.TemplateBody;
 import com.txtms.domain.project.dto.ProjectResponse;
@@ -76,13 +77,32 @@ public class OpsSetupService {
     }
 
     /** First admin or initial work user; setup log {@code 초대 링크 생성} (audit {@code 사용자 초대} in the member service). */
-    public MemberResponse invite(AuthUser auth, long customerId, SetupInvitationBody body) {
+    public OpsInvitation invite(AuthUser auth, long customerId, SetupInvitationBody body) {
         User operator = operators.require(auth);
         Customer customer = opsCustomers.requireActive(customerId);
-        MemberResponse member = members.inviteForSetup(customer, operator.getId(), body);
+        MemberAdminService.SetupInvitation invitation = members.inviteForSetup(customer, operator.getId(), body);
+        MemberResponse member = invitation.member();
         setupLogs.record(customer.getId(), operator.getId(), "초대 링크 생성", member.user().email(),
                 member.admin() ? "고객사 관리자" : "업무 사용자");
-        return member;
+        return new OpsInvitation(member, invitation.mailId());
+    }
+
+    /** Members of a customer (pending and inactive users included), also for an inactive customer. */
+    @Transactional(readOnly = true)
+    public List<MemberResponse> members(AuthUser auth, long customerId) {
+        operators.require(auth);
+        return members.membersOf(opsCustomers.requireExisting(customerId));
+    }
+
+    /**
+     * Projects of a customer in id order (stopped projects and inactive customers included). Project metadata only
+     * (templates, senders, roles); no request or content data and no {@code activeRequestCount}.
+     */
+    @Transactional(readOnly = true)
+    public List<ProjectResponse> projects(AuthUser auth, long customerId) {
+        operators.require(auth);
+        Customer customer = opsCustomers.requireExisting(customerId);
+        return projectAccess.byCustomer(customer.getId()).stream().map(ProjectResponse::of).toList();
     }
 
     /** Alimtalk templates of a project; audited {@code 프로젝트 발신 정보 변경}, setup log {@code 템플릿 등록}. */

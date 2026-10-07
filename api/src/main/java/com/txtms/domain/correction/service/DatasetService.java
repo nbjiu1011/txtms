@@ -8,9 +8,11 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -242,10 +244,21 @@ public class DatasetService {
     @Transactional(readOnly = true)
     public List<AssignmentResponse> assignments(AuthUser auth) {
         requireOperator(auth);
-        return assignments.findAllByOrderByCustomerIdAscIdAsc().stream()
+        List<DatasetAssignment> all = assignments.findAllByOrderByCustomerIdAscIdAsc().stream()
                 .sorted(Comparator.comparing(DatasetAssignment::getCustomerId)
                         .thenComparing(DatasetAssignment::getType))
-                .map(DatasetService::response).toList();
+                .toList();
+        Set<Long> actorIds = new HashSet<>();
+        for (DatasetAssignment a : all) {
+            if (a.getAssignedBy() != null) {
+                actorIds.add(a.getAssignedBy());
+            }
+            if (a.getCheckedBy() != null) {
+                actorIds.add(a.getCheckedBy());
+            }
+        }
+        Map<Long, User> actors = users.byIds(actorIds);
+        return all.stream().map(a -> response(a, actors)).toList();
     }
 
     /** Assigns or changes the effective dataset of the customer × type (a change clears the confirmation). */
@@ -376,8 +389,26 @@ public class DatasetService {
                 d.getCreatedBy());
     }
 
-    private static AssignmentResponse response(DatasetAssignment a) {
+    private AssignmentResponse response(DatasetAssignment a) {
+        Set<Long> actorIds = new HashSet<>();
+        if (a.getAssignedBy() != null) {
+            actorIds.add(a.getAssignedBy());
+        }
+        if (a.getCheckedBy() != null) {
+            actorIds.add(a.getCheckedBy());
+        }
+        return response(a, users.byIds(actorIds));
+    }
+
+    /** {@code assignedByName}/{@code checkedByName}: the operators' current names (null when unknown). */
+    private static AssignmentResponse response(DatasetAssignment a, Map<Long, User> actors) {
         return new AssignmentResponse(a.getCustomerId(), a.getType(), a.getDatasetId(), a.getAssignedAt(),
-                a.getAssignedBy(), a.getCheckedAt(), a.getCheckedBy());
+                a.getAssignedBy(), nameOf(actors, a.getAssignedBy()), a.getCheckedAt(), a.getCheckedBy(),
+                nameOf(actors, a.getCheckedBy()));
+    }
+
+    private static String nameOf(Map<Long, User> actors, Long id) {
+        User user = id == null ? null : actors.get(id);
+        return user == null ? null : user.getName();
     }
 }

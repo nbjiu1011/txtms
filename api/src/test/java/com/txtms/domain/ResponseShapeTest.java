@@ -7,10 +7,17 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import com.txtms.domain.correction.dto.DatasetDtos.AssignmentResponse;
+import com.txtms.domain.correction.entity.DatasetScope;
+import com.txtms.domain.customer.entity.NotifyChannel;
 import com.txtms.domain.mail.MailKind;
 import com.txtms.domain.mail.OutboundEmail;
 import com.txtms.domain.mail.OutboxService.OutboxMail;
+import com.txtms.domain.ops.dto.OpsDtos.OpsCustomer;
+import com.txtms.domain.ops.dto.OpsDtos.OpsInvitation;
 import com.txtms.domain.project.dto.ProjectResponse;
+import com.txtms.domain.project.entity.ProjectRole;
+import com.txtms.domain.user.dto.MemberResponse;
 import com.txtms.domain.user.dto.UserSummary;
 import com.txtms.domain.variable.dto.ProjectVariableLogResponse;
 import com.txtms.domain.variable.dto.VariableResponse;
@@ -78,6 +85,34 @@ class ResponseShapeTest {
         JsonNode unknownActor = tree(new ProjectVariableLogResponse(7, AT, null, null, "변경", "{}", "{}"));
         assertThat(unknownActor.has("actorName")).isTrue();
         assertThat(unknownActor.path("actorName").isNull()).isTrue();
+    }
+
+    @Test
+    void operatorInvitationIsAMemberPlusTheMailId() {
+        MemberResponse member = new MemberResponse(new UserSummary(9, "손님", null, "guest@a.kr", false, "#6A6F7A"),
+                true, true, List.of(new MemberResponse.ProjectRoles(4, List.of(ProjectRole.REVIEWER), false)), AT);
+        JsonNode invitation = tree(new OpsInvitation(member, 31));
+        assertThat(invitation.path("mailId").asLong()).isEqualTo(31);
+        assertThat(invitation.has("member")).isFalse();
+        assertThat(invitation.path("user").path("email").asString()).isEqualTo("guest@a.kr");
+        assertThat(invitation.path("pending").asBoolean()).isTrue();
+        assertThat(invitation.path("admin").asBoolean()).isTrue();
+        assertThat(invitation.path("projects").get(0).path("roles").get(0).asString()).isEqualTo("REVIEWER");
+        assertThat(invitation.path("invitationExpiresAt").asString()).isEqualTo("2026-10-07T01:02:03Z");
+        // the customer admin's Member has no mailId
+        assertThat(tree(member).has("mailId")).isFalse();
+    }
+
+    @Test
+    void operatorNamesAreAlwaysPresentAndNullWhenUnknown() {
+        JsonNode assignment = tree(new AssignmentResponse(3, DatasetScope.SMS, 8, AT, 5L, "정우진", null, null, null));
+        assertThat(assignment.path("assignedByName").asString()).isEqualTo("정우진");
+        assertThat(assignment.has("checkedByName")).isTrue();
+        assertThat(assignment.path("checkedByName").isNull()).isTrue();
+        JsonNode customer = tree(new OpsCustomer(3, "새봄은행", "saebom.co.kr", false, true, false, NotifyChannel.IN_APP,
+                3, AT, null, null, null, 1, 0, 0, 0, 0, 0, false, List.of(), List.of()));
+        assertThat(customer.has("createdByName")).isTrue();
+        assertThat(customer.path("createdByName").isNull()).isTrue();
     }
 
     @Test

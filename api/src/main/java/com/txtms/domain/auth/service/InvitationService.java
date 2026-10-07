@@ -40,19 +40,23 @@ public class InvitationService {
         this.properties = properties;
     }
 
-    /** Revokes the user's unused links and sends a new one. Returns the new link's expiry. */
+    /** A new invitation link: its expiry and the outbox id of the invitation mail. */
+    public record Issued(Instant expiresAt, long mailId) {
+    }
+
+    /** Revokes the user's unused links and sends a new one. */
     @Transactional(propagation = Propagation.MANDATORY)
-    public Instant issue(User user, Long createdBy, String customerName) {
+    public Issued issue(User user, Long createdBy, String customerName) {
         Instant now = clock.instant();
         invitations.findByUserIdOrderByIdDesc(user.getId()).forEach(i -> i.revoke(now));
         String token = OpaqueTokens.generate();
         Instant expiresAt = now.plus(properties.auth().invitationTtl());
         invitations.save(new UserInvitation(user.getId(), OpaqueTokens.hash(token), now, expiresAt, createdBy));
         String link = properties.webBaseUrl() + "/invite/" + token;
-        mailSender.send(MailKind.INVITATION, user.getCustomerId(), user.getEmail(), SUBJECT,
+        long mailId = mailSender.send(MailKind.INVITATION, user.getCustomerId(), user.getEmail(), SUBJECT,
                 user.getName() + "님, " + customerName + "의 TX TMS에 초대되었습니다. 아래 링크에서 7일 안에 이름과 "
                         + "비밀번호를 설정하세요.\n" + link);
-        return expiresAt;
+        return new Issued(expiresAt, mailId);
     }
 
     /** Expiry of each user's currently usable invitation link (users without one are absent). */

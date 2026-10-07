@@ -157,6 +157,9 @@ class OpsIntegrationTest extends IntegrationTestBase {
         assertThat(created.path("adminAssigned").asBoolean()).isFalse();
         assertThat(created.path("unassignedDatasetTypes")).hasSize(4);
         assertThat(created.path("createdBy").asLong()).isEqualTo(operator.userId());
+        assertThat(created.path("createdByName").asString()).isEqualTo("정우진");
+        assertThat(byId(getJson(operator, "/api/ops/customers"), cid).path("createdByName").asString())
+                .isEqualTo("정우진");
         Map<String, Object> defaultProject = jdbc.queryForMap(
                 "SELECT id, name, lead_user_id FROM projects WHERE customer_id = ?", cid);
         assertThat(defaultProject.get("name")).isEqualTo("기본 프로젝트");
@@ -304,6 +307,112 @@ class OpsIntegrationTest extends IntegrationTestBase {
         JsonNode audits = getJson(operator, "/api/ops/audit-logs?customerId=" + cid + "&size=100").path("content");
         audits.forEach(a -> assertThat(a.path("customerId").asLong()).isEqualTo(cid));
         assertThat(audits.get(0).path("action").asString()).isEqualTo("프로젝트 발신 정보 변경");
+    }
+
+    @Test
+    void operatorReadsMembersProjectsOutboxAndOperatorNamesOfACustomerEvenWhenInactive() throws Exception {
+        Tenant t = newTenant();
+        long cid = t.customerId();
+        Login operator = login(JUNG_OPERATOR);
+        Login tenantAdmin = login(t.admin());
+        Login req = login(t.requester());
+        String base = "/api/ops/customers/" + cid;
+        String domain = t.requester().substring(t.requester().indexOf('@') + 1);
+
+        // ---- operators only (customer admins included), 401 without a token, NOT_FOUND for a missing customer
+        for (String path : List.of(base + "/members", base + "/projects", "/api/ops/outbox?customerId=" + cid)) {
+            assertThat(expect(403, tenantAdmin, get(path), null).path("message").asString()).as(path)
+                    .isEqualTo("운영 담당자 권한이 필요합니다");
+            expect(403, req, get(path), null);
+            assertThat(mvc.perform(get(path)).andReturn().getResponse().getStatus()).as(path).isEqualTo(401);
+        }
+        expect(404, operator, get("/api/ops/customers/999999/members"), null);
+        expect(404, operator, get("/api/ops/customers/999999/projects"), null);
+        expect(404, operator, get("/api/ops/outbox?customerId=999999"), null);
+
+        // ---- the customer was not created by an operator: no creator name
+        JsonNode row = byId(getJson(operator, "/api/ops/customers"), cid);
+        assertThat(row.has("createdByName")).isTrue();
+        assertThat(row.path("createdByName").isNull()).isTrue();
+
+        // ---- the operator invitation answers the outbox id of its mail (Member keys stay at the top level)
+        String inviteeEmail = "invitee@" + domain;
+        JsonNode invited = expect(201, operator, post(base + "/invitations"), Map.of("email", inviteeEmail,
+                "name", "초대 검수자", "admin", false, "projectId", t.projectId(), "role", "REVIEWER"));
+        long mailId = invited.path("mailId").asLong();
+        assertThat(mailId).isEqualTo(jdbc.queryForObject("SELECT id FROM outbound_emails WHERE to_address = ?",
+                Long.class, inviteeEmail));
+        assertThat(invited.has("member")).isFalse();
+        assertThat(invited.path("user").path("email").asString()).isEqualTo(inviteeEmail);
+        assertThat(invited.path("pending").asBoolean()).isTrue();
+        // the customer admin's invitation keeps the plain Member
+        JsonNode plain = expect(201, tenantAdmin, post("/api/customers/" + cid + "/invitations"),
+                Map.of("email", "plain@" + domain, "name", "일반 초대"));
+        assertThat(plain.has("mailId")).isFalse();
+
+        // ---- outbox of one customer, newest first; demo mode shows the operator the link
+        JsonNode outbox = getJson(operator, "/api/ops/outbox?customerId=" + cid + "&size=100");
+        JsonNode mails = outbox.path("content");
+        assertThat(mails).hasSize(2);
+        mails.forEach(m -> assertThat(m.path("customerId").asLong()).isEqualTo(cid));
+        assertThat(mails.get(0).path("to").asString()).isEqualTo("plain@" + domain);
+        assertThat(mails.get(1).path("id").asLong()).isEqualTo(mailId);
+        assertThat(mails.get(1).path("kind").asString()).isEqualTo("INVITATION");
+        assertThat(mails.get(1).path("masked").asBoolean()).isFalse();
+        assertThat(mails.get(1).path("body").asString()).contains("/invite/" + storedToken(inviteeEmail));
+        assertThat(getJson(operator, "/api/ops/outbox?size=1").path("page").path("totalElements").asLong())
+                .isGreaterThan(outbox.path("page").path("totalElements").asLong());
+
+        // ---- members: the customer admin's list shape, pending users included
+        JsonNode members = getJson(operator, base + "/members");
+        assertThat(members).hasSize(7);
+        assertThat(members.toString()).isEqualTo(getJson(tenantAdmin, "/api/customers/" + cid + "/members")
+                .toString());
+        JsonNode invitee = null;
+        for (JsonNode m : members) {
+            if (m.path("user").path("email").asString().equals(inviteeEmail)) {
+                invitee = m;
+            }
+        }
+        assertThat(invitee).isNotNull();
+        assertThat(invitee.path("pending").asBoolean()).isTrue();
+        assertThat(invitee.path("invitationExpiresAt").isNull()).isFalse();
+        assertThat(invitee.path("projects").get(0).path("roles").get(0).asString()).isEqualTo("REVIEWER");
+
+        // ---- projects: metadata only, no activeRequestCount
+        JsonNode projects = getJson(operator, base + "/projects");
+        assertThat(projects).hasSize(1);
+        assertThat(projects.get(0).path("id").asLong()).isEqualTo(t.projectId());
+        assertThat(projects.get(0).path("templates").get(0).path("code").asString()).isEqualTo("HB_POINT_01");
+        assertThat(projects.get(0).path("senders").get(0).asString()).isEqualTo("1588-0000");
+        assertThat(projects.get(0).has("activeRequestCount")).isFalse();
+
+        // ---- dataset assignment: operator names of the assignment and the confirmation
+        long sms = jdbc.queryForObject("SELECT id FROM datasets WHERE scope = 'SMS' ORDER BY version DESC LIMIT 1",
+                Long.class);
+        JsonNode assigned = expect(200, operator, put(base + "/dataset-assignments/SMS"), Map.of("datasetId", sms));
+        assertThat(assigned.path("assignedByName").asString()).isEqualTo("정우진");
+        assertThat(assigned.has("checkedByName")).isTrue();
+        assertThat(assigned.path("checkedByName").isNull()).isTrue();
+        JsonNode confirmed = expect(200, operator, post(base + "/dataset-assignments/SMS/confirm"), null);
+        assertThat(confirmed.path("checkedBy").asLong()).isEqualTo(operator.userId());
+        assertThat(confirmed.path("checkedByName").asString()).isEqualTo("정우진");
+        JsonNode listed = null;
+        for (JsonNode a : getJson(operator, "/api/ops/dataset-assignments")) {
+            if (a.path("customerId").asLong() == cid && a.path("type").asString().equals("SMS")) {
+                listed = a;
+            }
+        }
+        assertThat(listed).isNotNull();
+        assertThat(listed.path("assignedByName").asString()).isEqualTo("정우진");
+        assertThat(listed.path("checkedByName").asString()).isEqualTo("정우진");
+
+        // ---- an inactive customer stays readable for the operator (the customer API closes it)
+        expect(200, operator, post(base + "/deactivate"), Map.of("reason", "계약 종료"));
+        assertThat(getJson(operator, base + "/members")).hasSize(7);
+        assertThat(getJson(operator, base + "/projects")).hasSize(1);
+        assertThat(getJson(operator, "/api/ops/outbox?customerId=" + cid).path("content")).hasSize(2);
+        expect(404, operator, get("/api/customers/" + cid + "/projects"), null);
     }
 
     @Test

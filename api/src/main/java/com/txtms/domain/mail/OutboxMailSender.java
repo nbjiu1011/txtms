@@ -26,8 +26,9 @@ public class OutboxMailSender implements MailSender {
 
     @Override
     @Transactional
-    public void send(MailKind kind, Long customerId, String to, String subject, String body) {
-        repository.save(new OutboundEmail(kind, customerId, to, subject, body, clock.instant()));
+    public long send(MailKind kind, Long customerId, String to, String subject, String body) {
+        OutboundEmail mail = repository.save(new OutboundEmail(kind, customerId, to, subject, body, clock.instant()));
         log.info("[stub] mail queued in outbox only (not delivered): subject='{}'", subject);
+        return mail.getId();
     }
 }

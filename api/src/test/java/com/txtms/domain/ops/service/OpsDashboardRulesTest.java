@@ -22,7 +22,7 @@ class OpsDashboardRulesTest {
     private static OpsCustomer customer(long id, boolean active, boolean admin, long projects,
             List<ContentType> unassigned) {
         return new OpsCustomer(id, "고객" + id, "c" + id + ".co.kr", id % 2 == 0, active, false, NotifyChannel.IN_APP,
-                3, Instant.EPOCH, null, null, projects, 3, 5, 1, 2, 0, admin, admin ? List.of(ADMIN) : List.of(),
+                3, Instant.EPOCH, null, null, null, projects, 3, 5, 1, 2, 0, admin, admin ? List.of(ADMIN) : List.of(),
                 unassigned);
     }
 
