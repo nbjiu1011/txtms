@@ -96,3 +96,8 @@ app:
   sms:
     customer-center-line: "고객센터 1588-0000"
     opt-out-line: "무료 수신거부 080-000-0000"
+  correction:
+    # Time budget of one regular-expression rule on one text field (catastrophic backtracking guard).
+    rule-timeout: 200ms
+    max-rules: 5000
+    max-file-size: 10MB

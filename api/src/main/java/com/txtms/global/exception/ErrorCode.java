@@ -19,6 +19,10 @@ public enum ErrorCode {
     NO_ELIGIBLE_APPROVER(HttpStatus.CONFLICT, "적격 승인자가 없습니다. 관리자에게 승인자 지정을 요청했습니다"),
     DATASET_NOT_ASSIGNED(HttpStatus.CONFLICT, "유효 교정 데이터셋이 배정되지 않았습니다. 운영 담당자에게 배정을 요청하세요"),
     FILE_REJECTED(HttpStatus.BAD_REQUEST, "파일을 등록할 수 없습니다"),
+    /** Malware scan found a threat (same 400 as FILE_REJECTED; the message is the scan wording). */
+    FILE_UNSAFE(HttpStatus.BAD_REQUEST, "위험 파일 검사 결과: 등록할 수 없습니다"),
+    /** The malware scan service failed (same 400 as FILE_REJECTED; the message is the scan wording). */
+    FILE_SCAN_FAILED(HttpStatus.BAD_REQUEST, "검사 서비스 실패: 등록할 수 없습니다"),
     RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "로그인 시도가 많아 잠시 잠겼습니다. 15분 후 다시 시도하세요"),
     INTERNAL(HttpStatus.INTERNAL_SERVER_ERROR, "일시적인 오류가 발생했습니다. 잠시 후 다시 시도하세요");
 

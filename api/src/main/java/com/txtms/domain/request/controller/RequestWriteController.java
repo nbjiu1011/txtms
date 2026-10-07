@@ -26,6 +26,7 @@ import com.txtms.domain.request.dto.request.SaveContentBody;
 import com.txtms.domain.request.dto.request.WorkflowBody;
 import com.txtms.domain.request.dto.response.BulkPreviewResponse;
 import com.txtms.domain.request.dto.response.ContentResponse;
+import com.txtms.domain.request.dto.response.CorrectionResponses.SubmitCheck;
 import com.txtms.domain.request.dto.response.FileMeta;
 import com.txtms.domain.request.dto.response.ImageResponse;
 import com.txtms.domain.request.dto.response.RequestDetail;
@@ -85,6 +86,11 @@ public class RequestWriteController {
             @RequestBody WorkflowBody body,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         return commands.submit(auth, id, body == null ? null : body.rowVersion(), idempotencyKey);
+    }
+
+    @PostMapping("/api/requests/{id}/submit-check")
+    public SubmitCheck submitCheck(@AuthenticationPrincipal AuthUser auth, @PathVariable String id) {
+        return commands.submitCheck(auth, id);
     }
 
     @PostMapping("/api/requests/{id}/cancel")

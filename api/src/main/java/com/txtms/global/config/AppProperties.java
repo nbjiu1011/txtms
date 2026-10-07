@@ -22,7 +22,8 @@ public record AppProperties(
         Storage storage,
         Content content,
         Bulk bulk,
-        Sms sms) {
+        Sms sms,
+        Correction correction) {
 
     public record Jwt(String secret, Duration accessTokenTtl) {
     }
@@ -73,6 +74,12 @@ public record AppProperties(
 
     /** Notice lines appended to SMS bodies when the flags are set (counted in the LMS byte limit). */
     public record Sms(String customerCenterLine, String optOutLine) {
+    }
+
+    /**
+     * Text correction: time budget of one pattern rule on one field, rules per dataset, dataset XLSX upload size.
+     */
+    public record Correction(Duration ruleTimeout, int maxRules, DataSize maxFileSize) {
     }
 
     public record Demo(boolean enabled, String defaultPassword) {

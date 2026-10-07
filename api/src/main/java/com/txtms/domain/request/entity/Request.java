@@ -215,6 +215,11 @@ public class Request {
         this.submitIdempotencyKey = idempotencyKey;
     }
 
+    /** Round a submit would run in now: the next round after an approved recall, otherwise the current one. */
+    public int nextSubmitRound() {
+        return roundBump ? round + 1 : round;
+    }
+
     /** Cancel before assignment: WAITING → DRAFT, round kept, no round bump on the next submit. */
     public void cancel(Instant now) {
         transitionTo(RequestStatus.DRAFT, now);

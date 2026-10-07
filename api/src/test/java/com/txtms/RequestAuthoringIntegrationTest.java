@@ -119,10 +119,13 @@ class RequestAuthoringIntegrationTest extends IntegrationTestBase {
         assertThat(fake.getResponse().getStatus()).isEqualTo(400);
         assertThat(read(fake).path("code").asString()).isEqualTo("FILE_REJECTED");
         assertThat(read(fake).path("message").asString()).isEqualTo("확장자와 실제 파일 시그니처가 다릅니다");
-        assertThat(read(upload(req, "/api/requests/" + id + "/contents/C3/files", "eicar.txt", EICAR, null))
-                .path("message").asString()).isEqualTo("위험 파일 검사 결과: 등록할 수 없습니다");
-        assertThat(read(upload(req, "/api/requests/" + id + "/contents/C3/files", "a.pdf", PDF, "FAILED"))
-                .path("message").asString()).isEqualTo("검사 서비스 실패 시연: 등록할 수 없습니다");
+        JsonNode unsafe = read(upload(req, "/api/requests/" + id + "/contents/C3/files", "eicar.txt", EICAR, null));
+        assertThat(unsafe.path("code").asString()).isEqualTo("FILE_UNSAFE");
+        assertThat(unsafe.path("message").asString()).isEqualTo("위험 파일 검사 결과: 등록할 수 없습니다");
+        MvcResult scanFailed = upload(req, "/api/requests/" + id + "/contents/C3/files", "a.pdf", PDF, "FAILED");
+        assertThat(scanFailed.getResponse().getStatus()).isEqualTo(400);
+        assertThat(read(scanFailed).path("code").asString()).isEqualTo("FILE_SCAN_FAILED");
+        assertThat(read(scanFailed).path("message").asString()).isEqualTo("검사 서비스 실패 시연: 등록할 수 없습니다");
         assertThat(read(upload(req, "/api/requests/" + id + "/contents/C1/files", "a.exe", PDF, null))
                 .path("message").asString()).isEqualTo("허용 형식: PDF, DOCX, HWP, XLSX, PPTX, TXT, PNG, JPG");
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM request_history WHERE request_id = ? AND action = "

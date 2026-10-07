@@ -53,6 +53,26 @@ approval, 도담생명 without), three projects, twelve users and twelve request
 dates are relative to the seeding moment, so "due soon" and "overdue" examples stay current. To reseed, recreate the
 database (`dev-db.ps1 reset`, or drop and recreate `txtms`).
 
+Correction datasets (`DemoDatasets`): one dataset per content type = the client sample dataset
+(`src/main/resources/demo/correction-sample-dataset.xlsx`, a copy of `docs/교정엔진 샘플 데이터셋.xlsx`, 48 rules, not
+type specific) + the prototype rules P1–P6 (all types) and the type's own (alimtalk P7–P8, SMS P9, RCS P10, free-form
+P11). Assignments: 한빛카드 all four types (confirmed), 도담생명 alimtalk (confirmed), SMS and RCS (not confirmed);
+도담생명 free-form stays unassigned to demonstrate `DATASET_NOT_ASSIGNED`.
+
+The seeder only runs on an empty database. To bring the datasets of an **existing** dev database up to the current
+seed without recreating it, start the API once with `--app.demo.refresh-datasets=true` (demo mode only; any free port,
+the running dev server can keep running), then stop it:
+
+```bash
+java -jar build/libs/api-0.0.1-SNAPSHOT.jar --spring.profiles.active=dev --server.port=8091 --app.demo.refresh-datasets=true
+```
+
+`DemoDatasetRefresher` never changes or deletes dataset versions: per type it adds a new version when the latest one
+differs from the seed, points the demo customers at the latest versions as planned (confirming where planned),
+removes their `COMMON` and unplanned assignments, and audits every change as the demo operator. A second run changes
+nothing. The shared dev database `txtms` was refreshed this way on 2026-10-07 (알림톡 v4, 문자/RCS/자유입력형 v2; the
+old COMMON and type versions stay, unassigned).
+
 Demo accounts log in without a password through `GET /api/auth/demo-personas` + `POST /api/auth/demo-login`.
 For email login tests the dev profile also gives every demo account the password `Txtms!2026`
 (`app.demo.default-password`). Example: `seoyeon.kim@hanbitcard.co.kr` (requester), `dohyun.lee@hanbitcard.co.kr`
@@ -74,11 +94,11 @@ curl -s -b cookies.txt -X POST http://localhost:8080/api/auth/refresh
 
 | Command | What runs | Needs the database |
 |---|---|---|
-| `./gradlew build` | compile + unit tests (policy and visibility, views, due dates, volume, password, session rules, submit validation, payload shape, SMS bytes, links, file signatures, malware stub, request ids, round/version rules, variable rules, XLSX row rules, review transitions, edit lock states, revision decisions, notification recipients and texts, completion/approval transitions, eligible approvers, bundle snapshot, export rows, lineage, archive filters, co-review summary) | no |
+| `./gradlew build` | compile + unit tests (policy and visibility, views, due dates, volume, password, session rules, submit validation, payload shape, SMS bytes, links, file signatures, malware stub, request ids, round/version rules, variable rules, XLSX row rules, review transitions, edit lock states, revision decisions, notification recipients and texts, completion/approval transitions, eligible approvers, bundle snapshot, export rows, lineage, archive filters, co-review summary, correction engine rules and every scenario of the client test-case sheet, dataset XLSX reader and row validation, correction fields, demo datasets, autosave conflict rule) | no |
 | `./gradlew integrationTest` | `@Tag("integration")` tests against `txtms_test` (Flyway clean + migrate, demo seed, HTTP flows) | yes |
 
 Write tests (`RequestAuthoringIntegrationTest`, `VariableIntegrationTest`, `BulkImportIntegrationTest`, `ReviewWorkflowIntegrationTest`,
-`CompletionIntegrationTest`) create their own
+`CompletionIntegrationTest`, `CorrectionIntegrationTest`) create their own
 customer, project and users with `IntegrationTestBase.newTenant()`, so the demo tenants that read tests count on stay
 unchanged. Uploaded files of integration tests go to `build/it-storage`.
 
@@ -110,6 +130,8 @@ com.txtms
     │                 visibility); validation (payload shape, submit and XLSX rules); file (inspection, malware stub);
     │                 RequestCommandService / AttachmentService / BulkImportService (writes),
     │                 CompletionService / BundleExportService / ArchiveService (completion, exports, archive)
+    ├── correction    text correction: engine/ (CorrectionEngine, CorrectionFields — pure), datasets and
+    │                 assignments (DatasetService, XLSX reader, row validation), suggestions; ops controller
     ├── variable      project variables and their change log
     ├── dashboard     project dashboard, reviewer workload
     ├── notification  notifications (read vs. pending work)
@@ -122,7 +144,8 @@ The database schema for every planned feature is in `src/main/resources/db/migra
 `V2__request_authoring.sql` adds `requests.submit_idempotency_key`. The review milestone needs no migration (it uses
 `request_assignment_changes`, `request_reminders`, `contents.lock_*` and `requests.answer_changed` from V1), nor does
 the completion milestone (`completion_bundles`, `completion_bundle_items` and the per-content lineage columns
-`contents.parent_request_id` / `parent_content_key` are in V1).
+`contents.parent_request_id` / `parent_content_key` are in V1), nor does text correction (`datasets`, `dataset_rules`
+with the seven engine columns, `dataset_assignments`, `correction_suggestions` are in V1).
 
 ## Not implemented yet (stubs)
 
@@ -233,4 +256,39 @@ curl -s -H "Authorization: Bearer $REVIEWER_TOKEN" -H "Content-Type: application
 curl -s -o out.xlsx -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/requests/<id>/bundle/export.xlsx
 curl -s -o out.zip  -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/requests/<id>/bundle/attachments.zip
 curl -s -H "Authorization: Bearer $TOKEN" "http://localhost:8080/api/archive/contents?projectId=1"
+```
+
+## Text correction and datasets (M4)
+
+| Area | Endpoints |
+|---|---|
+| Request | `GET /api/requests/{id}/corrections/dataset`, `POST .../corrections/check` (`{ contents: [{ contentKey, payload, hasFiles }] }`), `POST .../corrections/events` (`APPLY`/`RESTORE` history), `POST .../corrections/suggestions` |
+| Operator | `GET`/`POST /api/ops/datasets` (JSON `{ scope, rules }` or multipart `scope` + XLSX `file`), `GET /api/ops/datasets/{id}`, `GET /api/ops/dataset-assignments`, `PUT`/`DELETE /api/ops/customers/{id}/dataset-assignments/{type}`, `POST .../{type}/confirm` |
+| Contract §14 | `POST /api/requests/{id}/submit-check`, `RequestDetail.nextSubmitRound`, autosave `expectedSavedAt` absent/null/value, `FILE_UNSAFE` / `FILE_SCAN_FAILED` |
+
+- `CorrectionEngine` (pure, `domain/correction/engine`) implements the engine specification V0.5 as summarized in
+  actions.md §6.7: ① original expressions ② recommended expressions (protectors) ③ patterns → drop candidates
+  properly contained in a longer span (equal spans stay) → drop candidates equal to their recommendation → group by
+  span (1:N). Case-sensitive, Java `Pattern` without flags, `$N`/`\N` references, `-`/empty = description only,
+  blank text not run, UTF-16 indices, 200 ms budget per pattern rule and field (`app.correction.rule-timeout`).
+  Engines are compiled once per dataset version and cached (versions never change).
+- One dataset per customer × content type (Phase 1; `COMMON` stays in the enum but is neither registered nor assigned).
+  A new registration is always a new version of the scope; assignment changes clear the confirmation. All operator
+  writes are audited (`교정 데이터셋 시드 등록`, `유효 데이터셋 배정/변경/해제/확인`).
+- Check: `EDIT_CONTENT` or `REVIEW` (operators and other customers `NOT_FOUND`), buffer payload checked like an
+  autosave, free-form contents with attachments (buffer flag or stored files) are `excluded`, results are not stored.
+  Events need `EDIT_CONTENT`; suggestions `EDIT_CONTENT` or `REVIEW` (stored in `correction_suggestions`, Phase 2
+  processing).
+- Tests: `CorrectionEngineTest` (spec rules one by one), `CorrectionScenarioTest` (every scenario of
+  `docs/텍스트 교정 테스트 케이스&시나리오_260714.xlsx` against the sample dataset; deviations noted per case),
+  `DatasetImportTest`, `CorrectionFieldsTest`, `CorrectionIntegrationTest`, `DemoDatasetRefresherIntegrationTest`.
+
+Smoke test (correction path, send UTF-8 bodies from files on Windows):
+
+```bash
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/requests/REQ-2609-105/corrections/dataset
+# {"assigned":true,"datasetLabel":"알림톡 v4"}
+curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data-binary @check.json \
+  http://localhost:8080/api/requests/REQ-2609-105/corrections/check     # groups: 할수 → 할 수 (P3)
+curl -s -H "Authorization: Bearer $OPERATOR_TOKEN" -F scope=SMS -F file=@rules.xlsx http://localhost:8080/api/ops/datasets
 ```

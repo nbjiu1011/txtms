@@ -152,7 +152,8 @@ public class RequestAssembler {
 
         return new RequestDetail(summary, r.getPurpose(), r.getTarget(), r.getBackground(), recall, parent,
                 contentResponses, opinionResponses, askResponses, policy.eligibleApprovers(s.project(), s.facts()),
-                coReviewers, entries.size(), stageTimes(entries), bundle(r), allowedActions, r.getRowVersion());
+                coReviewers, entries.size(), stageTimes(entries), bundle(r), allowedActions, r.getRowVersion(),
+                r.nextSubmitRound());
     }
 
     /** Content responses with their files and versions. */

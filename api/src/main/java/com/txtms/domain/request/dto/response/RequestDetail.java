@@ -29,7 +29,8 @@ public record RequestDetail(
         Map<String, Instant> stageTimes,
         BundleResponse bundle,
         Set<RequestAction> allowedActions,
-        long rowVersion) {
+        long rowVersion,
+        int nextSubmitRound) {
 
     public record Recall(Long requestedBy, Instant requestedAt, String reason) {
     }

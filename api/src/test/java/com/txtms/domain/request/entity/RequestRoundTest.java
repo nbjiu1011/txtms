@@ -30,6 +30,7 @@ class RequestRoundTest {
     void firstSubmitKeepsRoundOneAndStampsSubmissionAndDueDate() {
         Request r = draft();
         assertThat(r.getDueDate()).isEqualTo(HOPE); // hope due date also sets the due date while drafting
+        assertThat(r.nextSubmitRound()).isEqualTo(1);
         r.submit(T0.plusSeconds(60), "k1");
         assertThat(r.getStatus()).isEqualTo(RequestStatus.WAITING);
         assertThat(r.getRound()).isEqualTo(1);
@@ -65,9 +66,11 @@ class RequestRoundTest {
         assertThat(r.isRecallPending()).isFalse();
         assertThat(r.isRoundBump()).isTrue();
         assertThat(r.getRound()).isEqualTo(1);
+        assertThat(r.nextSubmitRound()).isEqualTo(2);
         r.submit(T0.plusSeconds(20), null);
         assertThat(r.getRound()).isEqualTo(2);
         assertThat(r.isRoundBump()).isFalse();
+        assertThat(r.nextSubmitRound()).isEqualTo(2);
         assertThat(r.getSubmittedAt()).isEqualTo(T0);
     }
 

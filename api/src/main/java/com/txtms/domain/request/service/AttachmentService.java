@@ -203,10 +203,7 @@ public class AttachmentService {
                 throw new FileRejectedException("이미지는 최대 " + limits.maxImageSize().toMegabytes() + "MB입니다");
             }
             FileInspector.checkSignature(ext, bytes);
-            FileScanStatus scan = scan(bytes, demoOutcome);
-            if (scan != FileScanStatus.SAFE) {
-                throw new FileRejectedException("위험 파일 검사 결과: 등록할 수 없습니다");
-            }
+            scan(bytes, demoOutcome);
             return inTx(() -> {
                 Ctx ctx = recheck(() -> imageContext(auth, id, key));
                 Content c = support.content(ctx, key);
@@ -367,10 +364,11 @@ public class AttachmentService {
         FileScanStatus status = scanner.scan(bytes, demoOutcome);
         return switch (status) {
             case SAFE -> status;
-            case UNSAFE -> throw new FileRejectedException("위험 파일 검사 결과: 등록할 수 없습니다");
-            case FAILED, PENDING -> throw new FileRejectedException(demoOutcome != null && !demoOutcome.isBlank()
-                    ? "검사 서비스 실패 시연: 등록할 수 없습니다"
-                    : "검사 서비스 실패: 등록할 수 없습니다");
+            case UNSAFE -> throw new FileRejectedException(ErrorCode.FILE_UNSAFE, "위험 파일 검사 결과: 등록할 수 없습니다");
+            case FAILED, PENDING -> throw new FileRejectedException(ErrorCode.FILE_SCAN_FAILED,
+                    demoOutcome != null && !demoOutcome.isBlank()
+                            ? "검사 서비스 실패 시연: 등록할 수 없습니다"
+                            : "검사 서비스 실패: 등록할 수 없습니다");
         };
     }
 

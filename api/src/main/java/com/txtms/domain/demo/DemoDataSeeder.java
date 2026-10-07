@@ -28,6 +28,7 @@ import com.txtms.domain.contenttype.entity.ContentTypeSetting;
 import com.txtms.domain.contenttype.entity.WritingGuide;
 import com.txtms.domain.contenttype.repository.ContentTypeSettingRepository;
 import com.txtms.domain.contenttype.repository.WritingGuideRepository;
+import com.txtms.domain.correction.engine.CorrectionRule;
 import com.txtms.domain.customer.entity.Customer;
 import com.txtms.domain.customer.entity.NotifyChannel;
 import com.txtms.domain.customer.repository.CustomerRepository;
@@ -328,42 +329,31 @@ public class DemoDataSeeder implements ApplicationRunner {
             varsByProject.computeIfAbsent(projectId, k -> new ArrayList<>()).add(snapshot);
         }
 
+        /** One dataset v1 per content type and the planned assignments ({@link DemoDatasets}). */
         void seedDatasets() {
-            String[][] common = {
-                    {"R1", "되요", "돼요", "맞춤법"}, {"R2", "안되", "안 되", "띄어쓰기"}, {"R3", "할수", "할 수", "띄어쓰기"},
-                    {"R4", "될수", "될 수", "띄어쓰기"}, {"R5", "금일", "오늘", "쉬운 표현"}, {"R6", "익일", "다음 날", "쉬운 표현"}};
-            String[] click = {"R7", "클릭", "선택", "버튼 안내 표현"};
-            String[] benefit = {"R8", "혜택을 드립니다", "혜택을 받으실 수 있습니다", "고객사 기준 표현"};
-            long common1 = dataset("COMMON", 1, -60, List.of(common).subList(0, 4));
-            long common2 = dataset("COMMON", 2, -20, List.of(common));
-            long alim2 = dataset("ALIMTALK", 2, -45, List.<String[]>of(click));
-            long alim3 = dataset("ALIMTALK", 3, -6, List.of(click, benefit));
-            long sms1 = dataset("SMS", 1, -50, List.<String[]>of(new String[] {"R9", "무료수신거부", "무료 수신거부", "표기 통일"}));
-            long rcs1 = dataset("RCS", 1, -50, List.<String[]>of(new String[] {"R10", "자세히보기", "자세히 보기", "띄어쓰기"}));
-            long free1 = dataset("FREEFORM", 1, -50,
-                    List.<String[]>of(new String[] {"R11", "하였습니다", "했습니다", "간결한 표현"}));
-
-            assign("c1", "COMMON", common2, -20, -19);
-            assign("c1", "ALIMTALK", alim3, -6, -6);
-            assign("c1", "SMS", sms1, -50, -50);
-            assign("c1", "RCS", rcs1, -50, -50);
-            assign("c1", "FREEFORM", free1, -50, -50);
-            assign("c2", "COMMON", common1, -60, -60);
-            assign("c2", "ALIMTALK", alim2, -45, -45);
-            assign("c2", "SMS", sms1, -50, null);
-            assign("c2", "RCS", rcs1, -50, null);
+            Map<ContentType, Long> byType = new HashMap<>();
+            for (ContentType type : ContentType.values()) {
+                byType.put(type, dataset(type.name(), 1, -50, DemoDatasets.rules(type)));
+            }
+            Map<String, String> customerKeys = Map.of(DemoDatasets.HANBIT, "c1", DemoDatasets.DODAM, "c2");
+            for (DemoDatasets.PlannedAssignment a : DemoDatasets.ASSIGNMENTS) {
+                assign(customerKeys.get(a.customerDomain()), a.type().name(), byType.get(a.type()), -45,
+                        a.confirmed() ? -44 : null);
+            }
         }
 
-        long dataset(String scope, int version, int days, List<String[]> rules) {
+        long dataset(String scope, int version, int days, List<CorrectionRule> rules) {
             jdbc.update("INSERT INTO datasets (scope, version, created_at, created_by) VALUES (?, ?, ?, ?)", scope,
                     version, ts(at(days)), id("u5"));
             Long datasetId = jdbc.queryForObject("SELECT id FROM datasets WHERE scope = ? AND version = ?",
                     Long.class, scope, version);
             int order = 0;
-            for (String[] r : rules) {
+            for (CorrectionRule r : rules) {
                 jdbc.update("INSERT INTO dataset_rules (dataset_id, sort_order, rule_id, original_expr, "
                         + "recommended_expr, original_pattern, recommended_pattern, description_label, description) "
-                        + "VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?)", datasetId, order++, r[0], r[1], r[2], r[3], r[3]);
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", datasetId, order++, r.ruleId(), r.originalExpr(),
+                        r.recommendedExpr(), r.originalPattern(), r.recommendedPattern(), r.descriptionLabel(),
+                        r.description());
             }
             return datasetId;
         }

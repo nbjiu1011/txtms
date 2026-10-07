@@ -26,6 +26,7 @@ import com.txtms.domain.request.dto.request.CreateRequestBody;
 import com.txtms.domain.request.dto.request.FollowUpBody;
 import com.txtms.domain.request.dto.request.SaveContentBody;
 import com.txtms.domain.request.dto.response.ContentResponse;
+import com.txtms.domain.request.dto.response.CorrectionResponses.SubmitCheck;
 import com.txtms.domain.request.dto.response.RequestDetail;
 import com.txtms.domain.request.entity.CompletionBundleItem;
 import com.txtms.domain.request.entity.Content;
@@ -396,8 +397,7 @@ public class RequestCommandService {
         if (body == null) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED);
         }
-        if (body.expectedSavedAt() != null && c.getSavedAt() != null
-                && c.getSavedAt().isAfter(body.expectedSavedAt())) {
+        if (SaveConflicts.conflicts(body.expectedSavedAtPresent(), body.expectedSavedAt(), c.getSavedAt())) {
             throw new BusinessException(ErrorCode.VERSION_CONFLICT,
                     "다른 탭에서 더 최신 내용이 저장되었습니다. 최신 내용을 다시 불러오세요");
         }
@@ -473,6 +473,21 @@ public class RequestCommandService {
                     "신규 검수 요청이 배정을 기다립니다: " + r.getTitle() + due, ctx.userId());
         }
         return support.detail(ctx);
+    }
+
+    /**
+     * Submit pre-check (SUBMIT): the same validation as {@link #submit} without a state change or a row version, so
+     * the confirmation dialog can list what is missing first.
+     */
+    public SubmitCheck submitCheck(AuthUser auth, String id) {
+        Ctx ctx = support.lock(auth, id);
+        support.require(ctx, RequestAction.SUBMIT);
+        List<Content> current = support.currentContents(ctx.request().getId());
+        Map<Long, List<ContentFile>> filesByContent = new HashMap<>();
+        current.forEach(c -> filesByContent.put(c.getId(),
+                files.findByContentIdAndDeletedFalseOrderBySortOrderAsc(c.getId())));
+        SubmitValidator.Result result = submitValidator.validate(validationInput(ctx, current, filesByContent, true));
+        return new SubmitCheck(result.ok(), result.details(), result.fieldErrors());
     }
 
     private void snapshotOnSubmit(Content c, List<ContentFile> fs, boolean firstSubmit, long userId, Instant now) {
