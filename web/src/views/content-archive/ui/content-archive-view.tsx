@@ -40,10 +40,17 @@ export function ContentArchiveView({ me, context, openTab }: WorkViewProps) {
     return (
       <Page wide>
         <PageHeader title="콘텐츠" description={DESCRIPTION} />
-        <Empty
-          title="이 프로젝트의 콘텐츠를 볼 권한이 없습니다"
-          description="프로젝트 구성원이 아니면 요청과 콘텐츠를 조회할 수 없습니다."
-        />
+        {me.operator ? (
+          <Empty
+            title="운영 담당자는 콘텐츠를 조회하지 않습니다"
+            description="고객사 콘텐츠 조회 권한은 제공하지 않습니다. 고객사 초기 설정과 교정 기준은 운영 관리 메뉴에서 운영합니다."
+          />
+        ) : (
+          <Empty
+            title="이 프로젝트의 콘텐츠를 볼 권한이 없습니다"
+            description="프로젝트 구성원이 아니면 요청과 콘텐츠를 조회할 수 없습니다."
+          />
+        )}
       </Page>
     );
   }

@@ -14,7 +14,7 @@ import {
   noticeFormProblem,
   type NoticeForm,
 } from "../model/notice-form";
-import { useServerError } from "../model/server-error";
+import { useServerError } from "@/shared/ui";
 import styles from "./admin.module.css";
 
 export interface NoticeEditDialogProps {

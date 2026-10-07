@@ -1,5 +1,5 @@
 import type { Project, ProjectUpsert } from "@/entities/project";
-import { firstMissing } from "./form-checks";
+import { firstMissing } from "@/shared/lib";
 
 export interface ProjectForm {
   name: string;

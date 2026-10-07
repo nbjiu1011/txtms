@@ -1,0 +1,109 @@
+.block {
+  margin-bottom: 18px;
+}
+/* reference `.tbl.mx` */
+.mx td,
+.mx th {
+  vertical-align: middle;
+}
+.cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 150px;
+}
+select.cellSel {
+  height: 30px;
+  min-height: 30px;
+  padding: 3px 8px;
+  font-size: 12px;
+}
+.ck {
+  font-size: 11px;
+  color: var(--faint);
+}
+.unchecked {
+  color: var(--s-wait);
+}
+.confirm {
+  align-self: flex-start;
+}
+.rowSub {
+  font-size: 12px;
+  color: var(--faint);
+  font-weight: 400;
+}
+select.headSel {
+  margin-left: auto;
+  width: auto;
+  height: 30px;
+  min-height: 30px;
+  padding: 3px 8px;
+  font-size: 12px;
+}
+.effRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.effType {
+  min-width: 90px;
+}
+.effType b {
+  font-weight: 500;
+}
+.sp {
+  flex: 1;
+}
+.mutedSmall {
+  font-size: 12px;
+  color: var(--sub);
+}
+.faintSmall {
+  font-size: 12px;
+  color: var(--faint);
+}
+p.faintSmall {
+  margin: 12px 0 0;
+}
+.faintNote {
+  font-size: 12px;
+  color: var(--faint);
+  margin: 12px 0 0;
+}
+.small {
+  font-size: 12px;
+}
+.faint {
+  color: var(--faint);
+}
+.num {
+  font-variant-numeric: tabular-nums;
+}
+/* data set page header: title with the 배정표 button next to it */
+.dsHead {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.dsHead h1 {
+  font-size: 24px;
+  line-height: 1.3;
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.lead {
+  margin: 0 0 14px;
+}
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

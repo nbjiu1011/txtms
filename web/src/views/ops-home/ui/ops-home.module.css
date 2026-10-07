@@ -1,0 +1,47 @@
+/* page header (.today / .hello) — same as the role dashboard */
+.today {
+  font-size: 13px;
+  color: var(--sub);
+  margin-bottom: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.today::before {
+  content: "";
+  width: 18px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--brand);
+}
+div.hello h1 {
+  font-size: 28px;
+  letter-spacing: -0.03em;
+}
+@media (max-width: 860px) {
+  div.hello h1 {
+    font-size: 22px;
+  }
+}
+.dash {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 18px;
+}
+.dash > div {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+@media (max-width: 1180px) {
+  .dash {
+    grid-template-columns: 1fr;
+  }
+}
+.headBtn {
+  margin-left: auto;
+}
+.autoChip {
+  width: auto;
+}

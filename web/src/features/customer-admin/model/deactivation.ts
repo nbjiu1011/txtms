@@ -1,6 +1,6 @@
 import type { DeactivationImpact, Member } from "@/entities/user";
 import type { RequestSummary } from "@/entities/request";
-import { firstMissing } from "./form-checks";
+import { firstMissing } from "@/shared/lib";
 
 export const DEACTIVATION_PRE_BLOCK =
   "확인 요청·승인 대기 중에는 담당자를 변경할 수 없습니다. 해당 업무를 먼저 처리하세요";

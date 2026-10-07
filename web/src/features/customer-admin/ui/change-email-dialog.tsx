@@ -5,10 +5,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { serverFormError } from "@/shared/api";
 import { Banner, ErrorDetails, Field, Input, Modal, toast } from "@/shared/ui";
 import { memberApi, type Member } from "@/entities/user";
-import { EXTERNAL_DOMAIN_TOAST, isEmailFormat, isExternalEmail } from "../model/form-checks";
+import { isEmailFormat, isExternalEmail } from "@/shared/lib";
+import { EXTERNAL_DOMAIN_TOAST } from "@/entities/user";
 import { normalizeEmail } from "../model/invite-form";
 import { invalidateUserData } from "../model/invalidate";
-import { useServerError } from "../model/server-error";
+import { useServerError } from "@/shared/ui";
 
 export interface ChangeEmailDialogProps {
   open: boolean;

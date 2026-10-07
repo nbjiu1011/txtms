@@ -13,7 +13,7 @@ import {
   type VariableType,
 } from "@/entities/variable";
 import { initialVariableForm, variableFormProblem, variablePatch, type VariableForm } from "../model/variable-form";
-import { useServerError } from "../model/server-error";
+import { useServerError } from "@/shared/ui";
 
 export interface VariableDialogProps {
   open: boolean;

@@ -3,10 +3,11 @@
 import { Avatar, Button, Page, PageHeader, Panel, PanelBody, PanelHeader } from "@/shared/ui";
 import { useSessionStore } from "@/entities/me";
 import { logout } from "@/features/auth";
+import { SampleResetButton } from "@/features/ops-admin";
 import { ProfileForm } from "@/features/profile-edit";
 import styles from "./profile-view.module.css";
 
-/** `profile` tab — 내 설정: profile, display note and logout. */
+/** `profile` tab — 내 설정: profile, display note, demo data reset (operators) and logout. */
 export function ProfileView() {
   const me = useSessionStore((s) => s.me);
   if (!me) return null;
@@ -33,6 +34,17 @@ export function ProfileView() {
             <p className={styles.note}>밝은 테마로 표시합니다. 다크 테마는 추후 제공됩니다.</p>
           </PanelBody>
         </Panel>
+        {me.operator ? (
+          <Panel>
+            <PanelHeader title="시연 데이터" />
+            <PanelBody>
+              <p className={styles.lead}>
+                샘플 고객사의 요청을 기본 체험 상태로 되돌립니다. 실제 고객사 데이터는 유지됩니다.
+              </p>
+              <SampleResetButton />
+            </PanelBody>
+          </Panel>
+        ) : null}
         <Panel>
           <PanelHeader title="계정" />
           <PanelBody>

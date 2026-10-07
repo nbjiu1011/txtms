@@ -1,5 +1,5 @@
 import type { Notice, NoticeScope, NoticeUpsert } from "@/entities/notice";
-import { firstMissing } from "./form-checks";
+import { firstMissing } from "@/shared/lib";
 
 export interface NoticeForm {
   scope: NoticeScope;

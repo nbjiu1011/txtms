@@ -1,0 +1,137 @@
+/* operator modals (reference `opsCustNew`, `seed*`, `datasetSeed`) */
+.small {
+  font-size: 12px;
+  margin: 12px 0;
+}
+.smallMuted {
+  font-size: 12px;
+  color: var(--sub);
+  margin: 12px 0;
+}
+.faint {
+  color: var(--faint);
+}
+.smallFaint {
+  font-size: 12px;
+  color: var(--faint);
+}
+.preview {
+  font-size: 12px;
+  color: var(--sub);
+}
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+}
+@media (max-width: 860px) {
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+}
+.ta {
+  min-height: 84px;
+}
+.code {
+  min-height: 140px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+.chkRow {
+  margin-top: 2px;
+}
+.link {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  font-size: 13px;
+}
+/* rule preview box (`.ro-box small`) */
+.roBox {
+  font-size: 12px;
+}
+.roBox b {
+  display: block;
+  margin-bottom: 4px;
+}
+.roBox div {
+  padding: 1px 0;
+}
+.muted {
+  color: var(--sub);
+}
+/* list editors (templates / senders) */
+.editorH {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 8px;
+}
+.editorH h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+.count {
+  font-size: 12px;
+  color: var(--faint);
+}
+.add {
+  margin-left: auto;
+}
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.tplRow {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr) auto;
+  gap: 8px;
+  align-items: start;
+}
+.sndRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+}
+.rowFld {
+  margin: 0;
+}
+.emptyRows {
+  font-size: 12px;
+  color: var(--faint);
+  padding: 10px 12px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-md);
+}
+/* dataset rules table inside the modal */
+.rulesWrap {
+  max-height: 60vh;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.desc {
+  font-size: 12px;
+  color: var(--sub);
+  max-width: 320px;
+}
+.file {
+  display: block;
+  font-size: 13px;
+}
+.detailsScroll {
+  max-height: 220px;
+  overflow: auto;
+}
+.segRow {
+  margin-bottom: 14px;
+}

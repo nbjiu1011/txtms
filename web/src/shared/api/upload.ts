@@ -6,6 +6,8 @@ export interface UploadOptions {
   /** Multipart field name (default `file`). */
   field?: string;
   headers?: Record<string, string>;
+  /** Extra multipart text fields sent before the file (e.g. `scope`). */
+  fields?: Record<string, string>;
   /** Called once the request body has been sent (the server is now inspecting the file). */
   onSent?: () => void;
   signal?: AbortSignal;
@@ -52,6 +54,7 @@ function parse(result: XhrResult): unknown {
 export async function uploadFile<T>(path: string, file: Blob, options: UploadOptions = {}): Promise<T> {
   const form = () => {
     const body = new FormData();
+    for (const [name, value] of Object.entries(options.fields ?? {})) body.append(name, value);
     body.append(options.field ?? "file", file, file instanceof File ? file.name : "file");
     return body;
   };

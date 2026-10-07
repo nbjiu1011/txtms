@@ -7,10 +7,10 @@ import { Banner, ErrorDetails, Field, Input, Modal, Select, toast } from "@/shar
 import type { Customer } from "@/entities/customer";
 import type { Project, ProjectRole } from "@/entities/project";
 import { memberApi } from "@/entities/user";
-import { isExternalEmail } from "../model/form-checks";
+import { isExternalEmail } from "@/shared/lib";
 import { INVITE_DONE_TOAST, inviteRoleOptions, inviteStep, normalizeEmail, type InviteForm } from "../model/invite-form";
 import { invalidateUserData } from "../model/invalidate";
-import { useServerError } from "../model/server-error";
+import { useServerError } from "@/shared/ui";
 import styles from "./admin.module.css";
 
 export interface InviteUserDialogProps {

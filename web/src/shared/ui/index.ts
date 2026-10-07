@@ -42,3 +42,6 @@ export type { PopoverProps } from "./overlay/popover";
 export { Toaster, toast, useToastStore, TOAST_DURATION_MS } from "./overlay/toast";
 export { ESCAPE_PRIORITY, useEscapeLayer } from "./overlay/escape-stack";
 export { useMounted } from "./overlay/use-mounted";
+export { Pager } from "./pager";
+export type { PagerProps } from "./pager";
+export { inlineError, useServerError } from "./use-server-error";

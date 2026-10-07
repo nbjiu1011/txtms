@@ -1,0 +1,200 @@
+import { describe, expect, it } from "vitest";
+import type { OpsTodo } from "@/entities/ops";
+import {
+  customerBody,
+  customerFormProblem,
+  deactivateProblem,
+  domainPreview,
+  isDomainFormat,
+  normalizeDomain,
+} from "./customer-form";
+import { parseRulesJson, xlsxFileProblem } from "./dataset-form";
+import { opsInviteStep, type OpsInviteForm } from "./invite-form";
+import { decodeOpsIntent, encodeOpsIntent, todoTarget } from "./ops-intent";
+import { firstProblem, normalizeSending, sameSenders, sameTemplates, sendingProblems } from "./sending-form";
+
+const existing = [{ name: "한빛카드", domain: "hanbitcard.co.kr" }];
+
+describe("customer create (reference opsCustNew, contract §12)", () => {
+  it("normalises the domain like the server and shows the stored value", () => {
+    expect(normalizeDomain("  @Saebom.CO.KR ")).toBe("saebom.co.kr");
+    expect(domainPreview("@Saebom.CO.KR")).toBe("저장 값: saebom.co.kr");
+    expect(domainPreview("saebom.co.kr")).toBeNull();
+    expect(domainPreview("")).toBeNull();
+  });
+
+  it("checks name, domain, format and duplicates in order", () => {
+    const form = { name: "", domain: "", approvalEnabled: false };
+    expect(customerFormProblem(form, existing)).toEqual({ message: "고객사 이름을(를) 입력하세요", field: "name" });
+    expect(customerFormProblem({ ...form, name: "새봄은행" }, existing)).toEqual({
+      message: "회사 도메인을(를) 입력하세요",
+      field: "domain",
+    });
+    expect(customerFormProblem({ ...form, name: "새봄은행", domain: "saebom" }, existing)?.message).toBe(
+      "도메인 형식을 확인하세요",
+    );
+    expect(customerFormProblem({ ...form, name: "새봄은행", domain: "@HanbitCard.co.kr" }, existing)?.message).toBe(
+      "한빛카드이(가) 같은 도메인을 쓰고 있습니다. 중복 허용 여부는 협의 23 결정 전까지 막습니다",
+    );
+    expect(customerFormProblem({ ...form, name: "새봄은행", domain: "@Saebom.co.kr" }, existing)).toBeNull();
+  });
+
+  it("follows the API host name rule (labels, final label of letters)", () => {
+    expect(isDomainFormat("a-b.example.com")).toBe(true);
+    expect(isDomainFormat("-ab.example.com")).toBe(false);
+    expect(isDomainFormat("example.c0m")).toBe(false);
+    expect(isDomainFormat("example.k")).toBe(false);
+  });
+
+  it("sends the trimmed name and normalised domain", () => {
+    expect(customerBody({ name: " 새봄은행 ", domain: "@SAEBOM.co.kr", approvalEnabled: true })).toEqual({
+      name: "새봄은행",
+      domain: "saebom.co.kr",
+      approvalEnabled: true,
+    });
+  });
+
+  it("requires a deactivation reason, then refuses while requests are in progress", () => {
+    expect(deactivateProblem(" ", 0)).toBe("비활성 사유을(를) 입력하세요");
+    expect(deactivateProblem("계약 종료", 2)).toBe("진행 중 요청 2건을 먼저 정리하거나 담당자와 합의해야 합니다");
+    expect(deactivateProblem("계약 종료", 0)).toBeNull();
+  });
+});
+
+describe("operator invitation (J:216 + J:289)", () => {
+  const form: OpsInviteForm = { email: "Admin@Partner.com", name: "관리자", dept: "", projectId: "", role: "REQUESTER" };
+
+  it("asks once for an external address, then sends the first admin without a project", () => {
+    const ask = opsInviteStep(form, { domain: "saebom.co.kr", admin: true }, "");
+    expect(ask).toMatchObject({ kind: "ask", confirmedEmail: "admin@partner.com" });
+    expect(opsInviteStep(form, { domain: "saebom.co.kr", admin: true }, "admin@partner.com")).toEqual({
+      kind: "send",
+      body: {
+        email: "admin@partner.com",
+        name: "관리자",
+        dept: "",
+        admin: true,
+        projectId: null,
+        role: null,
+        externalDomainConfirmed: true,
+      },
+    });
+  });
+
+  it("needs a project for business users and checks the format", () => {
+    const company = { ...form, email: "lee@saebom.co.kr" };
+    expect(opsInviteStep(company, { domain: "saebom.co.kr", admin: false }, "")).toEqual({
+      kind: "invalid",
+      message: "프로젝트가 필요합니다",
+    });
+    expect(opsInviteStep({ ...company, projectId: "7", role: "REVIEWER" }, { domain: "saebom.co.kr", admin: false }, ""))
+      .toMatchObject({ kind: "send", body: { projectId: 7, role: "REVIEWER", admin: false, externalDomainConfirmed: false } });
+    expect(opsInviteStep({ ...company, email: "lee@" }, { domain: "x.com", admin: true }, "lee@")).toEqual({
+      kind: "invalid",
+      message: "이메일 형식 또는 중복을 확인하세요",
+    });
+    expect(opsInviteStep({ ...company, name: " " }, { domain: "saebom.co.kr", admin: true }, "")).toEqual({
+      kind: "invalid",
+      message: "이름을(를) 입력하세요",
+    });
+  });
+});
+
+describe("templates and senders editor (contract §12 PUT templates|senders)", () => {
+  it("reports problems keyed like the API fieldErrors", () => {
+    const problems = sendingProblems({
+      templates: [
+        { code: "HB_POINT_01", name: "포인트" },
+        { code: "hb_point_01", name: "중복" },
+        { code: "한글코드", name: "" },
+        { code: "", name: "이름" },
+      ],
+      senders: ["1588-0000", "1588-0000", "12345", ""],
+    });
+    expect(problems).toEqual({
+      "templates.1.code": "템플릿 코드 hb_point_01이(가) 중복됩니다",
+      "templates.2.code": "템플릿 코드는 영문, 숫자, _, -만 쓸 수 있습니다",
+      "templates.2.name": "템플릿 이름을 입력하세요",
+      "templates.3.code": "템플릿 코드를 입력하세요",
+      "senders.1": "발신번호 1588-0000이(가) 중복됩니다",
+      "senders.2": "발신번호 형식을 확인하세요 (예: 1588-0000, 02-3456-7000)",
+      "senders.3": "발신번호를 입력하세요",
+    });
+    expect(firstProblem(problems)).toBe("템플릿 코드 hb_point_01이(가) 중복됩니다");
+  });
+
+  it("accepts area, mobile and representative numbers with or without hyphens", () => {
+    const ok = sendingProblems({ templates: [], senders: ["02-3456-7000", "0313456789", "010-1234-5678", "15880000"] });
+    expect(ok).toEqual({});
+    expect(sendingProblems({ templates: [{ code: "A".repeat(51), name: "x" }], senders: [] })).toEqual({
+      "templates.0.code": "템플릿 코드는 최대 50자입니다",
+    });
+  });
+
+  it("trims values and compares lists in order", () => {
+    const next = normalizeSending({ templates: [{ code: " A1 ", name: " 안내 " }], senders: [" 1588-0000 "] });
+    expect(next).toEqual({ templates: [{ code: "A1", name: "안내" }], senders: ["1588-0000"] });
+    expect(sameTemplates(next.templates, [{ code: "A1", name: "안내" }])).toBe(true);
+    expect(sameSenders(["1", "2"], ["2", "1"])).toBe(false);
+  });
+});
+
+describe("dataset registration input", () => {
+  it("parses a JSON rule array (camelCase or the XLSX column names)", () => {
+    expect(parseRulesJson('[{"ruleId":"R1","originalExpr":"되요","recommendedExpr":"돼요"}]')).toEqual({
+      rules: [{ ruleId: "R1", originalExpr: "되요", recommendedExpr: "돼요" }],
+    });
+    expect(parseRulesJson('[{"rule_id":"R2","original_pattern":"(\\\\d+)원","recommended_pattern":"$1 원","x":1}]')).toEqual({
+      rules: [{ ruleId: "R2", originalPattern: "(\\d+)원", recommendedPattern: "$1 원" }],
+    });
+  });
+
+  it("refuses what is not a non-empty array of objects", () => {
+    expect(parseRulesJson("")).toEqual({ error: "규칙 JSON 배열을(를) 입력하세요" });
+    expect(parseRulesJson("{}")).toEqual({ error: "규칙 배열을 입력하세요" });
+    expect(parseRulesJson("[]")).toEqual({ error: "규칙 배열을 입력하세요" });
+    expect(parseRulesJson("[1]")).toEqual({ error: "규칙은 객체로 입력하세요" });
+    expect("error" in parseRulesJson("[{")).toBe(true);
+    expect((parseRulesJson("[{") as { error: string }).error).toMatch(/^JSON 형식을 확인하세요/);
+  });
+
+  it("checks the workbook before upload", () => {
+    expect(xlsxFileProblem(null)).toBe("파일을 선택하세요");
+    expect(xlsxFileProblem(new File(["a"], "rules.csv"))).toBe("XLSX 파일만 등록할 수 있습니다");
+    expect(xlsxFileProblem(new File(["a"], "rules.xlsx"))).toBeNull();
+  });
+});
+
+describe("operator hand-offs", () => {
+  const todo: OpsTodo = {
+    kind: "ASSIGN_DATASETS",
+    label: "유효 데이터셋 1개 조합 배정",
+    route: "opsStandards",
+    sub: "assign",
+    customerId: 2,
+    customerName: "도담생명",
+    customerDomain: "dodamlife.com",
+    approvalEnabled: false,
+    count: 1,
+  };
+
+  it("maps a todo to its tab and the customer / sub tab to select", () => {
+    expect(todoTarget(todo)).toEqual({
+      ref: { route: "opsStandards", params: {} },
+      view: "opsStandards",
+      intent: { customerId: 2, sub: "assign" },
+    });
+    expect(todoTarget({ ...todo, kind: "INVITE_ADMIN", route: "opsSetup", sub: null })).toEqual({
+      ref: { route: "opsSetup", params: {} },
+      view: "opsSetup",
+      intent: { customerId: 2 },
+    });
+    expect(todoTarget({ ...todo, route: "unknown" })).toBeNull();
+  });
+
+  it("round-trips the intent payload and ignores garbage", () => {
+    expect(decodeOpsIntent(encodeOpsIntent({ customerId: 3, sub: "types" }))).toEqual({ customerId: 3, sub: "types" });
+    expect(decodeOpsIntent("not json")).toBeNull();
+    expect(decodeOpsIntent(undefined)).toBeNull();
+  });
+});

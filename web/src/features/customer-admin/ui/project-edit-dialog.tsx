@@ -7,7 +7,7 @@ import type { Customer } from "@/entities/customer";
 import { projectApi, projectKeys, type Project } from "@/entities/project";
 import type { UserSummary } from "@/entities/user";
 import { initialProjectForm, projectBody, projectFormProblem, type ProjectForm } from "../model/project-form";
-import { useServerError } from "../model/server-error";
+import { useServerError } from "@/shared/ui";
 import styles from "./admin.module.css";
 
 export interface ProjectEditDialogProps {

@@ -27,7 +27,8 @@ export function TabView({ tab, active, views, access, contextReady, me, context,
   const setTitle = useCallback((title: string | null) => useTabStore.getState().setTitle(tab.id, title), [tab.id]);
   const def = ROUTES[tab.route];
 
-  if (def.access !== "always" && !contextReady) return null;
+  // operator screens keep their own customer selection and do not wait for the top bar context
+  if (def.access !== "always" && def.access !== "ops" && !contextReady) return null;
   if (!canAccessRoute(def.access, access)) {
     return (
       <AccessDenied

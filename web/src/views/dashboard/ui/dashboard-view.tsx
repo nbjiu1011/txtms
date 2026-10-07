@@ -26,7 +26,7 @@ interface ListModalState {
   params: RequestListParams;
 }
 
-/** Role dashboard of the selected project (reference `vHome`). */
+/** Role dashboard of the selected project (reference `vHome`; operators get the ops dashboard instead). */
 export function DashboardView({ me, context, openTab }: WorkViewProps) {
   const { projectId, customerId, project } = context;
   const dashboard = useDashboard(me.operator ? null : projectId);
@@ -36,22 +36,11 @@ export function DashboardView({ me, context, openTab }: WorkViewProps) {
   const today = <div className={styles.today}>{formatKstToday()}</div>;
   const openRequest = (id: string) => openTab({ route: "request", params: { id } });
 
-  if (me.operator) {
-    return (
-      <Page>
-        <PageHeader className={styles.hello} eyebrow={today} rawEyebrow title={`${me.name}님, 운영 현황입니다`} />
-        <Panel>
-          <Empty title="운영 대시보드는 준비 중입니다" description="고객사 초기 설정과 운영 현황은 다음 업데이트에서 제공됩니다." />
-        </Panel>
-      </Page>
-    );
-  }
-
   const header = (
     <PageHeader
       className={styles.hello}
       eyebrow={today}
-        rawEyebrow
+      rawEyebrow
       title={`${me.name}님, 오늘 처리할 업무입니다`}
       description={project ? `${project.name} 프로젝트 기준입니다.` : undefined}
       actions={

@@ -35,7 +35,8 @@ section is hidden) and protected URLs redirect to `/login?next=…`.
 | `npm run e2e:real:result` | completion results, exports, follow-ups and the content archive against a running API (see below) |
 | `npm run e2e:real:correction` | text correction (check, apply / swap / restore, full check, suggestions) against a running API (see below) |
 | `npm run e2e:real:admin` | customer admin screens, notices and performance against a running API (see below) |
-| `npm run e2e:real:admin-visual` | M5/M6 screens and modals next to the prototype, app on the running API (see below) |
+| `npm run e2e:real:admin-visual` | M5/M6/M7 screens and modals next to the prototype, app on the running API (see below) |
+| `npm run e2e:real:ops` | solution operator screens (customers, initial setup, standards) against a running API (see below) |
 
 ### Visual comparison harness (`e2e/visual/`)
 
@@ -164,6 +165,29 @@ admin pages and the project / variable / invite / role / notice modals as `visua
 added projects). Intended differences: data, enum labels for variable types, no operator notices (Phase 2), the
 `접근·변경 기록` sub tab and the outbox title.
 
+### Real-API flow (`e2e/real/ops-flow.mjs`)
+
+정우진 (solution operator, 15 steps): 운영 대시보드 (three KPIs, no 내 지원 접근, the project select reads 참여 프로젝트 없음) →
+요청 / 콘텐츠 show the operator's no-content state → 고객사 생성 (required toast, `도메인 형식을 확인하세요`, duplicate domain of
+한빛카드, the normalised domain shown under the field) → 초기 설정·시드 opens on the new customer with its 기본 프로젝트 and no
+sample actions → 첫 고객사 관리자 초대 of an external address (warning, first click = confirmation toast, second click
+invites, result modal with the queued mail) → 초기 업무 사용자 초대 (company domain, 요청자) → 발신 정보 (row validation, then a
+template and a sender saved) → 유효 데이터셋 배정 for all four types (an older version first, then the newest — the
+confirmation resets — and 확인 처리) → 미배정 + 최신 배포본 시드 (assign + confirm) → 유형 관리 RCS off (matrix select disabled)
+and on → 데이터셋 등록: JSON rows refused with `{행}행: …` details, then the sample XLSX
+(`api/src/main/resources/demo/correction-sample-dataset.xlsx`) as a new 자유입력형 version and its rules → 샘플 요청 생성 and
+샘플만 초기화 on 한빛카드 → 운영 이력 (filtered by the test customer, paged), 설정 이력 and 메일 발송 대기함 → 시연 데이터 초기화
+modal cancelled → 비활성 (reason required) as cleanup. Each run adds one dataset version and leaves an inactive test
+customer; the content types are restored even when a step fails. Screenshots `ops-*.png`.
+
+`admin-visual.mjs` also captures the operator screens and modals (`ops-*-u5`): 대시보드 2.2%, 유형 관리 0.3%, the other
+screens and modals 3–6.5% differing pixels — dev DB data (more customers and versions, E2E leftovers). Intended
+differences: no `내 지원 접근` KPI / panel (Phase 2); 고객사 관리 shows 상세 and 프로젝트·요청 side by side instead of the
+reference's empty right column, plus a customer filter on 운영 이력; 초기 설정·시드 adds the 메일 발송 대기함 and 프로젝트
+발신 정보 panels and a 데이터셋 등록 button, without the 공통 row (Phase 2); the assignment matrix has no 공통 column; the
+dataset modal takes an XLSX upload or JSON in the contract's 7-column keys instead of the reference's `mode/p/s/r` JSON;
+목업 시드 checkboxes are read-only (Phase 2).
+
 Against the real API: `API_ORIGIN=http://localhost:8080 npm run dev`, then sign in with a demo persona.
 If a dev server already runs, `VISUAL_PORT=3000 npm run e2e:visual` reuses it.
 
@@ -176,7 +200,8 @@ src/
 │                  globals.css (tokens), providers.tsx
 ├─ views/          login, token-password, dashboard, request-list, request-detail (+ content tab), review,
 │                  approval, content-archive, performance, notices, admin-projects, admin-variables,
-│                  admin-users, admin-customer, admin-notices, profile
+│                  admin-users, admin-customer, admin-notices, ops-home, ops-customers, ops-setup,
+│                  ops-standards, profile
 ├─ widgets/        app-shell (sidebar, top bar, work tabs, popovers, tab store), auth-layout (login hero),
 │                  workload-table (검수자별 업무량, shared by 검수 › 배정 관리 and 업무량·실적)
 ├─ features/       auth (login, demo personas, reset request, token password, session), profile-edit,
@@ -184,7 +209,9 @@ src/
 │                  asks/answers, completion, approval, unlock), completed-output (copy,
 │                  XLSX/ZIP export), variable-picker, bulk-import, text-correction (panel, cards,
 │                  apply/restore offsets, freshness, 건의하기), customer-admin (project, variable, invite, roles,
-│                  deactivation, email, notice and settings forms; row actions)
+│                  deactivation, email, notice and settings forms; row actions), ops-admin (customer create /
+│                  deactivate, setup project / invitations, templates and senders, dataset register / rules /
+│                  seed, samples, demo reset, operator hand-offs)
 ├─ entities/       me, customer, project, user, request, variable, correction, dashboard,
 │                  notification, notice, audit, ops — contract types + label maps (+ small queries)
 └─ shared/         api (http client, XHR upload, blob GET, ApiError, query client/keys), config (env, routes), lib, ui (kit + icons)
@@ -218,6 +245,9 @@ URL scheme (`src/shared/config/routes.ts`, `pathToTab` / `tabToPath`):
   (`tab`, `active`, `setDirty`, `setTitle`).
 - Only the tab list (`{ route, params }[]`) is persisted, per user, in `localStorage` (`txtms:tabs:{userId}`).
   The selected customer/project is remembered the same way (`txtms:context:{userId}`).
+- Operators have no project context (the top bar offers member / admin projects only — reference `myProjects`), so
+  요청 / 콘텐츠 / 공지 show their empty or no-content states; operator screens keep their own customer selection and do
+  not wait for the top bar context. The add-tab popover lists work and customer admin menus only (reference).
 - Menus show routes that are implemented (`ROUTES[key].enabled`) and allowed for the current
   customer/project (`canAccessRoute`). A disallowed direct URL shows the access-denied view.
 
@@ -237,8 +267,8 @@ URL scheme (`src/shared/config/routes.ts`, `pathToTab` / `tabToPath`):
 | `/login` | done — hero, email/password (+ 로그인 유지), 비밀번호 재설정 request modal, demo personas (`GET /api/auth/demo-personas`, hidden when unavailable) |
 | `/invite/[token]`, `/reset/[token]` | done — token check, set password + automatic sign-in, invalid-link state |
 | app shell | done — sidebar, customer/project context, approval tag, notification popover, user/persona popover, work tabs |
-| `/profile` | done — name/department (`PATCH /api/me`), logout |
-| `/` | done — `+새 요청` (requesters), role dashboard (`GET /api/projects/{id}/dashboard`): today (KST), pipeline + stage modal (`status=`), KPI tiles + list modal (same `view`, `customerId` for customer views), 지금 처리할 일, 최근 요청, 검수자별 업무량 (lead), 공지 (static rows). Operators: placeholder until the ops dashboard |
+| `/profile` | done — name/department (`PATCH /api/me`), 시연 데이터 초기화 for operators (`POST /api/ops/sample-reset`), logout |
+| `/` | done — `+새 요청` (requesters), role dashboard (`GET /api/projects/{id}/dashboard`): today (KST), pipeline + stage modal (`status=`), KPI tiles + list modal (same `view`, `customerId` for customer views), 지금 처리할 일, 최근 요청, 검수자별 업무량 (lead), 공지 (static rows). Operators: the ops dashboard (below) |
 | `/requests` | done — `+새 요청` (requesters), all reference filters (title/ID search debounced 250ms), table, recall/후속/긴급/지연 tags, empty / loading / error / no-permission states |
 | `/review` | done — 내 검수 (진행 중 / 완료: `MY_ASSIGNED_ACTIVE` / `MY_ASSIGNED_DONE`, 내 역할 주담당 / 공동 검수, 검수량, 지연 / 임박) for reviewers; 배정 관리 for the lead (배정 대기 with 배정 → request tab + assignment modal, 지연, 납기 임박, workload table from `GET /api/projects/{id}/workload`) |
 | `/approval` | done — 승인 대기 (`APPROVAL_QUEUE`, 처리 가능 = listed in `APPROVAL_PENDING`, else 본인 관여 요청), 내가 처리한 요청 (`APPROVAL_PROCESSED`), no-active-approver banner |
@@ -246,7 +276,7 @@ URL scheme (`src/shared/config/routes.ts`, `pathToTab` / `tabToPath`):
 | `/requests/{id}/contents/{key}` | content header + two-column work grid (draft autosave or review-time revision editing) |
 | `/contents` | done — completed contents by lineage (`GET /api/archive/contents`, 20 per page + 더 보기), filters (text debounced 250ms, type, campaign from `GET /api/archive/campaigns`, status, completion date, 초기화), expand past completions / follow-ups, 복사, 새 탭, 후속 요청 (requesters), empty / loading / error / no-permission states |
 | `/performance`, `/notices`, `/admin/*` | done — see "Work management and customer admin (M5 + M6)" |
-| `/ops/*` | not listed in menus; direct URL shows "아직 제공되지 않는 화면입니다" |
+| `/ops/customers`, `/ops/setup`, `/ops/standards` | done — see "Solution operator (M7)" |
 
 ### Request authoring (M1)
 
@@ -405,6 +435,33 @@ URL scheme (`src/shared/config/routes.ts`, `pathToTab` / `tabToPath`):
   `MY_ASSIGNED_CONFIRMING`); the KPI list modal uses the same view. Correction freshness uses the newer of the request's
   and the project's `variablesRevision`.
 
+### Solution operator (M7)
+
+- **대시보드** (`views/ops-home`, `GET /api/ops/dashboard`): `{이름}님, 운영 현황입니다` + 고객사 생성, three KPI tiles (not
+  clickable), 초기 설정에서 남은 일 (a row opens 초기 설정·시드 or 유효 데이터셋 배정 with that customer selected — a
+  `useViewIntent` hand-off `{ customerId, sub }`), 고객사 (row → 고객사 관리 on that customer), 최근 운영 이력.
+- **고객사 관리** (`views/ops-customers`): every customer (inactive included) with approval, counts, admins, unassigned
+  types, state and 비활성 / 사용 재개; 상세 (domain, approval stage, admins, operation settings, state and reason) next to
+  프로젝트·요청 (projects with lead, request counts, samples, 초기 설정 열기); 운영 이력 (`GET /api/ops/audit-logs`, 12 per
+  page, all customers or one). 고객사 생성 shows the stored domain (`저장 값: …`), refuses format and duplicate domains
+  client side, puts server `fieldErrors` (e.g. `DUPLICATE`) under the field, then switches the context and opens 초기
+  설정·시드 on the new customer. 비활성화 shows the impact and needs a reason.
+- **초기 설정·시드** (`views/ops-setup`; the customer select also switches the top bar like the reference, an inactive
+  customer stays a local selection with a banner): 초기 프로젝트·사용자 steps (관리자 초대 / 프로젝트 생성 / 사용자 초대 /
+  배정 화면), 유형별 교정 규칙 시드 (assigned vs newest version, 최신 배포본 시드 = assign + confirm, 데이터셋 등록), 메일
+  발송 대기함 of every customer (`GET /api/ops/outbox`, 5 per page, `링크 가림` and the note that links show in demo mode
+  only), 프로젝트 발신 정보 (알림톡 templates and 문자 senders per project; the editor validates rows like the API and puts
+  `templates.{i}.code|name` / `senders.{i}` errors under the row; only changed lists are sent), 샘플 요청·콘텐츠 (sample
+  customers only — others get the reason and no actions), 시드 실행 이력 (`GET /api/ops/setup-logs`, 20 per page).
+  Invitations: first admin (`admin: true`) or business user (project + role) with the external-domain confirmation of
+  사용자 초대, then a result modal with the queued mail.
+- **유형·교정 기준** (`views/ops-standards`): 유형 관리 (사용 toggles at once, 목업 시드 read-only), 유효 데이터셋 배정
+  (customer × 4 types; picking a version assigns or changes it — the confirmation resets —, 미배정 unassigns, 확인 처리
+  confirms; stopped types are disabled; the effective datasets of a selectable customer), 데이터셋 시드 (every version,
+  규칙 보기 = `GET /api/ops/datasets/{id}`, 데이터셋 등록 by XLSX upload — multipart `scope` + `file` — or JSON paste; row
+  refusals are listed from `details`).
+- Every operator write invalidates the `ops` query keys plus the shell lists (customers, projects, users, content types).
+
 ## shared/ui components
 
 Button (default/pri/ok/warn/ghost, sm) · IconButton (badge) · Tag (hot/flag/recall/fill) · StatusChip ·
@@ -414,7 +471,8 @@ Label/Hint/ErrorMessage/Input/Select/Textarea/Checkbox · Modal (focus trap, Esc
 `onOk`, 560/900, ok variant default/pri/ok/warn) · Popover (+ header/body/section/item) · Drawer · Toaster/`toast()` (single, 2.8s,
 `role=status`) · LockBar · ReadOnlyBox · KeyValueList · Bar · SaveIndicator · ProgressTrack · BrandMark ·
 Page/PageHeader (`rawEyebrow` for the dashboard date) · Icon (all reference icons + `send` for 건의하기) · TypeGlyph ·
-ErrorDetails (server refusal message + `details`). ListItem takes `extra` / `expanded` (accordion rows), Kpi an omitted
+ErrorDetails (server refusal message + `details`) · Pager (이전 / 다음) · `useServerError` (modal refusals: toast,
+field messages cleared on edit, details). ListItem takes `extra` / `expanded` (accordion rows), Kpi an omitted
 `tone` (no accent stripe).
 
 Accessibility fixes over the reference (no visual change): tab title button is the `role=tab`
@@ -424,7 +482,7 @@ the bell's accessible name, Escape/outside click closes the mobile menu.
 
 ## Not implemented yet / stubs
 
-- Operator (ops) screens.
+- Operator support access to customer contents, common (공통) datasets, mock template management (Phase 2).
 - Dark theme (light only).
 
 ## PR order

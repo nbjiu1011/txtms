@@ -1,5 +1,5 @@
 /**
- * Side-by-side capture of the M5 / M6 screens and modals: the prototype (persona login + its own
+ * Side-by-side capture of the M5 / M6 / M7 screens and modals: the prototype (persona login + its own
  * actions) next to this app against a running API in demo mode (same persona).
  *   node e2e/real/admin-visual.mjs [name…]    (BASE=http://localhost:3000)
  * Writes `visual-{name}.prototype.png`, `.app.png` and `.side-by-side.png` (prototype | app | diff) to
@@ -12,7 +12,7 @@ import { chromium } from "@playwright/test";
 import { BASE, OUT } from "./helpers.mjs";
 
 const PROTOTYPE_URL = "file:///E:/workspace/txtms/tx-tms-prototype.html";
-const NAMES = { u1: "김서연", u3: "이도현", u11: "강민호" };
+const NAMES = { u1: "김서연", u3: "이도현", u5: "정우진", u11: "강민호" };
 
 /** `app` runs in the app page after the path loaded; `proto` is evaluated in the prototype. */
 const SCREENS = [
@@ -68,6 +68,71 @@ const SCREENS = [
     path: "/admin/notices",
     app: (p) => p.getByRole("button", { name: "공지 작성" }).click(),
     proto: "A.nav({dataset:{r:'noticeAdmin'}});A.noticeEdit({dataset:{id:''}})",
+  },
+  // M7 solution operator (정우진)
+  { name: "ops-home-u5", persona: "u5", path: "/", proto: "" },
+  { name: "ops-customers-u5", persona: "u5", path: "/ops/customers", proto: "A.nav({dataset:{r:'opsCust'}})" },
+  { name: "ops-setup-u5", persona: "u5", path: "/ops/setup", proto: "A.nav({dataset:{r:'opsSeed'}})" },
+  { name: "ops-assign-u5", persona: "u5", path: "/ops/standards", proto: "A.nav({dataset:{r:'standards'}})" },
+  {
+    name: "ops-types-u5",
+    persona: "u5",
+    path: "/ops/standards",
+    app: (p) => p.getByRole("tab", { name: "유형 관리" }).click(),
+    proto: "A.nav({dataset:{r:'standards'}});A.sub({dataset:{k:'types'}})",
+  },
+  {
+    name: "ops-datasets-u5",
+    persona: "u5",
+    path: "/ops/standards",
+    app: (p) => p.getByRole("tab", { name: "데이터셋 시드" }).click(),
+    proto: "A.nav({dataset:{r:'standards'}});A.sub({dataset:{k:'ds'}})",
+  },
+  {
+    name: "ops-create-modal-u5",
+    persona: "u5",
+    path: "/",
+    app: (p) => p.getByRole("button", { name: "고객사 생성" }).click(),
+    proto: "A.opsCustNew()",
+  },
+  {
+    name: "ops-deactivate-modal-u5",
+    persona: "u5",
+    path: "/ops/customers",
+    app: (p) =>
+      p.locator("main [role=tabpanel]:visible").getByRole("row", { name: /^도담생명/ }).getByRole("button", { name: "비활성" }).click(),
+    proto: "A.nav({dataset:{r:'opsCust'}});A.opsCustDeact({dataset:{id:'c2'}})",
+  },
+  {
+    name: "ops-project-modal-u5",
+    persona: "u5",
+    path: "/ops/setup",
+    app: (p) => p.getByRole("button", { name: "프로젝트 생성" }).click(),
+    proto: "A.nav({dataset:{r:'opsSeed'}});A.seedProject({dataset:{cid:'c1'}})",
+  },
+  {
+    name: "ops-admin-invite-u5",
+    persona: "u5",
+    path: "/ops/setup",
+    app: (p) => p.getByRole("button", { name: "관리자 초대" }).click(),
+    proto: "A.nav({dataset:{r:'opsSeed'}});A.seedUser({dataset:{cid:'c1',role:'admin'}})",
+  },
+  {
+    name: "ops-sample-modal-u5",
+    persona: "u5",
+    path: "/ops/setup",
+    app: (p) => p.getByRole("button", { name: "샘플 요청 생성" }).click(),
+    proto: "A.nav({dataset:{r:'opsSeed'}});A.seedSample({dataset:{cid:'c1'}})",
+  },
+  {
+    name: "ops-dataset-modal-u5",
+    persona: "u5",
+    path: "/ops/standards",
+    app: async (p) => {
+      await p.getByRole("tab", { name: "데이터셋 시드" }).click();
+      await p.getByRole("button", { name: "데이터셋 등록" }).click();
+    },
+    proto: "A.nav({dataset:{r:'standards'}});A.sub({dataset:{k:'ds'}});A.datasetSeed()",
   },
 ];
 

@@ -1,6 +1,6 @@
-import type { MemberInvite } from "@/entities/user";
+import { firstMissing, isEmailFormat, isExternalEmail, normalizeEmail } from "@/shared/lib";
 import type { ProjectRole } from "@/entities/project";
-import { EXTERNAL_DOMAIN_TOAST, firstMissing, isEmailFormat, isExternalEmail } from "./form-checks";
+import { EXTERNAL_DOMAIN_TOAST, type MemberInvite } from "@/entities/user";
 
 export interface InviteForm {
   email: string;
@@ -19,9 +19,7 @@ export type InviteStep =
   | { kind: "invalid"; message: string }
   | { kind: "send"; body: MemberInvite };
 
-export function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
+export { normalizeEmail };
 
 export function inviteStep(form: InviteForm, domain: string, confirmedEmail: string): InviteStep {
   const email = normalizeEmail(form.email);

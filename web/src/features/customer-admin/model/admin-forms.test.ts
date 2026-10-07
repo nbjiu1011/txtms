@@ -6,7 +6,7 @@ import { blockingItems, deactivationProblem, needsSubstitute, preBlocked, substi
 import { inviteStep, type InviteForm } from "./invite-form";
 import { noticeBody, noticeFormProblem } from "./notice-form";
 import { projectFormProblem, type ProjectForm } from "./project-form";
-import { inlineError } from "./server-error";
+import { inlineError } from "@/shared/ui";
 import { variableFormProblem, variablePatch, variableUsageText } from "./variable-form";
 
 const invite: InviteForm = { email: "Kim@Partner.com", name: "김초대", projectId: "1", role: "REVIEWER" };

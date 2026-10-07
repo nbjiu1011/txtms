@@ -15,7 +15,7 @@ import {
   toggleRole,
   type RoleMatrix,
 } from "../model/role-matrix";
-import { useServerError } from "../model/server-error";
+import { useServerError } from "@/shared/ui";
 
 export interface RoleEditDialogProps {
   open: boolean;

@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { formatDateTime } from "@/shared/lib";
-import { Button, Panel, PanelBody, PanelHeader, Tag } from "@/shared/ui";
+import { Button, Pager, Panel, PanelBody, PanelHeader, Tag } from "@/shared/ui";
 import { OUTBOX_STATUS_LABEL, useCustomerOutbox } from "@/entities/audit";
-import { Pager } from "./pager";
+
 import styles from "./admin-users.module.css";
 
 const PAGE_SIZE = 20;
