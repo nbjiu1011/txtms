@@ -37,6 +37,6 @@ out/
 .vscode/
 
 ### Local runtime data ###
-.env
-.localdb/
-storage/
+/.env
+/.localdb/
+/storage/
