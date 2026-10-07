@@ -89,6 +89,7 @@ public class RequestCommandService {
     private final PayloadNormalizer normalizer;
     private final SubmitValidator submitValidator;
     private final JsonMapper json;
+    private final ContentFingerprint fingerprints;
     private final AppProperties.Content limits;
 
     public RequestCommandService(RequestRepository requests, ContentRepository contents,
@@ -97,7 +98,8 @@ public class RequestCommandService {
             RequestWriteSupport support, RequestQueryService queries, RequestAssembler assembler,
             ProjectAccess projectAccess, UserService userService, ContentTypeService contentTypes,
             VariableService variables, NotificationService notifications, PayloadNormalizer normalizer,
-            SubmitValidator submitValidator, JsonMapper json, AppProperties properties) {
+            SubmitValidator submitValidator, JsonMapper json, ContentFingerprint fingerprints,
+            AppProperties properties) {
         this.requests = requests;
         this.contents = contents;
         this.contentVersions = contentVersions;
@@ -116,6 +118,7 @@ public class RequestCommandService {
         this.normalizer = normalizer;
         this.submitValidator = submitValidator;
         this.json = json;
+        this.fingerprints = fingerprints;
         this.limits = properties.content();
     }
 
@@ -402,9 +405,9 @@ public class RequestCommandService {
         String filesJson = assembler.filesSnapshot(fs);
         ContentVersion last = firstSubmit ? null
                 : contentVersions.findFirstByContentIdOrderByVersionDesc(c.getId()).orElse(null);
-        JsonNode current = fingerprint(c.getTitle(), c.getPayload(), filesJson);
+        JsonNode current = fingerprints.of(c.getTitle(), c.getPayload(), filesJson);
         JsonNode previous = last == null ? null
-                : fingerprint(last.getTitle(), last.getPayload(), last.getFilesSnapshot());
+                : fingerprints.of(last.getTitle(), last.getPayload(), last.getFilesSnapshot());
         switch (SubmissionPlanner.versionStep(firstSubmit, current, previous)) {
             case START -> c.startVersioning(now);
             case BUMP -> c.bumpVersion(now);
@@ -417,26 +420,6 @@ public class RequestCommandService {
         }
         contentVersions.save(new ContentVersion(c.getId(), c.getVersion(), c.getTitle(), c.getPayload(), filesJson,
                 now, userId));
-    }
-
-    /** Title, payload and files as one comparable tree (MySQL may reorder JSON keys; trees compare by content). */
-    private JsonNode fingerprint(String title, String payload, String filesJson) {
-        ObjectNode n = json.createObjectNode();
-        n.put("title", title);
-        n.set("payload", json.readTree(payload));
-        n.set("files", stripFileVersions(json.readTree(filesJson)));
-        return n;
-    }
-
-    /** File identity for change detection: id, current version and amounts (not the version history list). */
-    private JsonNode stripFileVersions(JsonNode files) {
-        for (JsonNode f : files) {
-            if (f instanceof ObjectNode o) {
-                o.remove("versions");
-                o.remove("scanStatus");
-            }
-        }
-        return files;
     }
 
     private SubmitValidator.Input validationInput(Ctx ctx, List<Content> current,

@@ -131,6 +131,23 @@ public class Content extends BaseEntity {
         this.lockAt = now;
     }
 
+    public void releaseLock() {
+        this.lockUserId = null;
+        this.lockAt = null;
+    }
+
+    /**
+     * Saved revision (review or answering): title and payload replaced, version + 1. The caller writes the
+     * snapshot of the new version.
+     */
+    public void applyRevision(String title, String payload, Instant now) {
+        this.title = title == null ? "" : title;
+        this.payload = payload;
+        this.version++;
+        this.savedAt = now;
+        touch(now);
+    }
+
     public void linkParent(String parentRequestId, String parentContentKey) {
         this.parentRequestId = parentRequestId;
         this.parentContentKey = parentContentKey;

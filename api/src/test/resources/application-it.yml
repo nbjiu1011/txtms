@@ -6,6 +6,9 @@ spring:
     clean-disabled: false
 
 app:
+  lock:
+    # Tests run the release explicitly (ContentLockService.releaseExpired) against the adjustable clock.
+    release-job-enabled: false
   auth:
     refresh-cookie-secure: false
   demo:

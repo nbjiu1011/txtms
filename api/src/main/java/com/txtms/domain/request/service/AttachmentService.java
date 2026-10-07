@@ -227,19 +227,27 @@ public class AttachmentService {
             if (body == null) {
                 throw new BusinessException(ErrorCode.VALIDATION_FAILED);
             }
-            String note = body.rangeNote() == null ? null : body.rangeNote().trim();
-            if (note != null && note.length() > 200) {
-                throw BusinessException.validation("rangeNote", "범위 설명은 최대 200자입니다");
-            }
-            if (f.getUnit() == FileUnit.IMAGE) {
-                f.describeRange(1, 1, note);
-            } else {
-                f.describeRange(amount(body.totalAmount(), "totalAmount"), amount(body.reviewAmount(), "reviewAmount"),
-                        note);
-            }
+            applyRange(f, body.totalAmount(), body.reviewAmount(), body.rangeNote(), "");
             files.flush();
             return assembler.fileMeta(f);
         });
+    }
+
+    /**
+     * Total amount, review amount and range note of an attachment (null amounts = not entered yet; PNG/JPG always
+     * 1/1). Used by the draft PATCH and by revisions in review. {@code fieldPrefix} prefixes the error fields.
+     */
+    static void applyRange(ContentFile f, Integer total, Integer review, String rangeNote, String fieldPrefix) {
+        String note = rangeNote == null ? null : rangeNote.trim();
+        if (note != null && note.length() > 200) {
+            throw BusinessException.validation(fieldPrefix + "rangeNote", "범위 설명은 최대 200자입니다");
+        }
+        if (f.getUnit() == FileUnit.IMAGE) {
+            f.describeRange(1, 1, note);
+        } else {
+            f.describeRange(amount(total, fieldPrefix + "totalAmount"), amount(review, fieldPrefix + "reviewAmount"),
+                    note);
+        }
     }
 
     public void delete(AuthUser auth, String id, String key, long fileId) {

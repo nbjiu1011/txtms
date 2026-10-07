@@ -61,6 +61,8 @@ app:
     invitation-ttl: 7d
   lock:
     ttl: 30m
+    # Releases idle locks every minute and writes "편집 잠금 자동 해제".
+    release-job-enabled: true
   audit:
     access-log-retention-days: 1095
   web-base-url: http://localhost:3000

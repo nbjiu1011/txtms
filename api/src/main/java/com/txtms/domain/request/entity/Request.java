@@ -5,6 +5,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.hibernate.annotations.OptimisticLock;
+
 import com.txtms.domain.contenttype.entity.ContentType;
 import com.txtms.global.exception.BusinessException;
 import com.txtms.global.exception.ErrorCode;
@@ -50,6 +52,11 @@ public class Request {
     @Column(name = "round_bump", nullable = false)
     private boolean roundBump;
 
+    /**
+     * Set by a revision with changed text while the requester answers; read when the answer is sent. It does not
+     * bump {@code rowVersion}: saving a revision must not invalidate the detail the requester answers from.
+     */
+    @OptimisticLock(excluded = true)
     @Column(name = "answer_changed", nullable = false)
     private boolean answerChanged;
 
@@ -217,10 +224,55 @@ public class Request {
     }
 
     /**
+     * First assignment by the lead reviewer: WAITING → IN_REVIEW with the reviewers, the primary reviewer (one of
+     * them), the confirmed due date and the urgency. The hope due date is kept as the requester entered it.
+     */
+    public void assign(List<Long> reviewers, Long primary, LocalDate dueDate, Urgency urgency, Instant now) {
+        requireStatus(RequestStatus.WAITING);
+        requireAssignment(reviewers, primary);
+        if (dueDate == null) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "확정 납기를 입력하세요");
+        }
+        transitionTo(RequestStatus.IN_REVIEW, now);
+        this.reviewerIds = new ArrayList<>(reviewers);
+        this.primaryReviewerId = primary;
+        this.dueDate = dueDate;
+        this.urgency = urgency == null ? this.urgency : urgency;
+    }
+
+    /** Reviewer or primary change by the lead reviewer, in review only (status unchanged). */
+    public void changeAssignment(List<Long> reviewers, Long primary, Instant now) {
+        requireStatus(RequestStatus.IN_REVIEW);
+        requireAssignment(reviewers, primary);
+        this.reviewerIds = new ArrayList<>(reviewers);
+        this.primaryReviewerId = primary;
+        this.updatedAt = now;
+    }
+
+    private static void requireAssignment(List<Long> reviewers, Long primary) {
+        if (reviewers == null || reviewers.isEmpty()) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "검수자를 한 명 이상 고르세요");
+        }
+        if (primary == null || !reviewers.contains(primary)) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "주담당 검수자를 지정하세요");
+        }
+    }
+
+    /** Requester asks to recall the request: stays in review, marked as recall pending. */
+    public void requestRecall(Long userId, Instant at, String reason) {
+        requireStatus(RequestStatus.IN_REVIEW);
+        if (isRecallPending()) {
+            throw new BusinessException(ErrorCode.REQUEST_STATE_CONFLICT);
+        }
+        markRecallRequested(userId, at, reason);
+        this.updatedAt = at;
+    }
+
+    /**
      * Recall approved by the primary reviewer: back to draft, assignment cleared, next submit opens a new round.
-     * (Used from the review milestone; kept here so the round rule has one home.)
      */
     public void approveRecall(Instant now) {
+        requireRecallPending();
         transitionTo(RequestStatus.DRAFT, now);
         this.reviewerIds = new ArrayList<>();
         this.primaryReviewerId = null;
@@ -228,6 +280,70 @@ public class Request {
         this.recallRequestedAt = null;
         this.recallReason = null;
         this.roundBump = true;
+        this.submitIdempotencyKey = null;
+    }
+
+    /** Recall rejected by the primary reviewer: the review goes on with the same assignment. */
+    public void rejectRecall(Instant now) {
+        requireRecallPending();
+        this.recallRequestedBy = null;
+        this.recallRequestedAt = null;
+        this.recallReason = null;
+        this.updatedAt = now;
+    }
+
+    private void requireRecallPending() {
+        if (status != RequestStatus.IN_REVIEW || !isRecallPending()) {
+            throw new BusinessException(ErrorCode.REQUEST_STATE_CONFLICT);
+        }
+    }
+
+    /** A reviewer asks the requester: IN_REVIEW → CONFIRMING (round kept). Not while a recall is pending. */
+    public void startConfirming(Instant now) {
+        requireStatus(RequestStatus.IN_REVIEW);
+        if (isRecallPending()) {
+            throw new BusinessException(ErrorCode.REQUEST_STATE_CONFLICT,
+                    "회수 요청이 처리될 때까지 확인 요청을 보낼 수 없습니다");
+        }
+        transitionTo(RequestStatus.CONFIRMING, now);
+        this.answerChanged = false;
+    }
+
+    /**
+     * A revision with changed text was saved while the requester answers (CONFIRMING only). The next answer then
+     * opens a new round.
+     */
+    public void markAnswerChanged() {
+        requireStatus(RequestStatus.CONFIRMING);
+        this.answerChanged = true;
+    }
+
+    /**
+     * The requester answered: CONFIRMING → IN_REVIEW. When text was changed while answering the round goes up by
+     * one and the flag is reset. Returns whether a new round started.
+     */
+    public boolean resumeAfterAnswer(Instant now) {
+        requireStatus(RequestStatus.CONFIRMING);
+        transitionTo(RequestStatus.IN_REVIEW, now);
+        if (answerChanged) {
+            this.round++;
+            this.answerChanged = false;
+            return true;
+        }
+        return false;
+    }
+
+    /** Confirmed due date and urgency change: not in drafts nor after final completion. */
+    public void reschedule(LocalDate dueDate, Urgency urgency, Instant now) {
+        if (status == RequestStatus.DRAFT || status.isFinal()) {
+            throw new BusinessException(ErrorCode.REQUEST_STATE_CONFLICT);
+        }
+        if (dueDate == null) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "확정 납기를 입력하세요");
+        }
+        this.dueDate = dueDate;
+        this.urgency = urgency == null ? this.urgency : urgency;
+        this.updatedAt = now;
     }
 
     private void requireStatus(RequestStatus expected) {

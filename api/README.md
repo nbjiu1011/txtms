@@ -74,10 +74,10 @@ curl -s -b cookies.txt -X POST http://localhost:8080/api/auth/refresh
 
 | Command | What runs | Needs the database |
 |---|---|---|
-| `./gradlew build` | compile + unit tests (policy and visibility, views, due dates, volume, password, session rules, submit validation, payload shape, SMS bytes, links, file signatures, malware stub, request ids, round/version rules, variable rules, XLSX row rules) | no |
+| `./gradlew build` | compile + unit tests (policy and visibility, views, due dates, volume, password, session rules, submit validation, payload shape, SMS bytes, links, file signatures, malware stub, request ids, round/version rules, variable rules, XLSX row rules, review transitions, edit lock states, revision decisions, notification recipients and texts) | no |
 | `./gradlew integrationTest` | `@Tag("integration")` tests against `txtms_test` (Flyway clean + migrate, demo seed, HTTP flows) | yes |
 
-Write tests (`RequestAuthoringIntegrationTest`, `VariableIntegrationTest`, `BulkImportIntegrationTest`) create their own
+Write tests (`RequestAuthoringIntegrationTest`, `VariableIntegrationTest`, `BulkImportIntegrationTest`, `ReviewWorkflowIntegrationTest`) create their own
 customer, project and users with `IntegrationTestBase.newTenant()`, so the demo tenants that read tests count on stay
 unchanged. Uploaded files of integration tests go to `build/it-storage`.
 
@@ -117,7 +117,8 @@ com.txtms
 ```
 
 The database schema for every planned feature is in `src/main/resources/db/migration/V1__init_schema.sql`;
-`V2__request_authoring.sql` adds `requests.submit_idempotency_key`.
+`V2__request_authoring.sql` adds `requests.submit_idempotency_key`. The review milestone needs no migration (it uses
+`request_assignment_changes`, `request_reminders`, `contents.lock_*` and `requests.answer_changed` from V1).
 
 ## Not implemented yet (stubs)
 
@@ -161,3 +162,32 @@ curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
 curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -H "Idempotency-Key: k1" \
   -d '{"rowVersion":1}' http://localhost:8080/api/requests/<id>/submit         # 200 WAITING or 400 with details
 ```
+
+## Assignment and review (M2)
+
+| Area | Endpoints |
+|---|---|
+| Assignment | `POST /api/requests/{id}/assignment` (lead, WAITING → IN_REVIEW), `PUT /api/requests/{id}/assignment` (lead, IN_REVIEW: reason + handover) |
+| Schedule | `PATCH /api/requests/{id}/schedule` (`EDIT_DUE`: admin, lead, project approver; approval waiting: eligible approvers only) |
+| Review | `POST /api/requests/{id}/opinions`, `POST /api/requests/{id}/asks` (IN_REVIEW → CONFIRMING), `POST /api/requests/{id}/asks/{askId}/answer` (→ IN_REVIEW) |
+| Recall | `POST /api/requests/{id}/recall` (requester), `POST /api/requests/{id}/recall/decision` (`{ approve, comment }`, primary reviewer) |
+| Locks | `POST`/`DELETE /api/requests/{id}/contents/{key}/lock`, `POST .../lock/force-release` (lead or customer admin) |
+| Revisions | `POST /api/requests/{id}/contents/{key}/revisions` (`{ baseVersion, title?, payload, files? }`) |
+
+- Services: `ReviewWorkflowService` (assignment, schedule, opinions, questions, recall), `ContentLockService` (locks),
+  `ContentRevisionService` (revisions). Each locks the request row, re-checks `RequestPolicy` and `rowVersion`, and
+  writes history (with the round), notifications and, for customer admins, audit records in the same transaction.
+- State changes live on the `Request` entity (`assign`, `changeAssignment`, `requestRecall`, `approveRecall`,
+  `rejectRecall`, `startConfirming`, `markAnswerChanged`, `resumeAfterAnswer`, `reschedule`). Pure rules:
+  `EditLocks` (lock states), `RevisionPlanner` (version/round decision), `ReviewRecipients` (who is notified),
+  `ReviewTexts` (history and notification wording).
+- Rounds and versions: a revision opens a new content version only when title, payload or attachments (current file
+  version and amounts) differ from the latest snapshot. A file revision upload keeps the content version; the next
+  saved revision captures it. While the requester answers, a revision that changes the title or payload marks the
+  answer, and the answer opens round + 1 (`재검수 시작`). `answer_changed` is excluded from optimistic locking so a
+  saved revision does not invalidate the `rowVersion` the requester answers with.
+- Locks expire 30 minutes after the last refresh. `LockExpiryJob` runs every minute and writes `편집 잠금 자동 해제`
+  (system actor); disable it with `app.lock.release-job-enabled=false` (integration tests do, and call
+  `ContentLockService.releaseExpired()` directly). Reads already hide expired locks.
+- Asking releases every reviewer lock, answering releases the requester's locks, a reviewer change releases the
+  removed reviewers' locks (all logged as `편집 잠금 해제`), an approved recall releases every lock.

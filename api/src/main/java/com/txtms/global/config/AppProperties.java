@@ -39,7 +39,8 @@ public record AppProperties(
             Duration invitationTtl) {
     }
 
-    public record Lock(Duration ttl) {
+    /** Edit lock idle time and the switch of the automatic release job. */
+    public record Lock(Duration ttl, boolean releaseJobEnabled) {
     }
 
     public record Audit(int accessLogRetentionDays) {

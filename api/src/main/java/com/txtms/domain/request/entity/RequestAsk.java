@@ -58,6 +58,21 @@ public class RequestAsk {
         this.round = round;
     }
 
+    /** The requester's answer (once). */
+    public void answer(String text, Long userId, Instant at) {
+        if (isAnswered()) {
+            throw new com.txtms.global.exception.BusinessException(
+                    com.txtms.global.exception.ErrorCode.REQUEST_STATE_CONFLICT, "이미 답변한 확인 요청입니다");
+        }
+        this.answer = text;
+        this.answeredBy = userId;
+        this.answeredAt = at;
+    }
+
+    public boolean isAnswered() {
+        return answeredAt != null;
+    }
+
     public Long getId() {
         return id;
     }

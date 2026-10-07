@@ -67,7 +67,7 @@ public class NotificationService {
     public void notify(java.util.Collection<Long> userIds, com.txtms.domain.notification.entity.NotificationKind kind,
             String requestId, String text, Long actorId) {
         Instant now = clock.instant();
-        userIds.stream().filter(Objects::nonNull).distinct().filter(id -> !id.equals(actorId))
+        com.txtms.domain.request.service.ReviewRecipients.finalRecipients(userIds, actorId)
                 .forEach(id -> repository.save(new Notification(id, kind, requestId,
                         text.length() > 500 ? text.substring(0, 500) : text, now, false, actorId)));
     }
