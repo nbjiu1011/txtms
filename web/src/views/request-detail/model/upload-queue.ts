@@ -21,7 +21,8 @@ export interface UploadItem {
 
 /**
  * A malware verdict blocks the file; every other rejection (format, size, scan failure) fails it.
- * Newer servers send `FILE_UNSAFE`; older ones only `FILE_REJECTED` with the "위험 파일" message.
+ * The API sends `FILE_UNSAFE` (`FILE_SCAN_FAILED` for a failed scan); a `FILE_REJECTED` carrying the
+ * "위험 파일" message is still read as blocked.
  */
 export function classifyUploadError(error: unknown): Pick<UploadItem, "state" | "error"> {
   const message = isApiError(error) ? error.message : error instanceof Error ? error.message : "업로드하지 못했습니다";

@@ -2,6 +2,7 @@
 
 import { AppShell, type WorkViewRegistry } from "@/widgets/app-shell";
 import { ApprovalView } from "@/views/approval";
+import { ContentArchiveView } from "@/views/content-archive";
 import { DashboardView } from "@/views/dashboard";
 import { ProfileView } from "@/views/profile";
 import { RequestDetailView } from "@/views/request-detail";
@@ -16,6 +17,7 @@ const VIEWS: WorkViewRegistry = {
   content: RequestDetailView,
   review: ReviewView,
   approval: ApprovalView,
+  contents: ContentArchiveView,
   profile: ProfileView,
 };
 

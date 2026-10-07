@@ -29,14 +29,19 @@ function setup(overrides: Partial<SubmitRequestDialogProps> = {}) {
   return { props, view };
 }
 
-/** Server without the pre-check (today's build): 404 → the confirmation opens directly. */
+/** The pre-check passes (`ok: true`): the confirmation opens. */
+function precheckPasses() {
+  return vi.spyOn(requestApi, "submitCheck").mockResolvedValue({ ok: true, details: [], fieldErrors: [] });
+}
+
+/** A server without the pre-check answers 404: the confirmation opens directly (graceful fallback). */
 function noPrecheck() {
   return vi.spyOn(requestApi, "submitCheck").mockRejectedValue(new ApiError(404, { code: "NOT_FOUND", message: "대상을 찾을 수 없습니다" }));
 }
 
 describe("SubmitRequestDialog", () => {
   beforeEach(() => {
-    noPrecheck();
+    precheckPasses();
   });
   afterEach(() => vi.restoreAllMocks());
 
@@ -74,6 +79,7 @@ describe("SubmitRequestDialog", () => {
   });
 
   it("falls back to listing the missing items of a VALIDATION_FAILED submit (no pre-check)", async () => {
+    noPrecheck();
     vi.spyOn(requestApi, "submit").mockRejectedValue(
       new ApiError(400, { code: "VALIDATION_FAILED", message: "검수를 요청하려면 다음 항목을 채우세요", ...MISSING }),
     );

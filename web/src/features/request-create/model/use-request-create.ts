@@ -6,6 +6,8 @@ import { isApiError } from "@/shared/api";
 import { toast } from "@/shared/ui";
 import { invalidateRequestViews, requestApi, storeRequestDetail, type RequestDetail } from "@/entities/request";
 
+export const FOLLOW_UP_CREATED = "완료본과 연결된 후속 요청을 만들었습니다";
+
 /** Opens the work tab of a request (the shell's `openTab`). */
 export type OpenRequestTab = (requestId: string) => void;
 
@@ -44,5 +46,15 @@ export function useRequestCreate(openRequest: OpenRequestTab) {
       run(() => requestApi.create({ projectId }), "요청을 만들지 못했습니다"),
     clone: (requestId: string) =>
       run(() => requestApi.clone(requestId), "요청을 복제하지 못했습니다", "새 작성 중 요청을 만들었습니다"),
+    /**
+     * Follow-up draft of a completed request: the whole completion bundle (`contentKey` null) or one
+     * item. Each new content keeps its own link to the completed original.
+     */
+    followUp: (requestId: string, contentKey: string | null = null) =>
+      run(
+        () => requestApi.followUp(requestId, contentKey),
+        "후속 요청을 만들지 못했습니다",
+        FOLLOW_UP_CREATED,
+      ),
   };
 }

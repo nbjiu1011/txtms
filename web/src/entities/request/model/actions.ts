@@ -22,6 +22,8 @@ export const IMPLEMENTED_ACTIONS: ReadonlySet<RequestAction> = new Set<RequestAc
   "APPROVE",
   "REVISE",
   "UNLOCK",
+  "FOLLOW_UP",
+  "EXPORT",
 ]);
 
 /** Server-allowed actions this build can perform. */

@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test, type Page } from "@playwright/test";
+import { ARCHIVE_EXTRA_U1 } from "../fixtures/archive-snapshot";
 import { mockApiAs } from "../fixtures/mock-api";
 import { PROTOTYPE_URL, compose, settle } from "./fixtures";
 
@@ -20,6 +21,8 @@ interface Screen {
   proto?: string;
   /** Scroll of `main` in both, to compare the lower part of a long screen. */
   scroll?: number;
+  /** Extra mocked GET responses. */
+  extra?: Record<string, unknown>;
 }
 
 const openReq = (id: string) => `A.openReq({dataset:{id:'${id}'}});`;
@@ -61,6 +64,21 @@ const SCREENS: Screen[] = [
     app: (p) => p.getByRole("tab", { name: "완료 결과" }).click(),
     proto: `${openReq("REQ-2609-088")}A.sub({dataset:{k:'result'}});`,
   },
+  {
+    name: "contents-u1",
+    persona: "u1",
+    path: "/contents",
+    proto: "A.nav({dataset:{r:'contents'}});",
+    extra: ARCHIVE_EXTRA_U1,
+  },
+  {
+    name: "contents-u1-expanded",
+    persona: "u1",
+    path: "/contents",
+    app: (p) => p.getByRole("button", { name: "이력 1" }).click(),
+    proto: "A.nav({dataset:{r:'contents'}});A.lineToggle({dataset:{k:'REQ-2609-088:C1'}});",
+    extra: ARCHIVE_EXTRA_U1,
+  },
 ];
 
 async function scrollMain(page: Page, top: number) {
@@ -94,7 +112,7 @@ for (const screen of SCREENS) {
     const protoPng = await proto.screenshot();
 
     const app = await context.newPage();
-    await mockApiAs(app, USER_ID[screen.persona]);
+    await mockApiAs(app, USER_ID[screen.persona], { extra: screen.extra });
     await app.goto(screen.path);
     await app.locator("main h1").first().waitFor();
     await app.addStyleTag({ content: "nextjs-portal{display:none!important}" });

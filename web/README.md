@@ -32,6 +32,7 @@ section is hidden) and protected URLs redirect to `/login?next=…`.
 | `npm run e2e:visual` | visual comparison with the prototype (see below) |
 | `npm run e2e:real` | request authoring flow against a running API in demo mode (see below) |
 | `npm run e2e:real:review` | assignment → review → approval flow against a running API in demo mode (see below) |
+| `npm run e2e:real:result` | completion results, exports, follow-ups and the content archive against a running API (see below) |
 
 ### Visual comparison harness (`e2e/visual/`)
 
@@ -53,8 +54,11 @@ npm run e2e:visual -- login       # one file
 - `shell.visual.ts` — app shell with a fixture session (chrome comparison + popover/tab captures).
 - `screens.visual.ts` — read-only workflow screens next to the prototype logged in as the same persona:
   dashboard (u1, u3, u11), request list (u1), REQ-2609-101 as u2 (contents, preview, opinions, history),
-  REQ-2609-103 as u4 (approval waiting), REQ-2609-088 as u1 (result tab). Prints the share of differing
-  pixels per screen (1440×900: 0.4–2.3%). Intended differences are listed in the file header.
+  REQ-2609-103 as u4 (approval waiting), REQ-2609-088 as u1 (result tab), 콘텐츠 as u1 (collapsed and with the
+  lineage expanded). Prints the share of differing pixels per screen (1440×900: 0.2–1.6%). Intended differences are
+  listed in the file header; on 콘텐츠 the preview shows completion-time values instead of variable chips (the API
+  sends the resolved preview), the past-version row shows the item title (the prototype shows the request title)
+  and the campaign filter lists campaigns of completed requests only.
 
 - `draft.visual.ts` — draft editing as 김서연 (REQ-2609-105): contents tab (0.67%), 요청 정보 (0.30%),
   미리보기 (0.33%), the submit missing-items modal (0.00%) and the submit confirmation (taller on purpose: it
@@ -73,6 +77,8 @@ API mocks for the harness come from `e2e/fixtures/`:
 - `draft-snapshot.ts` — REQ-2609-105 (detail + history) and the project 1 variables, captured from the API.
 - `review-snapshot.ts` — list views, workload and request details of the 검수 / 승인 screens (seed requests
   only), regenerated with `node e2e/fixtures/capture-review.mjs [http://localhost:8080]`.
+- `archive-snapshot.ts` — 콘텐츠 archive of project 1 as u1 (seed lineages only) and its campaign list,
+  regenerated with `node e2e/fixtures/capture-archive.mjs [http://localhost:8080]`.
 - `mock-api.ts` — `mockApiAs(page, userId, { extra, onWrite })`: refresh returns that persona, GETs answer from
   the snapshot plus `extra` (query order ignored), writes go to `onWrite` (default 405). Unit tests import the
   same fixtures via `@fixtures/*`.
@@ -97,7 +103,23 @@ and saves v2, adds an opinion → 박지훈 saves on the stale v1 → "다른 �
 (round 2) → 이도현 changes the assignment (reason + handover) → recall rejected, recall approved (박지훈 lands on
 검수) → resubmit (round 3) → assign again → 박지훈 completes (공동 검수 결과 with "(이전 담당)", confirmation) →
 최민아 asks for a revision (round 4) → 박지훈 completes → 최민아 approves → 완료 결과. Screenshots `review-*.png` in
-`e2e/real/out/`.
+`e2e/real/out/`. Shared helpers (persona contexts, step runner, API client for setup steps) live in
+`e2e/real/helpers.mjs`.
+
+### Real-API flow (`e2e/real/result-flow.mjs`)
+
+김서연 in the browser; assignment, completion and approval of setup requests go through the API (`API_ORIGIN`, default
+`http://localhost:8080`). New 알림톡 request → 검수 요청 with a missing field (the `submit-check` list appears before the
+confirmation) → two contents (C1 uses `#{customer_name}`) → submit → approved → 완료 결과: bundle and completion-time
+variables, C1 복사 (the clipboard holds the substituted text, `copy-events` 204), XLSX export (file downloaded, `PK`
+header) → 후속 요청 작성 (whole: new draft with both contents, `원본 {ID}` breadcrumb back) → C2 후속 요청 from the result
+row → that follow-up is approved → 콘텐츠: the C2 line shows the follow-up as latest with the original as 과거 완료본 and
+the whole follow-up (`이력 2` / `접기`), C1 copy and 새 탭, filters (campaign, type, status, completion date, 초기화, 더 보기
+when present), 후속 요청 from a line → 자유입력형 uploads with the demo scan outcome (`FILE_UNSAFE` → 등록 차단,
+`FILE_SCAN_FAILED` → 검사 실패, then a real PDF) → approved → ZIP export (file name, manifest and file entry) → a clone
+of the seed REQ-2609-107 (seed file without a stored original) approved → ZIP shows `…시연용 파일의 원본이 없습니다` and
+the dialog stays → recall approved on a follow-up → the submit confirmation says "검수 차수가 2차로 올라갑니다".
+Screenshots `result-*.png` and the downloaded files go to `e2e/real/out/`.
 
 Against the real API: `API_ORIGIN=http://localhost:8080 npm run dev`, then sign in with a demo persona.
 If a dev server already runs, `VISUAL_PORT=3000 npm run e2e:visual` reuses it.
@@ -110,11 +132,12 @@ src/
 │                  (app)/layout.tsx + (app)/[[...slug]] (renders nothing; the shell renders views),
 │                  globals.css (tokens), providers.tsx
 ├─ views/          login, token-password, dashboard, request-list, request-detail (+ content tab), review,
-│                  approval, profile
+│                  approval, content-archive, profile
 ├─ widgets/        app-shell (sidebar, top bar, work tabs, popovers, tab store), auth-layout (login hero)
 ├─ features/       auth (login, demo personas, reset request, token password, session), profile-edit,
-│                  request-create, request-workflow (submit/cancel, assignment, schedule, recall, opinions,
-│                  asks/answers, completion, approval, unlock), variable-picker, bulk-import
+│                  request-create (new, clone, follow-up), request-workflow (submit/cancel, assignment, schedule, recall, opinions,
+│                  asks/answers, completion, approval, unlock), completed-output (copy,
+│                  XLSX/ZIP export), variable-picker, bulk-import
 ├─ entities/       me, customer, project, user, request, variable, correction, dashboard,
 │                  notification, notice, audit, ops — contract types + label maps (+ small queries)
 └─ shared/         api (http client, XHR upload, blob GET, ApiError, query client/keys), config (env, routes), lib, ui (kit + icons)
@@ -174,13 +197,13 @@ URL scheme (`src/shared/config/routes.ts`, `pathToTab` / `tabToPath`):
 | `/approval` | done — 승인 대기 (`APPROVAL_QUEUE`, 처리 가능 = listed in `APPROVAL_PENDING`, else 본인 관여 요청), 내가 처리한 요청 (`APPROVAL_PROCESSED`), no-active-approver banner |
 | `/requests/{id}` | draft authoring and review workflow (below) — header (breadcrumb, chips, round, tags, meta, status track, sub tabs), banners, work grid (content list with 편집 중 / 수정 중 markers, type editors, lock bars, guide drawer, version compare), side panel (교정 frame, 미리보기 mockups, 의견 + form, 확인 요청 thread + ask / answer forms), 요청 정보, 히스토리 (merged, round separators, filter), 완료 결과 (bundle, XLSX/ZIP export, copy, variables). Not-found / denied states |
 | `/requests/{id}/contents/{key}` | content header + two-column work grid (draft autosave or review-time revision editing) |
+| `/contents` | done — completed contents by lineage (`GET /api/archive/contents`, 20 per page + 더 보기), filters (text debounced 250ms, type, campaign from `GET /api/archive/campaigns`, status, completion date, 초기화), expand past completions / follow-ups, 복사, 새 탭, 후속 요청 (requesters), empty / loading / error / no-permission states |
 | other routes | not listed in menus; direct URL shows "아직 제공되지 않는 화면입니다" |
 
 ### Request authoring (M1)
 
 - Header buttons render only for actions that are in the request's `allowedActions` **and** in
-  `IMPLEMENTED_ACTIONS` (`entities/request/model/actions.ts`: everything except `FOLLOW_UP` and `EXPORT`, which
-  have no header button yet).
+  `IMPLEMENTED_ACTIONS` (`entities/request/model/actions.ts`: every contract action).
 - **새 요청** (`features/request-create`): `POST /api/requests` (first active type), opens the tab on 요청 정보 (a
   titleless draft starts there). **복제** opens the copy. Repeated clicks are ignored while a call runs.
 - **Draft session** (`views/request-detail/model/draft-session.ts` + `autosave.ts`): local edits (info fields,
@@ -207,8 +230,8 @@ URL scheme (`src/shared/config/routes.ts`, `pathToTab` / `tabToPath`):
 - **Demo accounts only**: a small "첨부 검사 결과 선택" panel under 자유입력형/RCS drafts sends
   `X-Demo-Scan-Outcome` with uploads (the server honours it only in demo mode).
 - **Submit** (`features/request-workflow`): saves pending edits, runs `POST …/submit-check` and shows the
-  missing-items list before asking (servers without the pre-check answer 404/405: the confirmation opens and a
-  `VALIDATION_FAILED` submit shows the same list), confirms (target lead reviewer; "검수 차수가 n차로 올라갑니다"
+  missing-items list before asking (a server without the pre-check — 404/405 — still works: the confirmation
+  opens and a `VALIDATION_FAILED` submit shows the same list), confirms (target lead reviewer; "검수 차수가 n차로 올라갑니다"
   when `nextSubmitRound` > `round`), then `POST …/submit` with `rowVersion` and an `Idempotency-Key`
   (확인 → 요청 정보 when info fields are missing). **요청 취소** with the reference confirmation.
 - Denied requests: `DRAFT_PRIVATE` → "…아직 작성 중인 요청입니다…", `FORBIDDEN` → member-only text, 404 → not found.
@@ -252,11 +275,28 @@ URL scheme (`src/shared/config/routes.ts`, `pathToTab` / `tabToPath`):
 - 배정 from 검수 › 배정 관리 hands the request id + `ASSIGN` to the request tab (`useRequestActionIntent`), which
   opens the modal once it shows the request.
 
+### Completion results, archive and follow-ups (M3)
+
+- **완료 결과** (`views/request-detail/ui/result-tab.tsx`): bundle head (status, completion time, 처리자, item count),
+  items (files as `{name} (v{n})`, else the text fields with variable chips), 완료 당시 변수 값. 복사 (text items) puts the
+  message body (알림톡·문자 `body`, RCS card bodies, 자유입력형 `text`; no title or buttons) with `#{key}` replaced by
+  the bundle variables on the clipboard first, then records `POST …/bundle/copy-events` (an audit failure does not undo
+  the copy); toasts `문안을 복사했습니다` / `복사하지 못했습니다. 직접 선택해 복사하세요`. Exports (`EXPORT`) open the
+  reference confirmations and download with the bearer token (`features/completed-output`); a refused export shows the
+  server message — e.g. 404 `{파일명}: 시연용 파일의 원본이 없습니다` for seed files — and keeps the dialog open.
+- **후속 요청** (`FOLLOW_UP`): header `후속 요청 작성` (whole bundle) and `후속 요청` per result row / archive line
+  (`POST /api/requests/{id}/follow-up {contentKey}`) store the new draft, refresh lists and the archive, toast
+  `완료본과 연결된 후속 요청을 만들었습니다` and open its tab. The breadcrumb of a follow-up links `원본 {ID}`.
+- **콘텐츠** (`views/content-archive`): one row per lineage with the latest completion (title, version, request, type,
+  status, date, campaign, server preview); the toggle reads `이력` without linked entries, else `이력 {n}` / `접기`;
+  expanded rows list `과거 완료본` and open `후속 요청` with links to their requests. 복사 uses `latest.resolvedText`.
+- Filter bars use `FilterBar` / `FilterField` / `DateRangeFilter` from `shared/ui` (request list and archive).
+
 ## shared/ui components
 
 Button (default/pri/ok/warn/ghost, sm) · IconButton (badge) · Tag (hot/flag/recall/fill) · StatusChip ·
 TypeChip · RoundBadge · Avatar · AvatarStack · Banner (ask/info/danger/done/appr/wait) · Panel/PanelHeader/
-PanelBody · Table (+ `tableClasses`) · KpiGrid/Kpi · SubTabs · Seg · ListItem (`nestedActions` for rows with buttons) · Empty (+ EmptyArt) · Field/
+PanelBody · FilterBar/FilterField/DateRangeFilter (+ `filterClasses`) · Table (+ `tableClasses`) · KpiGrid/Kpi · SubTabs · Seg · ListItem (`nestedActions` for rows with buttons) · Empty (+ EmptyArt) · Field/
 Label/Hint/ErrorMessage/Input/Select/Textarea/Checkbox · Modal (focus trap, Escape, scrim, busy-safe async
 `onOk`, 560/900, ok variant default/pri/ok/warn) · Popover (+ header/body/section/item) · Drawer · Toaster/`toast()` (single, 2.8s,
 `role=status`) · LockBar · ReadOnlyBox · KeyValueList · Bar · SaveIndicator · ProgressTrack · BrandMark ·
@@ -269,13 +309,12 @@ the bell's accessible name, Escape/outside click closes the mobile menu.
 
 ## Not implemented yet / stubs
 
-- 후속 요청 작성 header button (`FOLLOW_UP`).
 - Correction engine and result cards (panel frame only) — M4.
-- Contents archive, performance, notices, admin and ops screens.
+- Performance, notices, admin and ops screens.
 - Dark theme (light only).
 
 ## PR order
 
 PR1 foundation (tokens, fonts, shared/ui, API client, entities) → PR2 shell + auth pages → PR3 dashboard +
 request list + read-only request detail (M0 part 2) → PR4 request authoring (M1) → PR5 assignment, review and
-approval (M2 + approval part of M3) → PR6… correction, archive, admin.
+approval (M2 + approval part of M3) → PR6 completion results, archive and follow-ups (M3) → PR7… correction, admin.

@@ -42,7 +42,7 @@ import header from "./header.module.css";
 
 const APPROVAL_STATUSES: readonly RequestStatus[] = ["APPROVAL_WAITING", "APPROVED"];
 
-/** Header action → modal (submit / cancel / clone / complete are handled separately). */
+/** Header action → modal (submit / cancel / clone / follow-up / complete are handled separately). */
 const ACTION_DIALOG: Partial<Record<RequestAction, WorkflowDialog>> = {
   ASSIGN: { kind: "assign" },
   CHANGE_ASSIGNMENT: { kind: "change" },
@@ -75,7 +75,7 @@ export function RequestTabBody({ page, meId, meIsApprover, demo, openTab, editin
   const [pendingType, setPendingType] = useState<ContentType | null>(null);
   const types = useContentTypes();
   const openRequest = (id: string) => openTab({ route: "request", params: { id } });
-  const { clone } = useRequestCreate(openRequest);
+  const { clone, followUp } = useRequestCreate(openRequest);
   const workflow = useRequestWorkflow(page, meId, revision);
   const { performable } = workflow;
   const isFinal = FINAL_STATUSES.includes(r.status);
@@ -105,6 +105,7 @@ export function RequestTabBody({ page, meId, meIsApprover, demo, openTab, editin
       setDialog("submit");
     } else if (action === "CANCEL") setDialog("cancel");
     else if (action === "CLONE") void clone(r.id);
+    else if (action === "FOLLOW_UP") void followUp(r.id, null);
     else if (action === "COMPLETE") complete();
     else {
       const next = ACTION_DIALOG[action];
@@ -194,7 +195,9 @@ export function RequestTabBody({ page, meId, meIsApprover, demo, openTab, editin
         {current === "hist" ? (
           <HistoryTab requestId={r.id} users={page.users} filter={historyFilter} onFilter={setHistoryFilter} />
         ) : null}
-        {current === "result" ? <ResultTab page={page} /> : null}
+        {current === "result" ? (
+          <ResultTab page={page} performable={performable} onFollowUp={(key) => void followUp(r.id, key)} />
+        ) : null}
         {demo && editing.canEditContent && (r.type === "FREEFORM" || r.type === "RCS") ? (
           <ScanDemoPanel editing={editing} />
         ) : null}

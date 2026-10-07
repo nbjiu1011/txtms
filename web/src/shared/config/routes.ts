@@ -65,7 +65,7 @@ export const ROUTES: Record<RouteKey, RouteDef> = {
   content: { key: "content", title: "콘텐츠", icon: null, group: null, access: "always", enabled: true },
   review: { key: "review", title: "검수", icon: "review", group: "work", access: "reviewer", enabled: true },
   approval: { key: "approval", title: "승인", icon: "appr", group: "work", access: "approver", enabled: true },
-  contents: { key: "contents", title: "콘텐츠", icon: "box", group: "work", access: "always", enabled: false },
+  contents: { key: "contents", title: "콘텐츠", icon: "box", group: "work", access: "always", enabled: true },
   performance: {
     key: "performance",
     title: "업무량·실적",

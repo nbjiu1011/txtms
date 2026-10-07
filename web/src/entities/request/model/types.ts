@@ -221,7 +221,7 @@ export interface BundleItem {
 }
 
 export interface CompletionBundle {
-  status: Extract<RequestStatus, "REVIEW_COMPLETED" | "APPROVED">;
+  status: FinalStatus;
   completedAt: string;
   completedBy: number;
   variables: BundleVariable[];
@@ -457,6 +457,23 @@ export interface RequestListParams {
 }
 
 /* ---------- archive (§8) ---------- */
+
+/** Final statuses a completed content can have (archive status filter). */
+export type FinalStatus = Extract<RequestStatus, "REVIEW_COMPLETED" | "APPROVED">;
+
+/** `GET /api/archive/contents` query (filters apply to the latest completed version of a line). */
+export interface ArchiveListParams {
+  projectId: number;
+  q?: string;
+  type?: ContentType;
+  campaign?: string;
+  status?: FinalStatus;
+  /** KST date `YYYY-MM-DD`, both ends inclusive. */
+  completedFrom?: string;
+  completedTo?: string;
+  page?: number;
+  size?: number;
+}
 
 export interface ArchiveLatest {
   requestId: string;

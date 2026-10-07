@@ -25,6 +25,8 @@ export type { EmptyProps, KpiProps, ListItemProps, SubTabItem, TrackStep } from 
 export { Checkbox, ErrorMessage, Field, Hint, Input, Label, Select, Textarea } from "./form";
 export type { CheckboxProps, FieldProps, InputProps, SelectProps, TextareaProps } from "./form";
 export { BrandMark, Page, PageHeader } from "./layout";
+export { DateRangeFilter, FilterBar, FilterField, filterClasses } from "./filters";
+export type { DateRangeFilterProps, FilterBarProps, FilterFieldProps } from "./filters";
 export { Modal } from "./overlay/modal";
 export type { ModalProps } from "./overlay/modal";
 export {

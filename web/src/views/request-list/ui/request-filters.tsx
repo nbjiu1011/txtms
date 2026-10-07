@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, Checkbox, Input, Select } from "@/shared/ui";
+import {
+  Button,
+  Checkbox,
+  DateRangeFilter,
+  FilterBar,
+  FilterField,
+  Input,
+  Select,
+  filterClasses,
+} from "@/shared/ui";
 import {
   CONTENT_TYPES,
   CONTENT_TYPE_LABEL,
@@ -13,7 +22,6 @@ import {
   type RequestStatus,
 } from "@/entities/request";
 import type { UserSummary } from "@/entities/user";
-import styles from "./request-list.module.css";
 
 /** Delay before the title/ID search is sent. */
 export const SEARCH_DEBOUNCE_MS = 250;
@@ -40,22 +48,20 @@ export function RequestFilterBar({ value, onChange, lead, reviewers }: RequestFi
   }, [q, value, onChange]);
 
   return (
-    <div className={styles.filters} role="search" aria-label="요청 검색 조건">
-      <div className={`${styles.f} ${styles.fq}`}>
-        <label htmlFor="flt-q">제목 또는 요청 ID</label>
+    <FilterBar label="요청 검색 조건">
+      <FilterField label="제목 또는 요청 ID" htmlFor="flt-q" grow>
         <Input
           id="flt-q"
-          className={styles.ctl}
+          className={filterClasses.control}
           placeholder="검색어 입력"
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
-      </div>
-      <div className={styles.f}>
-        <label htmlFor="flt-type">유형</label>
+      </FilterField>
+      <FilterField label="유형" htmlFor="flt-type">
         <Select
           id="flt-type"
-          className={styles.ctl}
+          className={filterClasses.control}
           value={value.type}
           onChange={(e) => set({ type: e.target.value as ContentType | "" })}
         >
@@ -66,12 +72,11 @@ export function RequestFilterBar({ value, onChange, lead, reviewers }: RequestFi
             </option>
           ))}
         </Select>
-      </div>
-      <div className={styles.f}>
-        <label htmlFor="flt-status">요청 상태</label>
+      </FilterField>
+      <FilterField label="요청 상태" htmlFor="flt-status">
         <Select
           id="flt-status"
-          className={styles.ctl}
+          className={filterClasses.control}
           value={value.status}
           onChange={(e) => set({ status: e.target.value as RequestStatus | "" })}
         >
@@ -82,17 +87,17 @@ export function RequestFilterBar({ value, onChange, lead, reviewers }: RequestFi
             </option>
           ))}
         </Select>
-      </div>
+      </FilterField>
       <PersonSelect id="flt-lead" label="대표 검수자" people={lead ? [lead] : []} value={value.leadUserId} onChange={(v) => set({ leadUserId: v })} />
       <PersonSelect id="flt-primary" label="주담당 검수자" people={reviewers} value={value.primaryReviewerId} onChange={(v) => set({ primaryReviewerId: v })} />
       <PersonSelect id="flt-rv" label="배정 검수자" people={reviewers} value={value.reviewerId} onChange={(v) => set({ reviewerId: v })} />
-      <DateRange
+      <DateRangeFilter
         label="확정 납기"
         from={value.dueFrom}
         to={value.dueTo}
         onChange={(dueFrom, dueTo) => set({ dueFrom, dueTo })}
       />
-      <DateRange
+      <DateRangeFilter
         label="접수일"
         from={value.submittedFrom}
         to={value.submittedTo}
@@ -100,14 +105,14 @@ export function RequestFilterBar({ value, onChange, lead, reviewers }: RequestFi
       />
       <Checkbox
         label="내 담당만"
-        labelClassName={styles.mine}
+        labelClassName={filterClasses.check}
         checked={value.mine}
         onChange={(e) => set({ mine: e.target.checked })}
       />
       <Button
         size="sm"
         variant="ghost"
-        className={styles.reset}
+        className={filterClasses.reset}
         onClick={() => {
           setQ("");
           onChange(EMPTY_REQUEST_FILTERS);
@@ -115,7 +120,7 @@ export function RequestFilterBar({ value, onChange, lead, reviewers }: RequestFi
       >
         초기화
       </Button>
-    </div>
+    </FilterBar>
   );
 }
 
@@ -127,11 +132,10 @@ function PersonSelect(props: {
   onChange: (v: number | null) => void;
 }) {
   return (
-    <div className={styles.f}>
-      <label htmlFor={props.id}>{props.label}</label>
+    <FilterField label={props.label} htmlFor={props.id}>
       <Select
         id={props.id}
-        className={styles.ctl}
+        className={filterClasses.control}
         value={props.value ?? ""}
         onChange={(e) => props.onChange(toId(e.target.value))}
       >
@@ -142,31 +146,6 @@ function PersonSelect(props: {
           </option>
         ))}
       </Select>
-    </div>
-  );
-}
-
-function DateRange(props: { label: string; from: string; to: string; onChange: (from: string, to: string) => void }) {
-  return (
-    <div className={styles.f} role="group" aria-label={props.label}>
-      <label>{props.label}</label>
-      <div className={styles.range}>
-        <Input
-          type="date"
-          className={styles.ctl}
-          aria-label={`${props.label} 시작`}
-          value={props.from}
-          onChange={(e) => props.onChange(e.target.value, props.to)}
-        />
-        <span className={styles.tilde}>~</span>
-        <Input
-          type="date"
-          className={styles.ctl}
-          aria-label={`${props.label} 끝`}
-          value={props.to}
-          onChange={(e) => props.onChange(props.from, e.target.value)}
-        />
-      </div>
-    </div>
+    </FilterField>
   );
 }

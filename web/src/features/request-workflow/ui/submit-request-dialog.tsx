@@ -41,7 +41,7 @@ function newIdempotencyKey(): string {
     : `submit-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-/** The server has no submit pre-check yet (older build): fall back to submit-then-list. */
+/** A server without the submit pre-check (404/405): fall back to submit-then-list. */
 function checkUnavailable(error: unknown): boolean {
   return isApiError(error) && (error.status === 404 || error.status === 405);
 }
@@ -50,7 +50,7 @@ function checkUnavailable(error: unknown): boolean {
  * 검수 요청: pending edits are saved, the submit rules are checked first (`submit-check`, the
  * reference shows the missing-items list before asking), then the confirmation (target lead reviewer,
  * round increase after a recall, correction is optional) → `POST submit` with the row version and an
- * idempotency key (a retried click never submits twice). Servers without the pre-check answer the
+ * idempotency key (a retried click never submits twice). A server without the pre-check answers the
  * submit itself with `VALIDATION_FAILED` and the same list.
  */
 export function SubmitRequestDialog(props: SubmitRequestDialogProps) {

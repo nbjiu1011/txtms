@@ -32,10 +32,15 @@ export const requestApi = {
   patchInfo: (id: string, patch: RequestInfoPatch) => http.patch<RequestDetail>(req(id), patch),
   changeType: (id: string, type: ContentType) => http.put<RequestDetail>(`${req(id)}/type`, { type }),
   clone: (id: string) => http.post<RequestDetail>(`${req(id)}/clone`),
+  /** New draft linked to the completed request: the whole bundle (`contentKey` null) or one item. */
+  followUp: (id: string, contentKey: string | null) =>
+    http.post<RequestDetail>(`${req(id)}/follow-up`, { contentKey }),
+  /** Audit of a copied completed text (`완료본 반출`); the copy itself happens in the browser. */
+  copyEvent: (id: string, contentKey: string) => http.post<void>(`${req(id)}/bundle/copy-events`, { contentKey }),
   submit: (id: string, rowVersion: number, idempotencyKey: string) =>
     http.post<RequestDetail>(`${req(id)}/submit`, { rowVersion }, { headers: { "Idempotency-Key": idempotencyKey } }),
   cancel: (id: string, rowVersion: number) => http.post<RequestDetail>(`${req(id)}/cancel`, { rowVersion }),
-  /** Submit validation only (newer servers; 404 on servers without it). */
+  /** Submit validation only, nothing changes (`{ ok, details, fieldErrors }`). */
   submitCheck: (id: string) => http.post<SubmitCheck>(`${req(id)}/submit-check`, {}),
 
   /* review workflow (§5): every call carries the request `rowVersion` */
@@ -142,5 +147,6 @@ export function invalidateRequestViews(client: QueryClient, id?: string): void {
   void client.invalidateQueries({ queryKey: ["requests", "list"] });
   void client.invalidateQueries({ queryKey: ["dashboard"] });
   void client.invalidateQueries({ queryKey: ["workload"] });
+  void client.invalidateQueries({ queryKey: ["archive"] });
   if (id) void client.invalidateQueries({ queryKey: requestKeys.history(id) });
 }

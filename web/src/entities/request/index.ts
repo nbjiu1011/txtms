@@ -4,6 +4,7 @@ export type {
   ArchiveFollowUp,
   ArchiveLatest,
   ArchiveLine,
+  ArchiveListParams,
   ArchivePast,
   Ask,
   AssignBody,
@@ -32,6 +33,7 @@ export type {
   FileScanStatus,
   FileUnit,
   FileVersionMeta,
+  FinalStatus,
   FreeformPayload,
   HistoryEntry,
   Opinion,
@@ -104,6 +106,15 @@ export {
   smsFullText,
   textBytes,
 } from "./model/sms";
+export { bundleVariableValues, completedCopyText, messageBodyText } from "./model/bundle";
+export {
+  ARCHIVE_PAGE_SIZE,
+  archiveKeys,
+  fetchArchiveContents,
+  nextArchivePage,
+  useArchiveCampaigns,
+  useArchiveContents,
+} from "./api/archive-queries";
 export { normalizePayload, payloadAs, resolveVariables, segmentVariables, textFields } from "./model/payload";
 export type { TextSegment } from "./model/payload";
 export {

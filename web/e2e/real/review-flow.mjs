@@ -5,54 +5,18 @@
  * Personas (separate browser contexts): 김서연 u1 requester, 박지훈 u2 reviewer, 이도현 u3 lead,
  * 한가을 u6 reviewer, 최민아 u4 approver. Screenshots go to e2e/real/out (gitignored).
  */
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
-import { chromium, expect } from "@playwright/test";
+import { expect } from "@playwright/test";
+import { BASE, dialog, log, main, roundIs as round, startRun, statusIs as status, toastSeen } from "./helpers.mjs";
 
-const BASE = process.env.BASE ?? "http://localhost:3000";
-const OUT = "e2e/real/out";
-mkdirSync(OUT, { recursive: true });
-
-const browser = await chromium.launch();
-const log = (m) => console.log(`- ${m}`);
-const pages = {};
+const { persona, step, shot, close } = await startRun("review");
 const stamp = Date.now().toString(36);
 const TITLE = `M2 검수 흐름 ${stamp}`;
 let id = "";
 
-async function persona(key, name) {
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: "ko-KR", timezoneId: "Asia/Seoul" });
-  const page = await context.newPage();
-  page.setDefaultTimeout(15_000);
-  await page.goto(`${BASE}/login`);
-  await page.getByRole("button", { name: new RegExp(name) }).click();
-  await page.waitForURL((u) => !u.pathname.startsWith("/login"));
-  pages[key] = page;
-  return page;
-}
-
-const main = (page) => page.locator("main [role=tabpanel]:visible");
-const shot = (page, name) => page.screenshot({ path: join(OUT, `review-${name}.png`) });
-const toastSeen = (page, text) => expect(page.getByText(text, { exact: false }).first()).toBeVisible({ timeout: 10_000 });
-const dialog = (page, name) => page.getByRole("dialog", { name });
 const openRequest = async (page) => {
   await page.goto(`${BASE}/requests/${id}`);
   await expect(main(page).getByRole("heading", { level: 1, name: TITLE })).toBeVisible();
 };
-const status = (page, label) => expect(main(page).locator("h1 ~ *").getByText(label, { exact: true }).first()).toBeVisible();
-const round = (page, n) => expect(main(page).getByTitle("검수 차수")).toHaveText(`${n}차`);
-
-async function step(name, fn) {
-  try {
-    await fn();
-    log(`OK  ${name}`);
-  } catch (error) {
-    log(`FAIL ${name}: ${error.message.split("\n")[0]}`);
-    for (const [key, page] of Object.entries(pages)) await shot(page, `fail-${key}-${name.replace(/\W+/g, "-")}`).catch(() => {});
-    await browser.close();
-    process.exit(1);
-  }
-}
 
 /* ---------- requester creates and submits ---------- */
 
@@ -319,7 +283,7 @@ await step("u2 completes again", async () => {
 
 await step("u4 approves → 승인 완료, result tab", async () => {
   await openRequest(u4);
-  await u4.getByRole("button", { name: "승인", exact: true }).click();
+  await main(u4).getByRole("button", { name: "승인", exact: true }).click();
   await dialog(u4, "최종 승인할까요?").getByRole("button", { name: "승인", exact: true }).click();
   await toastSeen(u4, "승인했습니다");
   await status(u4, "승인 완료");
@@ -330,4 +294,4 @@ await step("u4 approves → 승인 완료, result tab", async () => {
 });
 
 log(`done: ${id}`);
-await browser.close();
+await close();
