@@ -21,6 +21,14 @@ public final class MemberBodies {
             Boolean externalDomainConfirmed) {
     }
 
+    /**
+     * Operator initial-setup invitation ({@code POST /api/ops/customers/{id}/invitations}): {@code admin} makes the
+     * invited user a customer admin; a work user ({@code admin} false) needs a project and a role.
+     */
+    public record SetupInvitationBody(String email, String name, String dept, Boolean admin, Long projectId,
+            ProjectRole role, Boolean externalDomainConfirmed) {
+    }
+
     public record EmailBody(String email, Boolean externalDomainConfirmed) {
     }
 

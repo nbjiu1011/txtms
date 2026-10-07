@@ -134,9 +134,28 @@ public final class ArchiveLines {
     /** Attachment names with versions, or the first characters of the resolved text. */
     public static String preview(Completed c) {
         if (!c.files().isEmpty()) {
-            return String.join(", ", c.files().stream().map(f -> f.name() + " (v" + f.version() + ")").toList());
+            return fileList(c);
         }
-        String text = resolvedText(c);
+        return head(resolvedText(c));
+    }
+
+    /**
+     * Unsubstituted preview (contract §14.3 {@code previewRaw}): attachment names with versions, or the first
+     * characters of the body as written, {@code #{key}} tokens kept (the web shows them as variable chips).
+     */
+    public static String previewRaw(Completed c) {
+        if (!c.files().isEmpty()) {
+            return fileList(c);
+        }
+        String body = ContentTexts.body(c.type(), c.payload());
+        return head(body == null ? "" : body);
+    }
+
+    private static String fileList(Completed c) {
+        return String.join(", ", c.files().stream().map(f -> f.name() + " (v" + f.version() + ")").toList());
+    }
+
+    private static String head(String text) {
         return text.length() <= PREVIEW_LENGTH ? text : text.substring(0, PREVIEW_LENGTH);
     }
 }

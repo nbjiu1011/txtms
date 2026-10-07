@@ -3,6 +3,8 @@ package com.txtms.domain.customer.entity;
 import java.time.Instant;
 
 import com.txtms.global.common.BaseEntity;
+import com.txtms.global.exception.BusinessException;
+import com.txtms.global.exception.ErrorCode;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -77,6 +79,26 @@ public class Customer extends BaseEntity {
         this.name = name;
         this.notifyChannel = notifyChannel;
         this.dueSoonDays = dueSoonDays;
+        touch(now);
+    }
+
+    /** Operator deactivation (data kept; its users can no longer sign in). */
+    public void deactivate(String reason, Instant now) {
+        if (!active) {
+            throw new BusinessException(ErrorCode.REQUEST_STATE_CONFLICT, "이미 비활성 상태인 고객사입니다");
+        }
+        this.active = false;
+        this.deactivationReason = reason;
+        touch(now);
+    }
+
+    /** Operator reactivation ({@code 사용 재개}). */
+    public void reactivate(Instant now) {
+        if (active) {
+            throw new BusinessException(ErrorCode.REQUEST_STATE_CONFLICT, "사용 중인 고객사입니다");
+        }
+        this.active = true;
+        this.deactivationReason = null;
         touch(now);
     }
 

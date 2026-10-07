@@ -59,7 +59,8 @@ type specific) + the prototype rules P1–P6 (all types) and the type's own (ali
 P11). Assignments: 한빛카드 all four types (confirmed), 도담생명 alimtalk (confirmed), SMS and RCS (not confirmed);
 도담생명 free-form stays unassigned to demonstrate `DATASET_NOT_ASSIGNED`.
 
-The seeder only runs on an empty database. To bring the datasets of an **existing** dev database up to the current
+The seeder only runs on an empty database (its bean always exists; the full seed checks `app.demo.enabled` at start,
+and the operator's sample reset reuses it to write the seed requests again, see M7). To bring the datasets of an **existing** dev database up to the current
 seed without recreating it, start the API once with `--app.demo.refresh-datasets=true` (demo mode only; any free port,
 the running dev server can keep running), then stop it:
 
@@ -94,7 +95,7 @@ curl -s -b cookies.txt -X POST http://localhost:8080/api/auth/refresh
 
 | Command | What runs | Needs the database |
 |---|---|---|
-| `./gradlew build` | compile + unit tests (policy and visibility, views, due dates, volume, password, session rules, submit validation, payload shape, SMS bytes, links, file signatures, malware stub, request ids, round/version rules, variable rules, XLSX row rules, review transitions, edit lock states, revision decisions, notification recipients and texts, completion/approval transitions, eligible approvers, bundle snapshot, export rows, lineage, archive filters, co-review summary, correction engine rules and every scenario of the client test-case sheet, dataset XLSX reader and row validation, correction fields, demo datasets, autosave conflict rule, performance statistics, re-notification rules, project role rules, deactivation rules) | no |
+| `./gradlew build` | compile + unit tests (operator customer rules, ops dashboard aggregation, project sending rules, outbox masking, policy and visibility, views, due dates, volume, password, session rules, submit validation, payload shape, SMS bytes, links, file signatures, malware stub, request ids, round/version rules, variable rules, XLSX row rules, review transitions, edit lock states, revision decisions, notification recipients and texts, completion/approval transitions, eligible approvers, bundle snapshot, export rows, lineage, archive filters, co-review summary, correction engine rules and every scenario of the client test-case sheet, dataset XLSX reader and row validation, correction fields, demo datasets, autosave conflict rule, performance statistics, re-notification rules, project role rules, deactivation rules) | no |
 | `./gradlew integrationTest` | `@Tag("integration")` tests against `txtms_test` (Flyway clean + migrate, demo seed, HTTP flows) | yes |
 
 Write tests (`RequestAuthoringIntegrationTest`, `VariableIntegrationTest`, `BulkImportIntegrationTest`, `ReviewWorkflowIntegrationTest`,
@@ -137,8 +138,10 @@ com.txtms
     ├── dashboard     project dashboard, reviewer workload, performance statistics
     ├── notification  notifications (read vs. pending work); re-notifications are written by request/ReminderService
     ├── notice        customer/project notices (reading and admin management)
-    ├── mail          MailSender + outbox implementation
-    └── demo          demo personas and seed data
+    ├── mail          MailSender + outbox implementation, OutboxMasking (token links in listings)
+    ├── ops           solution operator: customers, initial setup, setup log, samples, dashboard (OperatorAccess +
+    │                 OpsAccessInterceptor on /api/ops/**)
+    └── demo          demo personas and seed data (DemoDataSeeder also restores the seed requests for the sample reset)
 ```
 
 The database schema for every planned feature is in `src/main/resources/db/migration/V1__init_schema.sql`;
@@ -343,6 +346,10 @@ curl -s -H "Authorization: Bearer $OPERATOR_TOKEN" -F scope=SMS -F file=@rules.x
   requester notified), led projects get the substitute as lead, the account becomes inactive and its sessions end.
 - Every admin write is audited: `프로젝트 생성/변경`, `역할 변경`, `사용자 초대`, `초대 재발급`, `사용자 이메일 변경`,
   `사용자 비활성화`, `사용자 재활성화`, `고객사 설정 변경`.
+- Outbox listings mask invitation and reset links (`…/invite/••••` + `링크는 수신자에게만 전달됩니다`, `masked: true`):
+  a customer admin could otherwise take over the recipient's account. The stored mail keeps the full body. Full links
+  are listed only in demo mode for a sample customer's admin (demo invitation flow) and, in demo mode, for the
+  operator (`OutboxMasking`). Tests read tokens from `outbound_emails`, like a mailbox.
 - Tests: `PerformanceCalculatorTest`, `ReminderRulesTest`, `ProjectRoleRulesTest`, `DeactivationRulesTest` (unit);
   `CustomerAdminIntegrationTest`, `NoticeIntegrationTest`, `PerformanceIntegrationTest`, `ReminderIntegrationTest`,
   `LockStateIntegrationTest` (each on its own tenant).
@@ -359,4 +366,59 @@ curl -s -H "Authorization: Bearer $ADMIN" -H "Content-Type: application/json" --
   http://localhost:8080/api/customers/1/invitations                  # 201 Member (pending), mail in the outbox
 curl -s -H "Authorization: Bearer $ADMIN" "http://localhost:8080/api/customers/1/outbox?size=1"
 curl -s -H "Authorization: Bearer $ADMIN" "http://localhost:8080/api/customers/1/audit-logs?size=5"
+```
+
+## Solution operator (M7)
+
+| Area | Endpoints |
+|---|---|
+| Dashboard | `GET /api/ops/dashboard` (KPIs, remaining setup steps with web route keys, customer rows, 6 newest audits) |
+| Customers | `GET`/`POST /api/ops/customers`, `POST /api/ops/customers/{id}/deactivate` (`{ reason }`), `POST …/reactivate` |
+| Initial setup | `POST /api/ops/customers/{id}/projects` (`{ name, leadUserId? }`), `POST …/invitations` (`{ email, name, dept, admin, projectId, role, externalDomainConfirmed }`), `PUT /api/ops/projects/{id}/templates` (`[{ code, name }]`), `PUT /api/ops/projects/{id}/senders` (`[string]`), `GET /api/ops/setup-logs?customerId=` |
+| Content types | `GET /api/ops/content-types`, `PATCH /api/ops/content-types/{type}` (`{ active }`) |
+| Sample data | `GET`/`POST /api/ops/customers/{id}/sample-requests`, `DELETE …/sample-data`, `POST /api/ops/sample-reset` |
+| Logs | `GET /api/ops/audit-logs` (`customerId`, paging), `GET /api/ops/outbox` (paging) |
+| Datasets (M4) | `/api/ops/datasets`, `/api/ops/dataset-assignments`, `/api/ops/customers/{id}/dataset-assignments/{type}` |
+
+- Access: `OpsAccessInterceptor` checks every `/api/ops/**` handler (403 `운영 담당자 권한이 필요합니다`, the reset
+  `시연 데이터 초기화는 솔루션 운영 담당자만 실행할 수 있습니다`); services check again with `OperatorAccess`.
+  Operators still get `NOT_FOUND` on request APIs; the operator API gives request counts only.
+- Services (`domain/ops/service`): `OpsCustomerService` (list, dashboard, create with the default project
+  `기본 프로젝트`, deactivate/reactivate), `OpsSetupService` (projects, invitations via
+  `MemberAdminService.inviteForSetup`, templates/senders via `ProjectAdminService`, content types),
+  `OpsSampleService` (samples, cleanup, reset), `OpsLogService`, `SetupLogService` (`setup_logs`). Pure rules:
+  `CustomerRules` (name, normalized domain, reason), `OpsDashboardRules` (KPIs and steps), `ProjectSendingRules`
+  (template codes, Korean sender numbers).
+- Deactivation refuses customers with requests in progress, ends the sessions of the customer's users (next call
+  401) and blocks sign-in until reactivation. Setup writes need an active customer.
+- `admin: true` invitations grant the customer admin right at once; it takes effect when the invitation is accepted
+  (pending accounts cannot sign in). External domains need `externalDomainConfirmed`.
+- New projects get Alimtalk templates and SMS sender numbers only from the operator; the submit check compares
+  contents with these lists (audit `프로젝트 발신 정보 변경`).
+- Samples (`requests.demo`): sample customers only. A sample is a draft `[샘플] {유형} 작성 연습` whose author is
+  the project's first active requester (else the operator); clones and follow-ups of samples are samples too.
+  `SampleRequestService.purge` deletes requests with every child row and, after the commit, stored objects no
+  remaining row references. The reset (`POST /api/ops/sample-reset`) purges every request of every sample customer and
+  `DemoDataSeeder.reseedSampleRequests` writes the 12 seed requests of 한빛카드/도담생명 again (fixed ids, now-relative
+  times, history, bundles, seed notifications) in one transaction; customers that are not samples are never selected.
+- Audits: `고객사 생성/비활성/사용 재개`, `프로젝트 생성`, `사용자 초대`, `프로젝트 발신 정보 변경`, `콘텐츠 유형 변경`,
+  `샘플 요청 생성`, `샘플 데이터 초기화`, `샘플 초기화`. `AuditLog` entries carry `actorName`.
+- Tests: `CustomerRulesTest`, `OpsDashboardRulesTest`, `ProjectSendingRulesTest`, `OutboxMaskingTest` (unit);
+  `OpsIntegrationTest` (onboarding up to an Alimtalk submission, deactivation, content types, sample cleanup with a
+  shared stored object, the reset with a dedicated sample tenant and a non-sample tenant that must stay unchanged).
+  The reset test restores the demo tenants to their seed, which the read tests count on.
+
+Smoke test (operator, send UTF-8 bodies from files on Windows):
+
+```bash
+OP=$(curl -s -H "Content-Type: application/json" \
+  -d '{"email":"woojin.jung@txtms.io","password":"Txtms!2026","remember":false}' \
+  http://localhost:8080/api/auth/login | jq -r .accessToken)
+curl -s -H "Authorization: Bearer $OP" http://localhost:8080/api/ops/dashboard
+curl -s -H "Authorization: Bearer $OP" -H "Content-Type: application/json" --data-binary @customer.json \
+  http://localhost:8080/api/ops/customers                               # 201 OpsCustomer + 기본 프로젝트
+curl -s -H "Authorization: Bearer $OP" -H "Content-Type: application/json" --data-binary @admin-invite.json \
+  http://localhost:8080/api/ops/customers/<id>/invitations             # 201 Member (admin, pending)
+curl -s -X PUT -H "Authorization: Bearer $OP" -H "Content-Type: application/json" -d '["1588-0000"]' \
+  http://localhost:8080/api/ops/projects/<projectId>/senders
 ```

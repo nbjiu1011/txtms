@@ -16,6 +16,10 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     @Query("select distinct p from Project p join p.members m where m.userId = :userId order by p.id")
     List<Project> findByMemberUserId(@Param("userId") Long userId);
 
+    /** Projects per customer: rows of {@code [customerId, count]}. */
+    @Query("select p.customerId, count(p) from Project p group by p.customerId")
+    List<Object[]> countByCustomer();
+
     /** Atomic increment (the entity never writes this column). */
     @Modifying(flushAutomatically = true)
     @Query("update Project p set p.variablesRevision = p.variablesRevision + 1 where p.id = :id")

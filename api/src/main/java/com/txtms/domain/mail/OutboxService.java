@@ -2,6 +2,7 @@ package com.txtms.domain.mail;
 
 import java.time.Instant;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,13 +10,17 @@ import org.springframework.transaction.annotation.Transactional;
 import com.txtms.global.common.PageQuery;
 import com.txtms.global.common.PageResponse;
 
-/** Outbox reads (the mail stub's "발송 대기함"). */
+/** Outbox reads (the mail stub's "발송 대기함"). Token links are masked unless the caller may see them. */
 @Service
 @Transactional(readOnly = true)
 public class OutboxService {
 
-    /** Contract OutboxMail (§11). {@code status} stays {@code PENDING} until real delivery is connected. */
-    public record OutboxMail(long id, String to, String subject, String body, Instant createdAt, String status) {
+    /**
+     * Contract OutboxMail (§11, §12). {@code status} stays {@code PENDING} until real delivery is connected;
+     * {@code masked}: an invitation or reset link in {@code body} was hidden ({@link OutboxMasking}).
+     */
+    public record OutboxMail(long id, Long customerId, String to, String subject, String body, Instant createdAt,
+            String status, boolean masked) {
     }
 
     private final OutboundEmailRepository repository;
@@ -25,10 +30,21 @@ public class OutboxService {
     }
 
     /** Mails addressed to the customer's users, newest first. */
-    public PageResponse<OutboxMail> ofCustomer(long customerId, PageQuery page) {
-        return PageResponse.of(repository.findByCustomerIdOrderByCreatedAtDescIdDesc(customerId,
-                PageRequest.of(page.page(), page.size())),
-                m -> new OutboxMail(m.getId(), m.getTo(), m.getSubject(), m.getBody(), m.getCreatedAt(),
-                        m.getStatus()));
+    public PageResponse<OutboxMail> ofCustomer(long customerId, PageQuery page, boolean reveal) {
+        return map(repository.findByCustomerIdOrderByCreatedAtDescIdDesc(customerId,
+                PageRequest.of(page.page(), page.size())), reveal);
+    }
+
+    /** Every queued mail (operator), newest first. */
+    public PageResponse<OutboxMail> all(PageQuery page, boolean reveal) {
+        return map(repository.findAllByOrderByCreatedAtDescIdDesc(PageRequest.of(page.page(), page.size())), reveal);
+    }
+
+    private static PageResponse<OutboxMail> map(Page<OutboundEmail> page, boolean reveal) {
+        return PageResponse.of(page, m -> {
+            OutboxMasking.Shown shown = OutboxMasking.show(m.getBody(), reveal);
+            return new OutboxMail(m.getId(), m.getCustomerId(), m.getTo(), m.getSubject(), shown.body(),
+                    m.getCreatedAt(), m.getStatus(), shown.masked());
+        });
     }
 }

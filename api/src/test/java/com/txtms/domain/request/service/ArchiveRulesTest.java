@@ -137,6 +137,23 @@ class ArchiveRulesTest {
         assertThat(ArchiveLines.resolvedText(rcs)).isEqualTo("홍길동\n둘");
     }
 
+    @Test
+    void rawPreviewKeepsVariableTokensAndShowsFileNames() {
+        ArchiveLines.Completed withFile = completed("A:C1", "A", "2026-09-01T00:00:00Z", null,
+                RequestStatus.APPROVED, ContentType.FREEFORM, "{\"title\":\"t\",\"text\":\"#{customer_name}\"}",
+                List.of(new ArchiveLines.FileRef("a.pdf", 2)));
+        assertThat(ArchiveLines.previewRaw(withFile)).isEqualTo("a.pdf (v2)");
+        ArchiveLines.Completed rcs = completed("C:C1", "C", "2026-09-01T00:00:00Z", null, RequestStatus.APPROVED,
+                ContentType.RCS, "{\"cards\":[{\"body\":\"#{customer_name}님\"},{\"body\":\"둘\"}]}", List.of());
+        assertThat(ArchiveLines.previewRaw(rcs)).isEqualTo("#{customer_name}님\n둘");
+        assertThat(ArchiveLines.preview(rcs)).isEqualTo("홍길동님\n둘");
+        String longBody = "#{customer_name}" + "가".repeat(200);
+        ArchiveLines.Completed text = completed("B:C1", "B", "2026-09-01T00:00:00Z", null, RequestStatus.APPROVED,
+                ContentType.ALIMTALK, "{\"body\":\"" + longBody + "\",\"buttons\":[]}", List.of());
+        assertThat(ArchiveLines.previewRaw(text)).hasSize(ArchiveLines.PREVIEW_LENGTH)
+                .startsWith("#{customer_name}가");
+    }
+
     // ------------------------------------------------------------------ co-review summary
 
     @Test

@@ -29,6 +29,7 @@ import com.txtms.domain.user.dto.MemberBodies.EmailBody;
 import com.txtms.domain.user.dto.MemberBodies.InvitationBody;
 import com.txtms.domain.user.dto.MemberBodies.ProjectRolesBody;
 import com.txtms.domain.user.dto.MemberBodies.ProjectRolesItem;
+import com.txtms.domain.user.dto.MemberBodies.SetupInvitationBody;
 import com.txtms.domain.user.dto.MemberResponse;
 import com.txtms.domain.user.entity.User;
 import com.txtms.global.audit.AuditLogService;
@@ -220,6 +221,74 @@ public class MemberAdminService {
         invitations.issue(user, admin.userId(), admin.customer().getName());
         audit.record(admin.userId(), admin.customerId(), "사용자 초대", name, email);
         return member(admin.customer(), user);
+    }
+
+    /**
+     * Operator initial-setup invitation (actions.md §2.14 {@code seedUser}, prototype J:216 + J:289). The caller has
+     * checked the operator and that the customer is active. Order: email and name required → format or duplicate
+     * ({@code 이메일 형식 또는 중복을 확인하세요}) → a work user needs a project ({@code 프로젝트가 필요합니다}) and a role →
+     * external domain confirmation. {@code admin} grants the customer admin right, effective once the invitation is
+     * accepted (a pending account cannot sign in). Audited as {@code 사용자 초대} with the operator as actor.
+     */
+    public MemberResponse inviteForSetup(Customer customer, long operatorId, SetupInvitationBody body) {
+        SetupInvitationBody b = body == null ? new SetupInvitationBody(null, null, null, null, null, null, null)
+                : body;
+        boolean asAdmin = Boolean.TRUE.equals(b.admin());
+        String email = b.email() == null ? "" : b.email().trim().toLowerCase();
+        if (email.isEmpty()) {
+            throw BusinessException.validation("email", "이메일을(를) 입력하세요");
+        }
+        String name = b.name() == null ? "" : b.name().trim();
+        if (name.isEmpty()) {
+            throw BusinessException.validation("name", "이름을(를) 입력하세요");
+        }
+        if (name.length() > 100) {
+            throw BusinessException.validation("name", "이름은 최대 100자입니다");
+        }
+        String invalid = "이메일 형식 또는 중복을 확인하세요";
+        if (email.length() > 255 || !EMAIL.matcher(email).matches()) {
+            throw BusinessException.validation("email", invalid);
+        }
+        if (userService.findByEmail(email).isPresent()) {
+            throw new BusinessException(ErrorCode.DUPLICATE, invalid);
+        }
+        String dept = b.dept() == null || b.dept().isBlank() ? null : b.dept().trim();
+        if (dept != null && dept.length() > 100) {
+            throw BusinessException.validation("dept", "소속은 최대 100자입니다");
+        }
+        Project project = null;
+        if (!asAdmin || b.projectId() != null || b.role() != null) {
+            if (b.projectId() == null) {
+                throw BusinessException.validation("projectId", "프로젝트가 필요합니다");
+            }
+            if (b.role() == null) {
+                throw BusinessException.validation("role", "역할을 선택하세요");
+            }
+            project = projectAccess.byCustomer(customer.getId()).stream()
+                    .filter(p -> p.getId().equals(b.projectId())).findFirst()
+                    .orElseThrow(BusinessException::notFound);
+            if (b.role() == ProjectRole.APPROVER && !customer.isApprovalEnabled()) {
+                throw BusinessException.validation("role", ProjectRoleRules.APPROVAL_NOT_USED);
+            }
+        }
+        requireDomainConfirmed(customer, email, b.externalDomainConfirmed(),
+                "회사 도메인과 다른 이메일입니다. 주소를 확인한 뒤 초대 링크 생성을 다시 누르면 초대됩니다");
+
+        User user = User.invited(customer.getId(), email, name, dept, INVITED_COLOR, clock.instant());
+        if (asAdmin) {
+            user.grantCustomerAdmin(customer.getId());
+        }
+        user = userService.create(user);
+        if (project != null) {
+            project.addRole(user.getId(), b.role());
+        }
+        invitations.issue(user, operatorId, customer.getName());
+        String what = asAdmin ? "고객사 관리자" : "업무 사용자";
+        if (project != null) {
+            what += ", " + project.getName() + " " + ProjectRoleRules.label(b.role());
+        }
+        audit.record(operatorId, customer.getId(), "사용자 초대", name, email + " (" + what + ")");
+        return member(customer, user);
     }
 
     /** Pending users only: every unused link is revoked and a new 7-day link is mailed. */

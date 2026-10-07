@@ -223,6 +223,20 @@ public class DatasetService {
         return assignments.findByCustomerIdAndType(customerId, scope);
     }
 
+    /** Assigned content types per customer id (operator overview: unassigned combinations). */
+    @Transactional(readOnly = true)
+    public Map<Long, java.util.Set<ContentType>> assignedTypesByCustomer() {
+        Map<Long, java.util.Set<ContentType>> result = new HashMap<>();
+        for (DatasetAssignment a : assignments.findAll()) {
+            if (a.getType() == DatasetScope.COMMON) {
+                continue;
+            }
+            result.computeIfAbsent(a.getCustomerId(), k -> java.util.EnumSet.noneOf(ContentType.class))
+                    .add(ContentType.valueOf(a.getType().name()));
+        }
+        return result;
+    }
+
     // ------------------------------------------------------------------ assignments (operator)
 
     @Transactional(readOnly = true)

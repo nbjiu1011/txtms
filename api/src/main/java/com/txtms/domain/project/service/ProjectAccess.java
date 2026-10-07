@@ -159,6 +159,15 @@ public class ProjectAccess {
         projectRepository.incrementVariablesRevision(projectId);
     }
 
+    /** Number of projects per customer id (active and stopped). */
+    public Map<Long, Long> projectCounts() {
+        Map<Long, Long> counts = new java.util.HashMap<>();
+        for (Object[] row : projectRepository.countByCustomer()) {
+            counts.put(((Number) row[0]).longValue(), ((Number) row[1]).longValue());
+        }
+        return counts;
+    }
+
     public List<Project> byCustomer(long customerId) {
         return new ArrayList<>(projectRepository.findByCustomerIdOrderByIdAsc(customerId));
     }

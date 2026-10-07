@@ -45,6 +45,13 @@ public class ContentTypeSetting {
         this.updatedAt = now;
     }
 
+    /** Operator switch: an inactive type cannot be chosen for new requests or type changes. */
+    public void changeActive(boolean active, Long actorId, Instant now) {
+        this.active = active;
+        this.updatedBy = actorId;
+        this.updatedAt = now;
+    }
+
     public ContentType getType() {
         return type;
     }

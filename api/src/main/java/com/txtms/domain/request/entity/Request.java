@@ -426,6 +426,11 @@ public class Request {
         this.recallReason = reason;
     }
 
+    /** Sample (demo) request: excluded from performance and removed by the operator's sample cleanup. */
+    public void markDemo() {
+        this.demo = true;
+    }
+
     public void linkParent(String parentRequestId, String parentContentKey) {
         this.parentRequestId = parentRequestId;
         this.parentContentKey = parentContentKey;

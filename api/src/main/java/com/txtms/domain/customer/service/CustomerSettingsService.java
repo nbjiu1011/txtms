@@ -12,10 +12,12 @@ import com.txtms.domain.customer.dto.CustomerSettingsBody;
 import com.txtms.domain.customer.entity.Customer;
 import com.txtms.domain.customer.entity.NotifyChannel;
 import com.txtms.domain.customer.service.CustomerAdminAccess.Admin;
+import com.txtms.domain.mail.OutboxMasking;
 import com.txtms.domain.mail.OutboxService;
 import com.txtms.domain.mail.OutboxService.OutboxMail;
 import com.txtms.global.audit.AuditLogService;
 import com.txtms.global.common.PageQuery;
+import com.txtms.global.config.AppProperties;
 import com.txtms.global.common.PageResponse;
 import com.txtms.global.exception.BusinessException;
 import com.txtms.global.security.AuthUser;
@@ -37,14 +39,16 @@ public class CustomerSettingsService {
     private final OutboxService outbox;
     private final AuditLogService audit;
     private final Clock clock;
+    private final AppProperties properties;
 
     public CustomerSettingsService(CustomerAdminAccess adminAccess, CustomerService customers, OutboxService outbox,
-            AuditLogService audit, Clock clock) {
+            AuditLogService audit, Clock clock, AppProperties properties) {
         this.adminAccess = adminAccess;
         this.customers = customers;
         this.outbox = outbox;
         this.audit = audit;
         this.clock = clock;
+        this.properties = properties;
     }
 
     public CustomerResponse updateSettings(AuthUser auth, long customerId, CustomerSettingsBody body) {
@@ -86,10 +90,16 @@ public class CustomerSettingsService {
         return CustomerResponse.of(customer);
     }
 
+    /**
+     * The customer's outbox. Invitation and reset links are masked (an admin could otherwise take over the
+     * recipient's account) except in demo mode for a sample customer, where the demo invitation flow needs them.
+     */
     @Transactional(readOnly = true)
     public PageResponse<OutboxMail> outbox(AuthUser auth, long customerId, PageQuery page) {
         Admin admin = adminAccess.require(auth, customerId);
-        return outbox.ofCustomer(admin.customerId(), page);
+        boolean reveal = OutboxMasking.revealForCustomerAdmin(properties.demo().enabled(),
+                admin.customer().isSample());
+        return outbox.ofCustomer(admin.customerId(), page, reveal);
     }
 
     @Transactional(readOnly = true)

@@ -94,16 +94,26 @@ class CustomerAdminIntegrationTest extends IntegrationTestBase {
                 + "ORDER BY id DESC LIMIT 1", String.class, action, customerId);
     }
 
-    /** Token of the newest invitation mail to the address (from the outbox). */
+    /**
+     * Token of the newest invitation mail to the address. The admin's outbox masks the link (non-sample customer), so
+     * the token is read from the stored mail, as the recipient's mailbox would show it.
+     */
     private String inviteToken(Login admin, long customerId, String to) throws Exception {
+        boolean listed = false;
         for (JsonNode mail : getJson(admin, "/api/customers/" + customerId + "/outbox?size=100").path("content")) {
             if (mail.path("to").asString().equals(to) && mail.path("subject").asString().equals("TX TMS 초대")) {
-                Matcher m = INVITE.matcher(mail.path("body").asString());
-                assertThat(m.find()).isTrue();
-                return m.group(1);
+                assertThat(mail.path("body").asString()).contains("/invite/••••").contains("링크는 수신자에게만 전달됩니다");
+                assertThat(mail.path("masked").asBoolean()).isTrue();
+                listed = true;
+                break;
             }
         }
-        throw new AssertionError("no invitation mail to " + to);
+        assertThat(listed).as("invitation mail to " + to + " listed in the outbox").isTrue();
+        String body = jdbc.queryForObject("SELECT body FROM outbound_emails WHERE to_address = ? AND subject = ? "
+                + "ORDER BY id DESC LIMIT 1", String.class, to, "TX TMS 초대");
+        Matcher m = INVITE.matcher(body);
+        assertThat(m.find()).isTrue();
+        return m.group(1);
     }
 
     private int loginStatus(String email, String password) throws Exception {

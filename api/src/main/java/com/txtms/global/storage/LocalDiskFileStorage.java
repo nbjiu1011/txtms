@@ -70,6 +70,18 @@ public class LocalDiskFileStorage implements FileStorage {
         return key != null && KEY.matcher(key).matches() && Files.isRegularFile(resolve(key));
     }
 
+    @Override
+    public void delete(String key) {
+        if (key == null || !KEY.matcher(key).matches()) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(resolve(key));
+        } catch (IOException e) {
+            log.warn("Could not delete stored file {}: {}", key, e.getMessage());
+        }
+    }
+
     private Path resolve(String key) {
         Path path = root.resolve(key).normalize();
         if (!path.startsWith(root)) {

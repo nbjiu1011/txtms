@@ -16,11 +16,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.txtms.domain.contenttype.entity.ContentType;
@@ -69,18 +69,51 @@ import com.txtms.domain.user.entity.User;
 import com.txtms.domain.user.repository.UserRepository;
 import com.txtms.global.common.Kst;
 import com.txtms.global.config.AppProperties;
+import com.txtms.global.exception.BusinessException;
+import com.txtms.global.exception.ErrorCode;
 
 import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Demo data for local development and demonstrations (two sample customers, three projects, twelve users and
- * twelve requests in every workflow state). Runs only in demo mode and only on an empty database. All times are
- * relative to the seeding moment so "due soon" and "overdue" demos keep working.
+ * twelve requests in every workflow state). The full seed runs only in demo mode and only on an empty database. All
+ * times are relative to the seeding moment so "due soon" and "overdue" demos keep working.
+ * <p>
+ * Reset mode ({@link #reseedSampleRequests}, the operator's {@code 샘플 초기화}): after the caller removed the sample
+ * customers' requests, the seed requests of the seed customers among them (한빛카드, 도담생명, found by domain) are
+ * written again with their history, opinions, questions, completion bundles and notifications, anchored at now.
+ * Customers, users, projects, variables and datasets are not touched; seed users and projects are found by email
+ * and by name.
  */
 @Component
 @Order(1)
-@ConditionalOnProperty(prefix = "app.demo", name = "enabled", havingValue = "true")
 public class DemoDataSeeder implements ApplicationRunner {
+
+    /** Seed customer keys and their domains. */
+    public static final Map<String, String> SEED_CUSTOMERS = Map.of("c1", DemoDatasets.HANBIT, "c2",
+            DemoDatasets.DODAM);
+
+    /** Seed projects: key to customer key and name. */
+    private static final Map<String, List<String>> SEED_PROJECTS = Map.of(
+            "p1", List.of("c1", "카드 혜택 알림"),
+            "p2", List.of("c1", "리스크 고지 문자"),
+            "p3", List.of("c2", "계약 유지 안내"));
+
+    /** Seed user emails by key (the reset finds the seed users by email). */
+    private static final Map<String, String> SEED_USER_EMAILS = Map.ofEntries(
+            Map.entry("u1", "seoyeon.kim@hanbitcard.co.kr"), Map.entry("u2", "jihoon.park@hanbitcard.co.kr"),
+            Map.entry("u3", "dohyun.lee@hanbitcard.co.kr"), Map.entry("u4", "mina.choi@hanbitcard.co.kr"),
+            Map.entry("u5", "woojin.jung@txtms.io"), Map.entry("u6", "gaeul.han@hanbitcard.co.kr"),
+            Map.entry("u7", "serin.oh@hanbitcard.co.kr"), Map.entry("u8", "taeo.yoon@dodamlife.com"),
+            Map.entry("u9", "jia.moon@dodamlife.com"), Map.entry("u10", "hajun.shin@dodamlife.com"),
+            Map.entry("u11", "minho.kang@hanbitcard.co.kr"), Map.entry("u12", "aram.seo@dodamlife.com"));
+
+    /** The seed customer key of each seed request (p1, p2: c1; p3: c2). Ids are fixed across resets. */
+    private static final Map<String, String> SEED_CUSTOMER_OF_REQUEST = Map.ofEntries(
+            Map.entry("REQ-2609-101", "c1"), Map.entry("REQ-2609-102", "c1"), Map.entry("REQ-2609-103", "c1"),
+            Map.entry("REQ-2609-104", "c1"), Map.entry("REQ-2609-105", "c1"), Map.entry("REQ-2609-088", "c1"),
+            Map.entry("REQ-2609-106", "c1"), Map.entry("REQ-2609-107", "c1"), Map.entry("REQ-2609-110", "c1"),
+            Map.entry("REQ-2609-113", "c1"), Map.entry("REQ-2609-111", "c2"), Map.entry("REQ-2609-112", "c2"));
 
     private static final Logger log = LoggerFactory.getLogger(DemoDataSeeder.class);
 
@@ -142,13 +175,48 @@ public class DemoDataSeeder implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
+        if (!properties.demo().enabled()) {
+            return;
+        }
         if (customers.count() > 0) {
             log.info("Demo seed skipped: database already has customers");
             return;
         }
-        new Seeding(clock.instant()).run();
+        new Seeding(clock.instant(), null).run();
         log.info("Demo data seeded (demo default password {})",
                 properties.demo().hasDefaultPassword() ? "applied to demo accounts" : "not configured");
+    }
+
+    /** Customer ids of the seed customers (by domain) among {@code customerIds}, keyed {@code c1}/{@code c2}. */
+    public Map<String, Long> seedCustomersAmong(java.util.Collection<Long> customerIds) {
+        Map<String, Long> found = new HashMap<>();
+        SEED_CUSTOMERS.forEach((key, domain) -> customers.findByDomain(domain)
+                .filter(c -> c.isSample() && customerIds.contains(c.getId()))
+                .ifPresent(c -> found.put(key, c.getId())));
+        return found;
+    }
+
+    /** Seed request ids of the given seed customer keys. */
+    public static List<String> seedRequestIdsOf(java.util.Collection<String> customerKeys) {
+        return SEED_CUSTOMER_OF_REQUEST.entrySet().stream().filter(e -> customerKeys.contains(e.getValue()))
+                .map(Map.Entry::getKey).sorted().toList();
+    }
+
+    /**
+     * Reset mode: writes the seed requests of the seed customers among {@code customerIds} again (the caller has
+     * removed their requests in the same transaction). A seed user or project that cannot be found (email or name
+     * changed) fails with {@code REQUEST_STATE_CONFLICT}, which rolls the whole reset back. Returns the number of
+     * restored requests.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public int reseedSampleRequests(java.util.Collection<Long> customerIds) {
+        Map<String, Long> found = seedCustomersAmong(customerIds);
+        if (found.isEmpty()) {
+            return 0;
+        }
+        Seeding seeding = new Seeding(clock.instant(), found.keySet());
+        found.forEach((key, id) -> seeding.c.put(key, customers.findById(id).orElseThrow()));
+        return seeding.reseed();
     }
 
     /** One seeding run anchored at {@code now}. */
@@ -160,10 +228,66 @@ public class DemoDataSeeder implements ApplicationRunner {
         private final Map<String, Customer> c = new HashMap<>();
         private final Map<String, Project> p = new HashMap<>();
         private final Map<Long, List<Map<String, Object>>> varsByProject = new HashMap<>();
+        /** Reset mode: the seed customer keys whose requests are written again; null for the full seed. */
+        private final java.util.Set<String> resetKeys;
+        private int restored;
 
-        Seeding(Instant now) {
+        Seeding(Instant now, java.util.Set<String> resetKeys) {
             this.now = now;
             this.anchor = now.atZone(Kst.ZONE);
+            this.resetKeys = resetKeys == null ? null : java.util.Set.copyOf(resetKeys);
+        }
+
+        boolean resetting() {
+            return resetKeys != null;
+        }
+
+        /** Reset mode: seed variables only as bundle snapshots, then the requests and their notifications. */
+        int reseed() {
+            seedVariables();
+            seedRequests();
+            seedNotifications();
+            return restored;
+        }
+
+        /** Whether the seed request belongs to a customer being written (always true for the full seed). */
+        boolean included(RequestSeed seed) {
+            return includedRequest(seed.id());
+        }
+
+        boolean includedRequest(String requestId) {
+            return !resetting() || resetKeys.contains(SEED_CUSTOMER_OF_REQUEST.get(requestId));
+        }
+
+        User userOf(String key) {
+            User user = u.get(key);
+            if (user == null && resetting()) {
+                String email = SEED_USER_EMAILS.get(key);
+                user = users.findByEmail(email).orElseThrow(() -> conflict(email));
+                u.put(key, user);
+            }
+            return user;
+        }
+
+        Project project(String key) {
+            Project project = p.get(key);
+            if (project == null && resetting()) {
+                List<String> def = SEED_PROJECTS.get(key);
+                Customer customer = c.get(def.get(0));
+                if (customer == null) {
+                    throw conflict(SEED_CUSTOMERS.get(def.get(0)));
+                }
+                project = projects.findByCustomerIdOrderByIdAsc(customer.getId()).stream()
+                        .filter(x -> x.getName().equals(def.get(1))).findFirst()
+                        .orElseThrow(() -> conflict(def.get(1)));
+                p.put(key, project);
+            }
+            return project;
+        }
+
+        BusinessException conflict(String what) {
+            return new BusinessException(ErrorCode.REQUEST_STATE_CONFLICT,
+                    "샘플 고객사 구성이 시드와 달라 복원할 수 없습니다 (" + what + ")");
         }
 
         /** Prototype {@code at(d, h, m)}: d days from now at h:m KST. */
@@ -232,11 +356,11 @@ public class DemoDataSeeder implements ApplicationRunner {
         }
 
         long id(String userKey) {
-            return u.get(userKey).getId();
+            return userOf(userKey).getId();
         }
 
         void seedProjects() {
-            Project p1 = new Project(c.get("c1").getId(), "카드 혜택 알림", id("u5"), at(-119));
+            Project p1 = new Project(c.get("c1").getId(), SEED_PROJECTS.get("p1").get(1), id("u5"), at(-119));
             p1.addRole(id("u1"), ProjectRole.REQUESTER);
             p1.addRole(id("u2"), ProjectRole.REVIEWER);
             p1.addRole(id("u6"), ProjectRole.REVIEWER);
@@ -249,7 +373,7 @@ public class DemoDataSeeder implements ApplicationRunner {
             p1.addSender("02-3456-7000");
             p.put("p1", projects.save(p1));
 
-            Project p2 = new Project(c.get("c1").getId(), "리스크 고지 문자", id("u5"), at(-119));
+            Project p2 = new Project(c.get("c1").getId(), SEED_PROJECTS.get("p2").get(1), id("u5"), at(-119));
             p2.addRole(id("u7"), ProjectRole.REQUESTER);
             p2.addRole(id("u2"), ProjectRole.REVIEWER);
             p2.addRole(id("u4"), ProjectRole.APPROVER);
@@ -257,7 +381,7 @@ public class DemoDataSeeder implements ApplicationRunner {
             p2.addSender("1588-0000");
             p.put("p2", projects.save(p2));
 
-            Project p3 = new Project(c.get("c2").getId(), "계약 유지 안내", id("u5"), at(-73));
+            Project p3 = new Project(c.get("c2").getId(), SEED_PROJECTS.get("p3").get(1), id("u5"), at(-73));
             p3.addRole(id("u9"), ProjectRole.REQUESTER);
             p3.addRole(id("u10"), ProjectRole.REVIEWER);
             p3.assignLead(id("u8"));
@@ -309,11 +433,22 @@ public class DemoDataSeeder implements ApplicationRunner {
             variable("p3", "customer_name", "계약자 이름", "홍길동", "u5", -50);
             variable("p3", "due_date", "보험료 납입일", "10월 5일", "u9", -20);
             variable("p3", "premium", "월 납입 보험료", "48,200원", "u9", -20);
+            if (resetting()) {
+                return;
+            }
             varsByProject.forEach((projectId, vars) -> jdbc.update(
                     "UPDATE projects SET variables_revision = ? WHERE id = ?", vars.size(), projectId));
         }
 
         void variable(String projectKey, String key, String description, String value, String byKey, int days) {
+            if (resetting()) {
+                // reset mode: only the bundle snapshot of the seed variables (variables themselves stay as they are)
+                if (resetKeys.contains(SEED_PROJECTS.get(projectKey).get(0))) {
+                    varsByProject.computeIfAbsent(project(projectKey).getId(), k -> new ArrayList<>())
+                            .add(ordered("key", key, "type", "TEXT", "value", value));
+                }
+                return;
+            }
             long projectId = p.get(projectKey).getId();
             Instant created = at(days);
             jdbc.update("INSERT INTO variables (project_id, var_key, description, var_type, value, active, deleted, "
@@ -377,11 +512,13 @@ public class DemoDataSeeder implements ApplicationRunner {
         }
 
         void seedNotifications() {
-            LocalDate due104 = requests.findById("REQ-2609-104").map(Request::getDueDate).orElseThrow();
-            notify("u3", at(-1, 10, 0), NotificationKind.ASSIGN, "REQ-2609-104",
-                    "신규 검수 요청이 배정을 기다립니다. 확정 납기 " + due104.getMonthValue() + "월 " + due104.getDayOfMonth()
-                            + "일",
-                    false, false, "u1");
+            if (includedRequest("REQ-2609-104")) {
+                LocalDate due104 = requests.findById("REQ-2609-104").map(Request::getDueDate).orElseThrow();
+                notify("u3", at(-1, 10, 0), NotificationKind.ASSIGN, "REQ-2609-104",
+                        "신규 검수 요청이 배정을 기다립니다. 확정 납기 " + due104.getMonthValue() + "월 "
+                                + due104.getDayOfMonth() + "일",
+                        false, false, "u1");
+            }
             notify("u1", at(-1, 16, 0), NotificationKind.ASK, "REQ-2609-102", "이도현님이 확인을 요청했습니다: 면제 기간 종료일",
                     false, false, "u3");
             notify("u2", at(0, 9, 0), NotificationKind.RECALL, "REQ-2609-107",
@@ -398,6 +535,9 @@ public class DemoDataSeeder implements ApplicationRunner {
 
         void notify(String userKey, Instant at, NotificationKind kind, String requestId, String text, boolean read,
                 boolean renotify, String actorKey) {
+            if (!includedRequest(requestId)) {
+                return;
+            }
             Notification n = new Notification(id(userKey), kind, requestId, text, at, renotify,
                     actorKey == null ? null : id(actorKey));
             if (read) {
@@ -509,10 +649,23 @@ public class DemoDataSeeder implements ApplicationRunner {
 
             List<RequestSeed> all = List.of(r101, r102, r103, r104, r105, r088, r106, r107, r110, r113, r111, r112);
             for (RequestSeed seed : all) {
-                persist(seed);
+                if (included(seed)) {
+                    persist(seed);
+                    restored++;
+                }
             }
+            if (included(r101)) {
+                hanbitEvents(r101, r102, r103, r107, r106, r088);
+            }
+            if (included(r111)) {
+                freeze(r111);
+            }
+        }
 
-            // events beyond create / submit / assign (prototype history seed)
+        /** Events beyond create / submit / assign of the 한빛카드 seed requests (prototype history seed). */
+        void hanbitEvents(RequestSeed r101, RequestSeed r102, RequestSeed r103, RequestSeed r107, RequestSeed r106,
+                RequestSeed r088) {
+
             opinions.save(new RequestOpinion(r101.id(), "C2", id("u6"),
                     "연속 공백이 있습니다. 적립일 표기를 청구 안내와 같은 형식으로 맞추면 좋겠습니다.", 1, at(-1, 15, 0)));
             hist(r101, at(-1, 15, 0), "u6", "검수 의견", "연속 공백이 있습니다. 적립일 표기를 청구 안내와 같은 형식으로 맞추면 좋겠습니다.", "C2", 1);
@@ -536,11 +689,10 @@ public class DemoDataSeeder implements ApplicationRunner {
             freeze(r106);
             hist(r088, at(-31, 17, 0), "u2", "검수 완료", "승인 대기로 전환", null, 1);
             freeze(r088);
-            freeze(r111);
         }
 
         void persist(RequestSeed s) {
-            Project project = p.get(s.projectKey);
+            Project project = project(s.projectKey);
             Request r = new Request(s.id(), project.getId(), s.type, id(s.requesterKey), s.createdAt);
             r.describe(s.title, s.purpose, s.target, s.background, s.campaign);
             r.schedule(s.dueDate, s.dueDate, s.urgency);
@@ -600,17 +752,15 @@ public class DemoDataSeeder implements ApplicationRunner {
             if (s.status == RequestStatus.WAITING) {
                 return;
             }
-            String names = String.join(", ", s.reviewerKeys.stream().map(k -> u.get(k).getName()).toList());
-            String leadKey = u.entrySet().stream()
-                    .filter(e -> e.getValue().getId().equals(project.getLeadUserId()))
-                    .map(Map.Entry::getKey).findFirst().orElseThrow();
-            hist(s, s.submittedAt.plusSeconds(3600), leadKey, "검수자 배정",
-                    names + " 배정, 주담당 " + u.get(s.primaryKey).getName(), null, 1);
+            String names = String.join(", ", s.reviewerKeys.stream().map(k -> userOf(k).getName()).toList());
+            // actor = the project's lead (a reset keeps a lead the customer admin changed after the seed)
+            history.save(new RequestHistory(s.id(), s.submittedAt.plusSeconds(3600), project.getLeadUserId(),
+                    "검수자 배정", names + " 배정, 주담당 " + userOf(s.primaryKey).getName(), null, null, 1));
         }
 
         /** Freezes the completion bundle of a finally completed request. */
         void freeze(RequestSeed s) {
-            long projectId = p.get(s.projectKey).getId();
+            long projectId = project(s.projectKey).getId();
             bundles.save(new CompletionBundle(s.id(), s.status, s.completedAt, id(s.completedByKey),
                     write(varsByProject.getOrDefault(projectId, List.of()))));
             int order = 0;

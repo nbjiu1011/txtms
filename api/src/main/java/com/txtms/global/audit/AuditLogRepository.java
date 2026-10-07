@@ -14,6 +14,8 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
 
     Page<AuditLog> findByCustomerIdOrderByAtDescIdDesc(Long customerId, Pageable pageable);
 
+    Page<AuditLog> findAllByOrderByAtDescIdDesc(Pageable pageable);
+
     /** Retention: deletes records of the given actions written before {@code before}. */
     @Modifying(flushAutomatically = true)
     @Query("delete from AuditLog a where a.action in :actions and a.at < :before")

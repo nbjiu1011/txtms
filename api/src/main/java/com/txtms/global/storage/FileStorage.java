@@ -16,4 +16,10 @@ public interface FileStorage {
 
     /** Whether an object is stored under the key (without reading it). */
     boolean exists(String key);
+
+    /**
+     * Removes the object (sample data cleanup). Callers delete only keys no stored row references any more; unknown
+     * keys are ignored.
+     */
+    void delete(String key);
 }

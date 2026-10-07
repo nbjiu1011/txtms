@@ -143,10 +143,11 @@ public class ArchiveService {
         ArchiveLines.Completed l = line.latest();
         ArchiveLineResponse.Latest latest = new ArchiveLineResponse.Latest(l.requestId(), l.contentKey(), l.title(),
                 l.version(), l.type(), l.status(), l.completedAt(), l.campaign(), ArchiveLines.preview(l),
-                l.files().stream().map(ArchiveLines.FileRef::name).filter(Objects::nonNull).toList(),
+                ArchiveLines.previewRaw(l), l.files().stream().map(ArchiveLines.FileRef::name).filter(Objects::nonNull).toList(),
                 ArchiveLines.resolvedText(l));
         List<ArchiveLineResponse.Past> past = line.past().stream()
-                .map(p -> new ArchiveLineResponse.Past(p.requestId(), p.contentKey(), p.title(), p.version(),
+                .map(p -> new ArchiveLineResponse.Past(p.requestId(), p.requestTitle(), p.contentKey(), p.title(),
+                        p.version(),
                         p.completedAt()))
                 .toList();
         List<ArchiveLineResponse.FollowUp> followUps = line.followUps().stream()

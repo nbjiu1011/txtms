@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface OutboundEmailRepository extends JpaRepository<OutboundEmail, Long> {
 
     Page<OutboundEmail> findByCustomerIdOrderByCreatedAtDescIdDesc(Long customerId, Pageable pageable);
+
+    Page<OutboundEmail> findAllByOrderByCreatedAtDescIdDesc(Pageable pageable);
 }

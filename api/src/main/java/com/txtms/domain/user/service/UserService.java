@@ -64,6 +64,20 @@ public class UserService {
         return repository.findAdminsOf(customerId).stream().filter(this::canUseAccount).map(User::getId).toList();
     }
 
+    /** Active admins (usable accounts) of the customer, ordered by id. */
+    public List<User> activeAdminsOf(long customerId) {
+        return repository.findAdminsOf(customerId).stream().filter(this::canUseAccount).toList();
+    }
+
+    /** Number of users per customer id (pending and inactive included). */
+    public Map<Long, Long> countByCustomer() {
+        Map<Long, Long> counts = new java.util.HashMap<>();
+        for (Object[] row : repository.countByCustomer()) {
+            counts.put(((Number) row[0]).longValue(), ((Number) row[1]).longValue());
+        }
+        return counts;
+    }
+
     /** An account may sign in and call the API only while it and its customer are active. */
     public boolean canUseAccount(User user) {
         if (!user.isActive() || user.isPending()) {

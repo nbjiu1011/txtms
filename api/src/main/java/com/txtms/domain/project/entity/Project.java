@@ -123,6 +123,21 @@ public class Project extends BaseEntity {
         senders.add(number);
     }
 
+    /**
+     * Replaces the registered Alimtalk templates (order kept). A new collection instance makes Hibernate delete and
+     * re-insert the rows, so reordering never trips the unique (project, code) key with in-place updates.
+     */
+    public void replaceTemplates(List<ProjectTemplate> next, Instant now) {
+        this.templates = new ArrayList<>(next);
+        touch(now);
+    }
+
+    /** Replaces the registered sender numbers (order kept; rows are re-inserted like the templates). */
+    public void replaceSenders(List<String> next, Instant now) {
+        this.senders = new ArrayList<>(next);
+        touch(now);
+    }
+
     public Set<ProjectRole> rolesOf(Long userId) {
         Set<ProjectRole> roles = EnumSet.noneOf(ProjectRole.class);
         for (ProjectMember m : members) {

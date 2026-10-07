@@ -572,6 +572,7 @@ class CompletionIntegrationTest extends IntegrationTestBase {
         assertThat(c1Line.path("latest").path("status").asString()).isEqualTo("REVIEW_COMPLETED");
         assertThat(c1Line.path("latest").path("resolvedText").asString()).isEqualTo("홍길동님 청구 금액 안내");
         assertThat(c1Line.path("latest").path("preview").asString()).isEqualTo("홍길동님 청구 금액 안내");
+        assertThat(c1Line.path("latest").path("previewRaw").asString()).isEqualTo("#{customer_name}님 청구 금액 안내");
         assertThat(c1Line.path("latest").path("campaign").asString()).isEqualTo("9월 혜택");
         assertThat(c1Line.path("followUps")).isEmpty(); // B is someone else's draft
         assertThat(ids(c2Line.path("followUps"))).containsExactly(cid);
@@ -600,6 +601,8 @@ class CompletionIntegrationTest extends IntegrationTestBase {
         assertThat(c1Line.path("latest").path("requestId").asString()).isEqualTo(bid);
         assertThat(c1Line.path("latest").path("resolvedText").asString()).isEqualTo("김철수님 10월 청구 금액 안내");
         assertThat(ids(c1Line.path("past"))).containsExactly(a);
+        assertThat(c1Line.path("past").get(0).path("requestTitle").asString())
+                .isEqualTo(jdbc.queryForObject("SELECT title FROM requests WHERE id = ?", String.class, a));
         assertThat(c1Line.path("followUps")).isEmpty();
         c2Line = line(lines, a + ":C2");
         assertThat(c2Line.path("latest").path("requestId").asString()).isEqualTo(bid);

@@ -44,4 +44,14 @@ public class CustomerService {
     public boolean isEmpty() {
         return repository.count() == 0;
     }
+
+    public Optional<Customer> findByDomain(String domain) {
+        return domain == null ? Optional.empty() : repository.findByDomain(domain);
+    }
+
+    /** Persists a new customer (operator creation); flushed so a duplicate domain fails here. */
+    @Transactional
+    public Customer create(Customer customer) {
+        return repository.saveAndFlush(customer);
+    }
 }

@@ -166,6 +166,9 @@ public class RequestCommandService {
         RequestInfo info = source.info();
         copy.updateInfo(new RequestInfo(truncate(info.title() + " (복제)", TITLE_MAX), null, info.purpose(),
                 info.target(), info.background(), info.campaign(), Urgency.NORMAL), now);
+        if (source.isDemo()) {
+            copy.markDemo(); // a copy of a sample stays a sample (removed with the sample data)
+        }
         copy = requests.save(copy);
 
         int n = 0;
@@ -216,6 +219,9 @@ public class RequestCommandService {
         copy.updateInfo(new RequestInfo(truncate(info.title() + " 후속", TITLE_MAX), null, info.purpose(),
                 info.target(), info.background(), info.campaign(), Urgency.NORMAL), now);
         copy.linkParent(source.getId(), only);
+        if (source.isDemo()) {
+            copy.markDemo();
+        }
         copy = requests.save(copy);
 
         int n = 0;

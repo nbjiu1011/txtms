@@ -13,12 +13,14 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.txtms.domain.customer.entity.Customer;
 import com.txtms.domain.customer.service.CustomerAdminAccess;
 import com.txtms.domain.customer.service.CustomerAdminAccess.Admin;
 import com.txtms.domain.project.dto.ProjectBody;
 import com.txtms.domain.project.dto.ProjectResponse;
 import com.txtms.domain.project.entity.Project;
 import com.txtms.domain.project.entity.ProjectRole;
+import com.txtms.domain.project.entity.ProjectTemplate;
 import com.txtms.domain.project.repository.ProjectRepository;
 import com.txtms.domain.request.entity.RequestStatus;
 import com.txtms.domain.request.service.RequestQueryService;
@@ -33,7 +35,7 @@ import com.txtms.global.security.AuthUser;
  * Project management by the customer admin (actions.md §2.13 {@code projEdit}): name, lead reviewer (gets the
  * reviewer role; never a requester of the project), approver set (approval customers: at least one active approver;
  * other customers: none), active flag (deactivation refused while requests are in progress). Audited as
- * {@code 프로젝트 생성} / {@code 프로젝트 변경}. Templates and sender numbers stay seed-managed (no edit screen).
+ * {@code 프로젝트 생성} / {@code 프로젝트 변경}. Templates and sender numbers are set by the operator (contract §12).
  */
 @Service
 @Transactional
@@ -135,6 +137,61 @@ public class ProjectAdminService {
             audit.record(admin.userId(), admin.customerId(), "프로젝트 변경", name, String.join(" / ", changes));
         }
         return ProjectResponse.of(project);
+    }
+
+    // ------------------------------------------------------------------ operator initial setup (contract §12)
+
+    /** Result of an operator change of a project's sending information ({@code changed} false = nothing to do). */
+    public record SendingChange(Project project, boolean changed, String before, String after) {
+    }
+
+    /**
+     * Initial project of the operator's setup (actions.md §2.14 {@code seedProject}): the lead reviewer is optional
+     * (an active user of the customer, who gets the reviewer role). The caller checks the operator, audits and logs.
+     */
+    public Project createForSetup(Customer customer, String rawName, Long leadUserId, long operatorId) {
+        String name = name(rawName);
+        User lead = null;
+        if (leadUserId != null) {
+            lead = userService.find(leadUserId).orElse(null);
+            if (lead == null || !customer.getId().equals(lead.getCustomerId()) || !lead.isActive()
+                    || lead.isPending()) {
+                throw BusinessException.validation("leadUserId", "같은 고객사의 활성 사용자만 지정할 수 있습니다");
+            }
+        }
+        Project project = new Project(customer.getId(), name, operatorId, clock.instant());
+        if (lead != null) {
+            project.assignLead(lead.getId());
+        }
+        return projects.save(project);
+    }
+
+    /** Replaces the project's Alimtalk templates after {@link ProjectSendingRules#templates} validation. */
+    public SendingChange replaceTemplates(long projectId, List<ProjectSendingRules.TemplateInput> input) {
+        Project project = projects.findById(projectId).orElseThrow(BusinessException::notFound);
+        List<ProjectTemplate> next = ProjectSendingRules.templates(input);
+        List<ProjectTemplate> before = project.getTemplates();
+        if (before.equals(next)) {
+            return new SendingChange(project, false, null, null);
+        }
+        project.replaceTemplates(next, clock.instant());
+        projects.flush();
+        return new SendingChange(project, true, ProjectSendingRules.templateLabel(before),
+                ProjectSendingRules.templateLabel(next));
+    }
+
+    /** Replaces the project's SMS sender numbers after {@link ProjectSendingRules#senders} validation. */
+    public SendingChange replaceSenders(long projectId, List<String> input) {
+        Project project = projects.findById(projectId).orElseThrow(BusinessException::notFound);
+        List<String> next = ProjectSendingRules.senders(input);
+        List<String> before = project.getSenders();
+        if (before.equals(next)) {
+            return new SendingChange(project, false, null, null);
+        }
+        project.replaceSenders(next, clock.instant());
+        projects.flush();
+        return new SendingChange(project, true, ProjectSendingRules.senderLabel(before),
+                ProjectSendingRules.senderLabel(next));
     }
 
     // ------------------------------------------------------------------ helpers
