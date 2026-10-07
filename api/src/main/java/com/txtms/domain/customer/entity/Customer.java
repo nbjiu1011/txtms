@@ -72,6 +72,14 @@ public class Customer extends BaseEntity {
         this.createdBy = createdBy;
     }
 
+    /** Customer admin settings; domain and approval stay fixed. */
+    public void updateSettings(String name, NotifyChannel notifyChannel, int dueSoonDays, Instant now) {
+        this.name = name;
+        this.notifyChannel = notifyChannel;
+        this.dueSoonDays = dueSoonDays;
+        touch(now);
+    }
+
     public Long getId() {
         return id;
     }

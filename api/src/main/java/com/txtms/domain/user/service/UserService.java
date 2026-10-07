@@ -42,6 +42,12 @@ public class UserService {
         return email == null ? Optional.empty() : repository.findByEmail(email.trim().toLowerCase());
     }
 
+    /** Persists a new account (invitation). */
+    @Transactional
+    public User create(User user) {
+        return repository.save(user);
+    }
+
     public Map<Long, User> byIds(Collection<Long> ids) {
         if (ids.isEmpty()) {
             return Map.of();

@@ -54,10 +54,12 @@ public class ContentLockService {
     private final AuditLogService audit;
     private final Duration ttl;
     private final TransactionTemplate tx;
+    private final RequestQueryService queries;
 
     public ContentLockService(ContentRepository contents, RequestRepository requests, RequestWriteSupport support,
             UserService userService, NotificationService notifications, AuditLogService audit,
-            AppProperties properties, PlatformTransactionManager transactionManager) {
+            AppProperties properties, PlatformTransactionManager transactionManager, RequestQueryService queries) {
+        this.queries = queries;
         this.contents = contents;
         this.requests = requests;
         this.support = support;
@@ -82,7 +84,7 @@ public class ContentLockService {
      * of someone else is LOCKED_BY_OTHER.
      */
     @Transactional
-    public ContentResponse.Lock acquire(AuthUser auth, String id, String key) {
+    public ContentResponse.LockGrant acquire(AuthUser auth, String id, String key) {
         Ctx ctx = support.lock(auth, id);
         support.require(ctx, RequestAction.EDIT_CONTENT);
         requireSubmitted(ctx);
@@ -98,7 +100,25 @@ public class ContentLockService {
         if (contents.tryLock(c.getId(), ctx.userId(), now, EditLocks.expiredBefore(now, ttl)) == 0) {
             throw lockedByOther(c.getLockUserId());
         }
-        return new ContentResponse.Lock(ctx.userId(), now, now.plus(ttl));
+        return new ContentResponse.LockGrant(ctx.userId(), now, now.plus(ttl), c.getVersion());
+    }
+
+    /**
+     * Lock state and current version of every current content of a request the user may view (expired locks are
+     * reported as free). Read-only.
+     */
+    @Transactional(readOnly = true)
+    public List<ContentResponse.LockState> states(AuthUser auth, String id) {
+        queries.requireVisible(userService.actorOf(userService.require(auth.userId())), id);
+        Instant now = support.now();
+        return support.currentContents(id).stream().map(c -> {
+            boolean valid = c.getLockUserId() != null && c.getLockAt() != null
+                    && !EditLocks.expired(c.getLockAt(), now, ttl);
+            return valid
+                    ? new ContentResponse.LockState(c.getKey(), c.getLockUserId(), c.getLockAt(),
+                            c.getLockAt().plus(ttl), c.getVersion())
+                    : new ContentResponse.LockState(c.getKey(), null, null, null, c.getVersion());
+        }).toList();
     }
 
     /**

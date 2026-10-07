@@ -128,8 +128,8 @@ public class DashboardService {
                 .toList();
 
         List<Todo> todos = todos(actor, inProject, now);
-        List<RequestSummary> recent = requests.summaries(inProject.stream().limit(RECENT_LIMIT).toList(), now);
-        List<WorkloadRow> workload = lead ? workloadRows(facts, inProject, now) : List.of();
+        List<RequestSummary> recent = requests.summaries(inProject.stream().limit(RECENT_LIMIT).toList(), now, actor);
+        List<WorkloadRow> workload = lead ? workloadRows(List.of(facts), inProject, now) : List.of();
 
         return new DashboardResponse(kpis, pipeline, inProject.size(), todos, recent, workload,
                 notices.latest(user, customer, NOTICE_LIMIT), admin && !facts.member(me));
@@ -144,7 +144,7 @@ public class DashboardService {
         if (!facts.lead(user.getId()) && !actor.adminOf(project.getCustomerId())) {
             throw BusinessException.forbidden();
         }
-        return workloadRows(facts, requests.visible(actor, List.of(project)), clock.instant());
+        return workloadRows(List.of(facts), requests.visible(actor, List.of(project)), clock.instant());
     }
 
     private Kpi kpi(RequestView view, String label, RequestStatus tone, List<ScopedRequest> scope, Actor actor,
@@ -190,13 +190,20 @@ public class DashboardService {
                 policy.dueSoon(s.project(), s.facts(), now));
     }
 
-    private List<WorkloadRow> workloadRows(ProjectFacts facts, List<ScopedRequest> inProject, Instant now) {
+    /**
+     * Workload of the active reviewers of the given projects (one row per reviewer, ordered by user id) over the
+     * given requests in review, confirming or approval waiting.
+     */
+    public List<WorkloadRow> workloadRows(java.util.Collection<ProjectFacts> projects, List<ScopedRequest> inProject,
+            Instant now) {
+        java.util.SortedSet<Long> reviewerIds = new java.util.TreeSet<>();
+        projects.forEach(f -> reviewerIds.addAll(f.activeReviewers()));
         List<ScopedRequest> active = inProject.stream()
                 .filter(s -> WORKLOAD_STATUSES.contains(s.request().getStatus()))
                 .toList();
         List<RequestSummary> summaries = requests.summaries(active, now);
         List<WorkloadRow> rows = new ArrayList<>();
-        for (long reviewer : facts.activeReviewers()) {
+        for (long reviewer : reviewerIds) {
             int count = 0;
             int primary = 0;
             int due = 0;

@@ -163,6 +163,38 @@ public class ReviewWorkflowService {
         return support.detail(ctx);
     }
 
+    /**
+     * Handover when a customer admin deactivates a reviewer (in review only): the substitute takes the deactivated
+     * user's place among the reviewers and as primary, the change is kept as a structured record (reason
+     * {@code {이름} 비활성화}), history {@code 검수자 변경} {@code {이름} 비활성화로 {대체자}에게 인수인계\n{내용}}, the
+     * deactivated user's locks are released (logged) and the substitute and the requester are notified. The caller
+     * has already made the substitute a reviewer of the project. Runs in the caller's transaction.
+     */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public void handOverOnDeactivation(AuthUser auth, String id, User from, User to, String handover) {
+        Ctx ctx = support.lock(auth, id);
+        Request r = ctx.request();
+        if (r.getStatus() != com.txtms.domain.request.entity.RequestStatus.IN_REVIEW
+                || !r.getReviewerIds().contains(from.getId())) {
+            throw new BusinessException(ErrorCode.REQUEST_STATE_CONFLICT, RequestWriteSupport.STATE_CHANGED);
+        }
+        List<Long> before = r.getReviewerIds();
+        Long beforePrimary = r.getPrimaryReviewerId();
+        List<Long> after = new ArrayList<>(new LinkedHashSet<>(
+                before.stream().map(u -> u.equals(from.getId()) ? to.getId() : u).toList()));
+        Long afterPrimary = from.getId().equals(beforePrimary) ? to.getId() : beforePrimary;
+        Instant now = support.now();
+        r.changeAssignment(after, afterPrimary, now);
+        String reason = from.getName() + " 비활성화";
+        assignmentChanges.save(new RequestAssignmentChange(r.getId(), now, ctx.userId(), r.getRound(),
+                idsJson(before), beforePrimary, idsJson(after), afterPrimary, reason, handover));
+        support.log(r, ctx.userId(), "검수자 변경",
+                from.getName() + " 비활성화로 " + to.getName() + "에게 인수인계\n" + handover, null, null);
+        locks.releaseLogged(ctx, from.getId()::equals, name -> "사용자 비활성화로 " + name + "님의 잠금 해제");
+        notifications.notify(List.of(to.getId(), r.getRequesterId()), NotificationKind.INFO, r.getId(),
+                r.getTitle() + " 검수를 " + to.getName() + "님이 이어받았습니다", ctx.userId());
+    }
+
     // ------------------------------------------------------------------ schedule
 
     /**

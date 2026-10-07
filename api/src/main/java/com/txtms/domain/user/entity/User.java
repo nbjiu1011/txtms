@@ -80,6 +80,37 @@ public class User extends BaseEntity {
         initTimestamps(now);
     }
 
+    /** Invited account: inactive and pending until the invitation is accepted. */
+    public static User invited(Long customerId, String email, String name, String dept, String avatarColor,
+            Instant now) {
+        User u = new User(customerId, email, name, dept, false, false, avatarColor, now);
+        u.active = false;
+        u.pending = true;
+        return u;
+    }
+
+    public void changeEmail(String email, Instant now) {
+        this.email = email.toLowerCase();
+        touch(now);
+    }
+
+    /** Deactivation by a customer admin: the account is kept (history), it can no longer sign in. */
+    public void deactivate(Instant now) {
+        if (pending || !active) {
+            throw new IllegalStateException("only active accounts can be deactivated");
+        }
+        this.active = false;
+        touch(now);
+    }
+
+    public void reactivate(Instant now) {
+        if (pending || active) {
+            throw new IllegalStateException("only deactivated accounts can be reactivated");
+        }
+        this.active = true;
+        touch(now);
+    }
+
     public void grantCustomerAdmin(Long customerId) {
         adminCustomerIds.add(customerId);
     }

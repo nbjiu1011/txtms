@@ -16,6 +16,11 @@ public interface ContentRepository extends JpaRepository<Content, Long> {
 
     List<Content> findByRequestIdAndDeletedFalseOrderBySortOrderAsc(String requestId);
 
+    /** Number of current (not deleted) contents per request: rows of {@code [requestId, count]}. */
+    @Query("select c.requestId, count(c) from Content c where c.requestId in :ids and c.deleted = false "
+            + "group by c.requestId")
+    List<Object[]> countCurrentByRequestIds(@Param("ids") Collection<String> ids);
+
     /** Every content row of the request, deleted ones included (key numbering). */
     List<Content> findByRequestIdOrderBySortOrderAsc(String requestId);
 

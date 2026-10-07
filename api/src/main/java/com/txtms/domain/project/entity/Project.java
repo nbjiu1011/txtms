@@ -88,6 +88,33 @@ public class Project extends BaseEntity {
         }
     }
 
+    public void rename(String name, Instant now) {
+        this.name = name;
+        touch(now);
+    }
+
+    public void changeActive(boolean active, Instant now) {
+        this.active = active;
+        touch(now);
+    }
+
+    /** Replaces the user's roles in this project; an empty set removes the membership. */
+    public void replaceRoles(Long userId, Set<ProjectRole> roles) {
+        members.removeIf(m -> m.getUserId().equals(userId));
+        roles.forEach(r -> addRole(userId, r));
+    }
+
+    /** The approver role goes to exactly the given users (everyone else loses it; other roles are kept). */
+    public void replaceApprovers(Set<Long> approverIds) {
+        members.removeIf(m -> m.getRole() == ProjectRole.APPROVER && !approverIds.contains(m.getUserId()));
+        approverIds.forEach(id -> addRole(id, ProjectRole.APPROVER));
+    }
+
+    /** Users holding the role, ordered by id. */
+    public List<Long> usersWithRole(ProjectRole role) {
+        return members.stream().filter(m -> m.getRole() == role).map(ProjectMember::getUserId).sorted().toList();
+    }
+
     public void addTemplate(String code, String templateName) {
         templates.add(new ProjectTemplate(code, templateName));
     }

@@ -34,7 +34,6 @@ import com.txtms.domain.request.entity.ContentFile;
 import com.txtms.domain.request.entity.RequestStatus;
 import com.txtms.domain.request.policy.Actor;
 import com.txtms.domain.request.policy.RequestAction;
-import com.txtms.domain.request.policy.RequestPolicy;
 import com.txtms.domain.request.repository.ContentFileRepository;
 import com.txtms.domain.request.service.RequestWriteSupport.Ctx;
 import com.txtms.domain.request.validation.PayloadNormalizer;
@@ -52,9 +51,10 @@ import tools.jackson.databind.node.ObjectNode;
  * apply/restore events in the history, and store suggestions. Results are not stored (tab state only); applying a
  * correction is an edit of the client's buffer (draft autosave or revision buffer).
  * <p>
- * Check and suggestions: whoever may edit or review the request now ({@code EDIT_CONTENT} or {@code REVIEW});
- * events: {@code EDIT_CONTENT}. Visible requests without those actions are {@code REQUEST_STATE_CONFLICT};
- * operators and other customers {@code NOT_FOUND} (request visibility).
+ * Check: anyone who may view the request (read-only, nothing stored — prototype behaviour). Suggestions: whoever
+ * may edit or review the request now ({@code EDIT_CONTENT} or {@code REVIEW}); events: {@code EDIT_CONTENT}.
+ * Visible requests without those actions are {@code REQUEST_STATE_CONFLICT}; operators and other customers
+ * {@code NOT_FOUND} (request visibility).
  */
 @Service
 @Transactional
@@ -66,7 +66,6 @@ public class RequestCorrectionService {
 
     private final RequestQueryService queries;
     private final RequestWriteSupport support;
-    private final RequestPolicy policy;
     private final UserService userService;
     private final ProjectAccess projectAccess;
     private final ContentFileRepository files;
@@ -77,13 +76,12 @@ public class RequestCorrectionService {
     private final AppProperties.Content limits;
     private final Duration lockTtl;
 
-    public RequestCorrectionService(RequestQueryService queries, RequestWriteSupport support, RequestPolicy policy,
+    public RequestCorrectionService(RequestQueryService queries, RequestWriteSupport support,
             UserService userService, ProjectAccess projectAccess, ContentFileRepository files,
             PayloadNormalizer normalizer, DatasetService datasets, CorrectionSuggestionService suggestions,
             Clock clock, AppProperties properties) {
         this.queries = queries;
         this.support = support;
-        this.policy = policy;
         this.userService = userService;
         this.projectAccess = projectAccess;
         this.files = files;
@@ -105,7 +103,6 @@ public class RequestCorrectionService {
     public CheckResponse check(AuthUser auth, String id, CheckBody body) {
         Actor actor = userService.actorOf(userService.require(auth.userId()));
         ScopedRequest s = queries.requireVisible(actor, id);
-        requireEditOrReview(actor, s);
         List<CheckItem> items = body == null ? null : body.contents();
         if (items == null || items.isEmpty()) {
             throw BusinessException.validation("contents", "검사할 콘텐츠를 선택하세요");
@@ -267,13 +264,6 @@ public class RequestCorrectionService {
     }
 
     // ------------------------------------------------------------------ helpers
-
-    private void requireEditOrReview(Actor actor, ScopedRequest s) {
-        Set<RequestAction> actions = policy.allowedActions(actor, s.project(), s.facts());
-        if (!actions.contains(RequestAction.EDIT_CONTENT) && !actions.contains(RequestAction.REVIEW)) {
-            throw new BusinessException(ErrorCode.REQUEST_STATE_CONFLICT);
-        }
-    }
 
     private Content content(Ctx ctx, String key) {
         if (key == null || key.isBlank()) {

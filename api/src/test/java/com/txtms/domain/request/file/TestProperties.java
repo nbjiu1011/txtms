@@ -10,6 +10,6 @@ final class TestProperties {
 
     static AppProperties withDemo(boolean demo) {
         return new AppProperties(null, null, null, null, null, null, null, new AppProperties.Demo(demo, null), null,
-                null, null, null, null, null);
+                null, null, null, null, null, null);
     }
 }

@@ -67,6 +67,31 @@ public class Notice extends BaseEntity {
         initTimestamps(now);
     }
 
+    /** Overwrites the notice (the caller logs the previous snapshot first). */
+    public void edit(NoticeScope scope, Long projectId, String title, String body, Instant now) {
+        if (withdrawn) {
+            throw new IllegalStateException("withdrawn notice");
+        }
+        if (scope == NoticeScope.PROJECT && projectId == null) {
+            throw new IllegalArgumentException("project notice needs a project");
+        }
+        this.scope = scope;
+        this.projectId = scope == NoticeScope.PROJECT ? projectId : null;
+        this.title = title;
+        this.body = body;
+        this.edited = true;
+        touch(now);
+    }
+
+    public void withdraw(Instant now) {
+        if (withdrawn) {
+            throw new IllegalStateException("already withdrawn");
+        }
+        this.withdrawn = true;
+        this.withdrawnAt = now;
+        touch(now);
+    }
+
     public Long getId() {
         return id;
     }

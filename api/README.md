@@ -94,7 +94,7 @@ curl -s -b cookies.txt -X POST http://localhost:8080/api/auth/refresh
 
 | Command | What runs | Needs the database |
 |---|---|---|
-| `./gradlew build` | compile + unit tests (policy and visibility, views, due dates, volume, password, session rules, submit validation, payload shape, SMS bytes, links, file signatures, malware stub, request ids, round/version rules, variable rules, XLSX row rules, review transitions, edit lock states, revision decisions, notification recipients and texts, completion/approval transitions, eligible approvers, bundle snapshot, export rows, lineage, archive filters, co-review summary, correction engine rules and every scenario of the client test-case sheet, dataset XLSX reader and row validation, correction fields, demo datasets, autosave conflict rule) | no |
+| `./gradlew build` | compile + unit tests (policy and visibility, views, due dates, volume, password, session rules, submit validation, payload shape, SMS bytes, links, file signatures, malware stub, request ids, round/version rules, variable rules, XLSX row rules, review transitions, edit lock states, revision decisions, notification recipients and texts, completion/approval transitions, eligible approvers, bundle snapshot, export rows, lineage, archive filters, co-review summary, correction engine rules and every scenario of the client test-case sheet, dataset XLSX reader and row validation, correction fields, demo datasets, autosave conflict rule, performance statistics, re-notification rules, project role rules, deactivation rules) | no |
 | `./gradlew integrationTest` | `@Tag("integration")` tests against `txtms_test` (Flyway clean + migrate, demo seed, HTTP flows) | yes |
 
 Write tests (`RequestAuthoringIntegrationTest`, `VariableIntegrationTest`, `BulkImportIntegrationTest`, `ReviewWorkflowIntegrationTest`,
@@ -122,9 +122,9 @@ com.txtms
 │               audit (AuditLogService), common (BaseEntity, paging, KST helpers, downloads),
 │               storage (FileStorage + local-disk stub)
 └── domain
-    ├── auth          login, refresh, logout, Me, password reset, invitation tokens
-    ├── customer      customers, customer users
-    ├── project       projects, project/customer access scoping (ProjectAccess)
+    ├── auth          login, refresh, logout, Me, password reset, invitation tokens (InvitationService)
+    ├── customer      customers, customer users; CustomerAdminAccess (admin gate), settings, outbox, audit log
+    ├── project       projects, project/customer access scoping (ProjectAccess), project admin and role rules
     ├── contenttype   content types, writing guides
     ├── request       requests, contents, versions, files, history; policy/RequestPolicy (allowedActions, views,
     │                 visibility); validation (payload shape, submit and XLSX rules); file (inspection, malware stub);
@@ -132,10 +132,11 @@ com.txtms
     │                 CompletionService / BundleExportService / ArchiveService (completion, exports, archive)
     ├── correction    text correction: engine/ (CorrectionEngine, CorrectionFields — pure), datasets and
     │                 assignments (DatasetService, XLSX reader, row validation), suggestions; ops controller
+    ├── user          users; member admin (roles, invitations, email) and deactivation
     ├── variable      project variables and their change log
-    ├── dashboard     project dashboard, reviewer workload
-    ├── notification  notifications (read vs. pending work)
-    ├── notice        customer/project notices
+    ├── dashboard     project dashboard, reviewer workload, performance statistics
+    ├── notification  notifications (read vs. pending work); re-notifications are written by request/ReminderService
+    ├── notice        customer/project notices (reading and admin management)
     ├── mail          MailSender + outbox implementation
     └── demo          demo personas and seed data
 ```
@@ -275,10 +276,10 @@ curl -s -H "Authorization: Bearer $TOKEN" "http://localhost:8080/api/archive/con
 - One dataset per customer × content type (Phase 1; `COMMON` stays in the enum but is neither registered nor assigned).
   A new registration is always a new version of the scope; assignment changes clear the confirmation. All operator
   writes are audited (`교정 데이터셋 시드 등록`, `유효 데이터셋 배정/변경/해제/확인`).
-- Check: `EDIT_CONTENT` or `REVIEW` (operators and other customers `NOT_FOUND`), buffer payload checked like an
-  autosave, free-form contents with attachments (buffer flag or stored files) are `excluded`, results are not stored.
-  Events need `EDIT_CONTENT`; suggestions `EDIT_CONTENT` or `REVIEW` (stored in `correction_suggestions`, Phase 2
-  processing).
+- Check: view permission (any viewer may run the read-only check, as in the prototype; operators and other
+  customers `NOT_FOUND`), buffer payload checked like an autosave, free-form contents with attachments (buffer flag or
+  stored files) are `excluded`, results are not stored. Events need `EDIT_CONTENT`; suggestions `EDIT_CONTENT` or
+  `REVIEW` (stored in `correction_suggestions`, Phase 2 processing).
 - Tests: `CorrectionEngineTest` (spec rules one by one), `CorrectionScenarioTest` (every scenario of
   `docs/텍스트 교정 테스트 케이스&시나리오_260714.xlsx` against the sample dataset; deviations noted per case),
   `DatasetImportTest`, `CorrectionFieldsTest`, `CorrectionIntegrationTest`, `DemoDatasetRefresherIntegrationTest`.
@@ -291,4 +292,71 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/requests/REQ
 curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data-binary @check.json \
   http://localhost:8080/api/requests/REQ-2609-105/corrections/check     # groups: 할수 → 할 수 (P3)
 curl -s -H "Authorization: Bearer $OPERATOR_TOKEN" -F scope=SMS -F file=@rules.xlsx http://localhost:8080/api/ops/datasets
+```
+
+## Work management (M5)
+
+| Area | Endpoints |
+|---|---|
+| Performance | `GET /api/performance?customerId=…` (`projectId`, `from`, `to` KST dates inclusive, `userId`) |
+| Notices | `GET /api/notices?customerId=…` (reading), `GET /api/customers/{id}/notices/manage`, `POST /api/customers/{id}/notices`, `PATCH /api/notices/{id}`, `POST /api/notices/{id}/withdraw` |
+| Locks (contract §14.2) | `POST …/contents/{key}/lock` answers `{ userId, lockedAt, expiresAt, version }`, `GET /api/requests/{id}/locks`, `RequestSummary.approvable` |
+
+- `PerformanceService` picks the projects (lead: projects they lead; customer admin: every project of the customer;
+  one `projectId` must be led or administered), `PerformanceCalculator` (pure) applies the rules: demo, cancelled and
+  current drafts excluded; received = `submittedAt` in the KST period (a recalled request keeps its first submission,
+  so it is one request); rate = final now ÷ received with one decimal, `null` for zero; people rows use both period
+  bounds; the workload covers every selected project (`DashboardService.workloadRows` takes several projects).
+- Re-notification: `ReminderService` (rules in the pure `ReminderRules`, actions.md §8.3) runs every minute through
+  `ReminderJob` (`app.reminder.job-enabled`, `interval` 24h, `max-count` 3). Each request is handled in its own
+  transaction under its row lock; state lives in `request_reminders` (a due date change deletes it). The third urgent
+  reminder is also mailed when the customer's channel is `IN_APP_EMAIL`. Integration tests disable the job and call
+  `ReminderService.run(filter)` with the adjustable clock.
+- Audit retention: `AuditRetentionService.purgeExpired()` deletes access/export records (`요청 조회`, `파일 다운로드`,
+  `완료본 반출`, `첨부 반출`) older than `app.audit.retention.days` (1095). The daily `AuditRetentionJob`
+  (`app.audit.retention.cron`, KST) is off by default (`app.audit.retention.enabled=false`, client agreement 17).
+- Notices: every admin write is audited (`공지 게시`, `공지 수정`, `공지 철회`); edits and withdrawals keep the full
+  previous snapshot (scope, project, title, body) and the actor in `notice_logs`.
+
+## Customer admin (M6)
+
+| Area | Endpoints |
+|---|---|
+| Projects | `POST /api/customers/{id}/projects`, `PATCH /api/projects/{id}` (`name`, `leadUserId`, `approverIds`, `active`) |
+| Members and roles | `GET /api/customers/{id}/members`, `PUT /api/customers/{id}/users/{userId}/project-roles` |
+| Invitations | `POST /api/customers/{id}/invitations`, `POST …/users/{userId}/invitation/reissue`, `PATCH …/users/{userId}/email` |
+| Deactivation | `GET …/users/{userId}/deactivation-impact`, `POST …/users/{userId}/deactivate` (`substituteUserId`, `handover`), `POST …/users/{userId}/reactivate` |
+| Customer | `PATCH /api/customers/{id}/settings`, `GET /api/customers/{id}/outbox`, `GET /api/customers/{id}/audit-logs` |
+
+- `CustomerAdminAccess` is the single gate: admins of the customer only; same-customer users and operators get
+  `FORBIDDEN` ("고객사 관리자 권한이 필요합니다"), anyone else `NOT_FOUND`.
+- Services: `ProjectAdminService`, `MemberAdminService` (roles, invitations, email), `UserDeactivationService`,
+  `CustomerSettingsService`, `InvitationService` (auth domain: revoke unused links, 7-day token stored as SHA-256,
+  outbox mail `TX TMS 초대` with `{web}/invite/{token}`; acceptance is the existing token endpoint). Pure rules:
+  `ProjectRoleRules` (requester/reviewer exclusivity, lead keeps the reviewer role, assigned reviewers and the last
+  active approver keep their roles) and `DeactivationRules` (self, last admin, confirming/approval assignments,
+  own requests in progress, last approver, substitute and handover).
+- Invitations and email changes outside the customer's domain need `externalDomainConfirmed: true`, otherwise 409
+  `EXTERNAL_DOMAIN_CONFIRM_REQUIRED`.
+- Deactivation runs in one transaction: in-review assignments go to the substitute
+  (`ReviewWorkflowService.handOverOnDeactivation`: history `검수자 변경`, locks released and logged, substitute and
+  requester notified), led projects get the substitute as lead, the account becomes inactive and its sessions end.
+- Every admin write is audited: `프로젝트 생성/변경`, `역할 변경`, `사용자 초대`, `초대 재발급`, `사용자 이메일 변경`,
+  `사용자 비활성화`, `사용자 재활성화`, `고객사 설정 변경`.
+- Tests: `PerformanceCalculatorTest`, `ReminderRulesTest`, `ProjectRoleRulesTest`, `DeactivationRulesTest` (unit);
+  `CustomerAdminIntegrationTest`, `NoticeIntegrationTest`, `PerformanceIntegrationTest`, `ReminderIntegrationTest`,
+  `LockStateIntegrationTest` (each on its own tenant).
+
+Smoke test (customer admin, send UTF-8 bodies from files on Windows):
+
+```bash
+ADMIN=$(curl -s -H "Content-Type: application/json" \
+  -d '{"email":"minho.kang@hanbitcard.co.kr","password":"Txtms!2026","remember":false}' \
+  http://localhost:8080/api/auth/login | jq -r .accessToken)
+curl -s -H "Authorization: Bearer $ADMIN" http://localhost:8080/api/customers/1/members
+curl -s -H "Authorization: Bearer $ADMIN" "http://localhost:8080/api/performance?customerId=1&from=2026-09-01&to=2026-10-31"
+curl -s -H "Authorization: Bearer $ADMIN" -H "Content-Type: application/json" --data-binary @invite.json \
+  http://localhost:8080/api/customers/1/invitations                  # 201 Member (pending), mail in the outbox
+curl -s -H "Authorization: Bearer $ADMIN" "http://localhost:8080/api/customers/1/outbox?size=1"
+curl -s -H "Authorization: Bearer $ADMIN" "http://localhost:8080/api/customers/1/audit-logs?size=5"
 ```

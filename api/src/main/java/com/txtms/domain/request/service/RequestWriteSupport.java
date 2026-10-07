@@ -85,6 +85,16 @@ public class RequestWriteSupport {
         return ctx;
     }
 
+    /** Locks the request row for a system job (no caller to check). Empty when the request does not exist. */
+    public java.util.Optional<ScopedRequest> lockForSystem(String id) {
+        if (requests.lockById(id).isEmpty()) {
+            return java.util.Optional.empty();
+        }
+        Request request = requests.findById(id).orElseThrow(BusinessException::notFound);
+        ProjectFacts facts = projectAccess.facts(projectAccess.requireProject(request.getProjectId()));
+        return java.util.Optional.of(ScopedRequest.of(request, facts));
+    }
+
     /** Re-checks the action with the single request policy (REQUEST_STATE_CONFLICT when not allowed now). */
     public void require(Ctx ctx, RequestAction action) {
         policy.require(ctx.actor(), ctx.facts(), ctx.scoped().facts(), action);

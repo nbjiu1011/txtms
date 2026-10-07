@@ -121,7 +121,7 @@ public class RequestQueryService {
                 .filter(s -> matchesFilters(actor, s, query, now, processed))
                 .sorted(NEWEST_FIRST)
                 .toList();
-        return PageResponse.slice(matched, page, slice -> assembler.summaries(slice, now));
+        return PageResponse.slice(matched, page, slice -> assembler.summaries(slice, now, actor.userId()));
     }
 
     /** Requests of the given projects visible to the actor (others' drafts excluded). */
@@ -150,6 +150,27 @@ public class RequestQueryService {
                         LinkedHashMap::new));
     }
 
+    /** Number of current (not deleted) contents per request id (requests without contents are absent). */
+    public Map<String, Integer> contentCounts(Collection<String> requestIds) {
+        if (requestIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Integer> counts = new java.util.HashMap<>();
+        for (Object[] row : contents.countCurrentByRequestIds(new HashSet<>(requestIds))) {
+            counts.put((String) row[0], ((Number) row[1]).intValue());
+        }
+        return counts;
+    }
+
+    /** History entries of the requests with one of the actions (performance statistics). */
+    public List<com.txtms.domain.request.entity.RequestHistory> historyOf(Collection<String> requestIds,
+            Collection<String> actions) {
+        if (requestIds.isEmpty()) {
+            return List.of();
+        }
+        return history.findByRequestIdInAndActionIn(new HashSet<>(requestIds), actions);
+    }
+
     /** Current content payloads of every request of the project (variable usage checks). */
     public List<String> currentPayloadsOfProject(long projectId) {
         return contents.findCurrentPayloadsOfProject(projectId);
@@ -165,6 +186,11 @@ public class RequestQueryService {
 
     public List<RequestSummary> summaries(List<ScopedRequest> list, Instant now) {
         return assembler.summaries(list, now);
+    }
+
+    /** Summaries as seen by the actor ({@code approvable}). */
+    public List<RequestSummary> summaries(List<ScopedRequest> list, Instant now, Actor viewer) {
+        return assembler.summaries(list, now, viewer.userId());
     }
 
     public RequestDetail detail(AuthUser auth, String id) {

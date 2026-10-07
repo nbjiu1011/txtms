@@ -99,9 +99,16 @@ public class ReviewWorkflowController {
     // ------------------------------------------------------------------ locks / revisions
 
     @PostMapping("/api/requests/{id}/contents/{key}/lock")
-    public ContentResponse.Lock acquireLock(@AuthenticationPrincipal AuthUser auth, @PathVariable String id,
+    public ContentResponse.LockGrant acquireLock(@AuthenticationPrincipal AuthUser auth, @PathVariable String id,
             @PathVariable String key) {
         return locks.acquire(auth, id, key);
+    }
+
+    /** Every current content's lock state and version (view permission), polled by the review screens. */
+    @org.springframework.web.bind.annotation.GetMapping("/api/requests/{id}/locks")
+    public java.util.List<ContentResponse.LockState> locks(@AuthenticationPrincipal AuthUser auth,
+            @PathVariable String id) {
+        return locks.states(auth, id);
     }
 
     @DeleteMapping("/api/requests/{id}/contents/{key}/lock")

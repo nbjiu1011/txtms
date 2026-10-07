@@ -19,6 +19,17 @@ public record ContentResponse(
     public record Lock(long userId, Instant lockedAt, Instant expiresAt) {
     }
 
+    /** {@code POST …/lock} response: the lock plus the content's current version (§14.2). */
+    public record LockGrant(long userId, Instant lockedAt, Instant expiresAt, int version) {
+    }
+
+    /**
+     * {@code GET /api/requests/{id}/locks} row: every current content with its version; {@code userId},
+     * {@code lockedAt}, {@code expiresAt} are null when there is no valid lock (§14.2).
+     */
+    public record LockState(String contentKey, Long userId, Instant lockedAt, Instant expiresAt, int version) {
+    }
+
     public record VersionRef(int version, Instant createdAt, long createdBy) {
     }
 }

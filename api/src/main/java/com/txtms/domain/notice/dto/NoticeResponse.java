@@ -19,6 +19,8 @@ public record NoticeResponse(
         boolean withdrawn,
         List<Log> logs) {
 
-    public record Log(Instant at, long actorId, String action, String previousTitle, String previousBody) {
+    /** Snapshot before a change ({@code 수정}) or withdrawal ({@code 철회}) and who made it. */
+    public record Log(Instant at, long actorId, String action, NoticeScope previousScope, Long previousProjectId,
+            String previousTitle, String previousBody) {
     }
 }

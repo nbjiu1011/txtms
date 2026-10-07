@@ -64,7 +64,16 @@ app:
     # Releases idle locks every minute and writes "편집 잠금 자동 해제".
     release-job-enabled: true
   audit:
-    access-log-retention-days: 1095
+    retention:
+      # Daily deletion of access/export audit records older than `days` (client agreement 17: off until confirmed).
+      enabled: false
+      days: 1095
+      cron: "0 30 3 * * *"
+  reminder:
+    # Re-notification of unfinished work (actions.md §8.3): 24h apart, at most 3 per request and user.
+    job-enabled: true
+    interval: 24h
+    max-count: 3
   web-base-url: http://localhost:3000
   cors:
     allowed-origins: []

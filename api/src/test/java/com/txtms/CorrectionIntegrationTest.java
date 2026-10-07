@@ -236,7 +236,8 @@ class CorrectionIntegrationTest extends IntegrationTestBase {
         expect(403, req2, post("/api/requests/" + id + "/corrections/events"), Map.of("contentKey", "C1",
                 "action", "APPLY", "field", "body", "before", "a", "after", "b"));
 
-        // ---- in review: the assigned reviewer may check, the (unassigned) lead may not
+        // ---- in review: any viewer may run the read-only check (the unassigned lead too); events still need
+        // EDIT_CONTENT
         expect(200, req, patch("/api/requests/" + id), Map.of("title", "적립 안내", "hopeDueDate", "2026-12-20",
                 "purpose", "p", "target", "t", "background", "b"));
         expect(200, req, put("/api/requests/" + id + "/contents/C1"), Map.of("payload", payload));
@@ -249,8 +250,13 @@ class CorrectionIntegrationTest extends IntegrationTestBase {
         Login reviewer = login(t.reviewer());
         assertThat(expect(200, reviewer, post("/api/requests/" + id + "/corrections/check"),
                 check("C1", payload, false)).path("results").get(0).path("groups")).hasSize(4);
-        expect(409, lead, post("/api/requests/" + id + "/corrections/check"), check("C1", payload, false));
+        assertThat(expect(200, lead, post("/api/requests/" + id + "/corrections/check"),
+                check("C1", payload, false)).path("results").get(0).path("groups")).hasSize(4);
+        assertThat(expect(200, req, post("/api/requests/" + id + "/corrections/check"),
+                check("C1", payload, false)).path("results")).hasSize(1);
         expect(409, req, post("/api/requests/" + id + "/corrections/events"), Map.of("contentKey", "C1",
+                "action", "APPLY", "field", "body", "before", "되요", "after", "돼요"));
+        expect(409, lead, post("/api/requests/" + id + "/corrections/events"), Map.of("contentKey", "C1",
                 "action", "APPLY", "field", "body", "before", "되요", "after", "돼요"));
         assertThat(getJson(lead, "/api/requests/" + id + "/corrections/dataset").path("datasetLabel").asString())
                 .isEqualTo(label);

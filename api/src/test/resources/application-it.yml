@@ -9,6 +9,9 @@ app:
   lock:
     # Tests run the release explicitly (ContentLockService.releaseExpired) against the adjustable clock.
     release-job-enabled: false
+  reminder:
+    # Tests run the reminders explicitly (ReminderService.run) against the adjustable clock.
+    job-enabled: false
   auth:
     refresh-cookie-secure: false
   demo:

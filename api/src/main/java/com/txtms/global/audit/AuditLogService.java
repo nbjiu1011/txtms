@@ -5,10 +5,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Set;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.txtms.global.common.PageQuery;
+import com.txtms.global.common.PageResponse;
 import com.txtms.global.config.AppProperties;
 
 /**
@@ -28,7 +31,21 @@ public class AuditLogService {
     public AuditLogService(AuditLogRepository repository, Clock clock, AppProperties properties) {
         this.repository = repository;
         this.clock = clock;
-        this.accessRetentionDays = properties.audit().accessLogRetentionDays();
+        this.accessRetentionDays = properties.audit().retention().days();
+    }
+
+    /** Contract AuditLog (§12). */
+    public record Entry(long id, Instant at, Long actorId, String action, Long customerId, String target,
+            String detail) {
+    }
+
+    /** Records of one customer, newest first. */
+    @Transactional(readOnly = true)
+    public PageResponse<Entry> ofCustomer(long customerId, PageQuery page) {
+        return PageResponse.of(repository.findByCustomerIdOrderByAtDescIdDesc(customerId,
+                PageRequest.of(page.page(), page.size())),
+                a -> new Entry(a.getId(), a.getAt(), a.getActorId(), a.getAction(), a.getCustomerId(), a.getTarget(),
+                        a.getDetail()));
     }
 
     @Transactional(propagation = Propagation.MANDATORY)

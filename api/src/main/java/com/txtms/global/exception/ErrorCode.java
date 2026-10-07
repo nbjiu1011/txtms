@@ -15,6 +15,9 @@ public enum ErrorCode {
     VERSION_CONFLICT(HttpStatus.CONFLICT, "다른 사용자가 먼저 저장했습니다"),
     LOCKED_BY_OTHER(HttpStatus.CONFLICT, "다른 사용자가 편집 중입니다"),
     DUPLICATE(HttpStatus.CONFLICT, "이미 등록되어 있습니다"),
+    /** Invitation or email change to a domain other than the customer's, sent without the confirmation flag. */
+    EXTERNAL_DOMAIN_CONFIRM_REQUIRED(HttpStatus.CONFLICT,
+            "회사 도메인과 다른 이메일입니다. 주소를 확인한 뒤 다시 요청하면 진행됩니다"),
     LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "허용 한도를 넘었습니다"),
     NO_ELIGIBLE_APPROVER(HttpStatus.CONFLICT, "적격 승인자가 없습니다. 관리자에게 승인자 지정을 요청했습니다"),
     DATASET_NOT_ASSIGNED(HttpStatus.CONFLICT, "유효 교정 데이터셋이 배정되지 않았습니다. 운영 담당자에게 배정을 요청하세요"),

@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.txtms.domain.notification.dto.NotificationListResponse;
 import com.txtms.domain.notification.dto.NotificationResponse;
 import com.txtms.domain.notification.entity.Notification;
+import com.txtms.domain.notification.entity.NotificationKind;
 import com.txtms.domain.notification.repository.NotificationRepository;
 import com.txtms.domain.request.policy.Actor;
 import com.txtms.domain.request.policy.RequestPolicy;
@@ -70,6 +71,35 @@ public class NotificationService {
         com.txtms.domain.request.service.ReviewRecipients.finalRecipients(userIds, actorId)
                 .forEach(id -> repository.save(new Notification(id, kind, requestId,
                         text.length() > 500 ? text.substring(0, 500) : text, now, false, actorId)));
+    }
+
+    /** The newest original notification of one request and recipient (re-notification source). */
+    public record Original(long id, String requestId, long userId, NotificationKind kind, Instant createdAt) {
+    }
+
+    /**
+     * Newest original (not re-notification) notification per request and recipient for requests still in progress
+     * (waiting, in review, confirming, approval waiting), excluding notifications about the recipient's own action.
+     */
+    @Transactional(readOnly = true)
+    public List<Original> latestOriginalsOfOpenRequests() {
+        List<Long> ids = repository.findLatestOriginalsOfOpenRequests().stream()
+                .map(row -> ((Number) row[2]).longValue()).toList();
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        return repository.findAllById(ids).stream()
+                .map(n -> new Original(n.getId(), n.getRequestId(), n.getUserId(), n.getKind(), n.getCreatedAt()))
+                .sorted(java.util.Comparator.comparing(Original::requestId).thenComparingLong(Original::userId))
+                .toList();
+    }
+
+    /** Writes a re-notification of {@code sourceId} (system, {@code renotify: true}) in the caller's transaction. */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public void remind(long sourceId, NotificationKind kind, String text) {
+        Notification source = repository.findById(sourceId).orElseThrow(BusinessException::notFound);
+        repository.save(Notification.reminder(source, kind, text.length() > 500 ? text.substring(0, 500) : text,
+                clock.instant()));
     }
 
     @Transactional

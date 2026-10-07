@@ -23,7 +23,8 @@ public record AppProperties(
         Content content,
         Bulk bulk,
         Sms sms,
-        Correction correction) {
+        Correction correction,
+        Reminder reminder) {
 
     public record Jwt(String secret, Duration accessTokenTtl) {
     }
@@ -44,7 +45,21 @@ public record AppProperties(
     public record Lock(Duration ttl, boolean releaseJobEnabled) {
     }
 
-    public record Audit(int accessLogRetentionDays) {
+    /**
+     * Access/export audit records (요청 조회, 파일 다운로드, 완료본 반출, 첨부 반출) are deleted {@code days} after they were
+     * written by a daily job ({@code cron}, KST) that runs only when {@code enabled} (client agreement 17 pending).
+     */
+    public record Audit(Retention retention) {
+
+        public record Retention(boolean enabled, int days, String cron) {
+        }
+    }
+
+    /**
+     * Re-notification of unfinished work (actions.md §8.3): at most {@code maxCount} reminders per request and user,
+     * {@code interval} apart. The job runs every minute when {@code jobEnabled}.
+     */
+    public record Reminder(boolean jobEnabled, Duration interval, int maxCount) {
     }
 
     public record Cors(List<String> allowedOrigins) {

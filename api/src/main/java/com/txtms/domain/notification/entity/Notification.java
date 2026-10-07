@@ -62,6 +62,13 @@ public class Notification {
         this.actorId = actorId;
     }
 
+    /** Re-notification of an original notification (system, no actor). */
+    public static Notification reminder(Notification source, NotificationKind kind, String text, Instant now) {
+        Notification n = new Notification(source.userId, kind, source.requestId, text, now, true, null);
+        n.sourceNotificationId = source.id;
+        return n;
+    }
+
     public void markRead(Instant now) {
         if (readAt == null) {
             readAt = now;

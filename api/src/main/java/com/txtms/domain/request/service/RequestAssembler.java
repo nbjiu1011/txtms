@@ -100,12 +100,23 @@ public class RequestAssembler {
         return new Children(byRequest, byContent);
     }
 
+    /** Summaries without a viewer ({@code approvable} false). */
     public List<RequestSummary> summaries(List<ScopedRequest> requests, Instant now) {
-        Children children = loadChildren(requests.stream().map(s -> s.request().getId()).toList());
-        return requests.stream().map(s -> summary(s, children, now)).toList();
+        return summaries(requests, now, null);
     }
 
-    private RequestSummary summary(ScopedRequest s, Children children, Instant now) {
+    /** Summaries as seen by {@code viewerId} ({@code approvable} per request). */
+    public List<RequestSummary> summaries(List<ScopedRequest> requests, Instant now, Long viewerId) {
+        Children children = loadChildren(requests.stream().map(s -> s.request().getId()).toList());
+        return requests.stream().map(s -> summary(s, children, now, approvable(s, viewerId))).toList();
+    }
+
+    private boolean approvable(ScopedRequest s, Long viewerId) {
+        return viewerId != null && s.request().getStatus() == com.txtms.domain.request.entity.RequestStatus.APPROVAL_WAITING
+                && policy.eligibleApprovers(s.project(), s.facts()).contains(viewerId);
+    }
+
+    private RequestSummary summary(ScopedRequest s, Children children, Instant now, boolean approvable) {
         Request r = s.request();
         List<Content> cs = children.contentsByRequest().getOrDefault(r.getId(), List.of());
         List<VolumeCalculator.ContentInput> inputs = new ArrayList<>();
@@ -121,13 +132,13 @@ public class RequestAssembler {
                 policy.dueSoon(s.project(), s.facts(), now), policy.overdue(s.facts(), now), cs.size(),
                 cs.stream().map(Content::getVersion).toList(),
                 cs.stream().map(c -> new RequestSummary.ContentRef(c.getKey(), c.getTitle())).toList(),
-                VolumeCalculator.compute(r.getType(), inputs));
+                VolumeCalculator.compute(r.getType(), inputs), approvable);
     }
 
     public RequestDetail detail(ScopedRequest s, Set<RequestAction> allowedActions, Instant now) {
         Request r = s.request();
         Children children = loadChildren(List.of(r.getId()));
-        RequestSummary summary = summary(s, children, now);
+        RequestSummary summary = summary(s, children, now, allowedActions.contains(RequestAction.APPROVE));
         List<Content> cs = children.contentsByRequest().getOrDefault(r.getId(), List.of());
 
         List<ContentResponse> contentResponses = contents(cs, children.filesByContent(), now);
