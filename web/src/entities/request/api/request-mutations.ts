@@ -1,7 +1,11 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { http, uploadFile, type UploadOptions } from "@/shared/api";
 import type {
+  AssignBody,
+  AssignmentChange,
   BulkCommitRow,
+  ChangeAssignmentBody,
+  ContentLock,
   BulkImportPreview,
   Content,
   ContentSave,
@@ -11,6 +15,10 @@ import type {
   RequestCreate,
   RequestDetail,
   RequestInfoPatch,
+  ReviseBody,
+  RevisionSave,
+  ScheduleBody,
+  SubmitCheck,
 } from "../model/types";
 import { requestKeys } from "./request-queries";
 
@@ -27,6 +35,42 @@ export const requestApi = {
   submit: (id: string, rowVersion: number, idempotencyKey: string) =>
     http.post<RequestDetail>(`${req(id)}/submit`, { rowVersion }, { headers: { "Idempotency-Key": idempotencyKey } }),
   cancel: (id: string, rowVersion: number) => http.post<RequestDetail>(`${req(id)}/cancel`, { rowVersion }),
+  /** Submit validation only (newer servers; 404 on servers without it). */
+  submitCheck: (id: string) => http.post<SubmitCheck>(`${req(id)}/submit-check`, {}),
+
+  /* review workflow (§5): every call carries the request `rowVersion` */
+  assign: (id: string, rowVersion: number, body: AssignBody) =>
+    http.post<RequestDetail>(`${req(id)}/assignment`, { ...body, rowVersion }),
+  changeAssignment: (id: string, rowVersion: number, body: ChangeAssignmentBody) =>
+    http.put<RequestDetail>(`${req(id)}/assignment`, { ...body, rowVersion }),
+  schedule: (id: string, rowVersion: number, body: ScheduleBody) =>
+    http.patch<RequestDetail>(`${req(id)}/schedule`, { ...body, rowVersion }),
+  recall: (id: string, rowVersion: number, reason: string) =>
+    http.post<RequestDetail>(`${req(id)}/recall`, { reason, rowVersion }),
+  decideRecall: (id: string, rowVersion: number, approve: boolean, comment: string) =>
+    http.post<RequestDetail>(`${req(id)}/recall/decision`, { approve, comment, rowVersion }),
+  addOpinion: (id: string, rowVersion: number, contentKey: string | null, body: string) =>
+    http.post<RequestDetail>(`${req(id)}/opinions`, { contentKey, body, rowVersion }),
+  ask: (id: string, rowVersion: number, contentKey: string | null, question: string) =>
+    http.post<RequestDetail>(`${req(id)}/asks`, { contentKey, question, rowVersion }),
+  answer: (id: string, rowVersion: number, askId: number, answer: string) =>
+    http.post<RequestDetail>(`${req(id)}/asks/${askId}/answer`, { answer, rowVersion }),
+  complete: (id: string, rowVersion: number) => http.post<RequestDetail>(`${req(id)}/complete`, { rowVersion }),
+  approve: (id: string, rowVersion: number) => http.post<RequestDetail>(`${req(id)}/approve`, { rowVersion }),
+  revise: (id: string, rowVersion: number, body: ReviseBody) =>
+    http.post<RequestDetail>(`${req(id)}/revise`, { ...body, rowVersion }),
+  assignmentChanges: (id: string) => http.get<AssignmentChange[]>(`${req(id)}/assignment-changes`),
+
+  /* edit lock + revisions (§4): review-time editing */
+  lock: (id: string, key: string) => http.post<ContentLock>(`${content(id, key)}/lock`),
+  /** Releases my lock. `keepalive` lets it finish while the page unloads. */
+  releaseLock: (id: string, key: string, keepalive = false) =>
+    http.delete<void>(`${content(id, key)}/lock`, keepalive ? { keepalive: true } : undefined),
+  forceReleaseLock: (id: string, key: string) => http.post<void>(`${content(id, key)}/lock/force-release`),
+  saveRevision: (id: string, key: string, body: RevisionSave) =>
+    http.post<Content>(`${content(id, key)}/revisions`, body),
+  uploadFileVersion: (id: string, key: string, fileId: number, file: File, options?: UploadOptions) =>
+    uploadFile<FileMeta>(`${content(id, key)}/files/${fileId}/versions`, file, options),
 
   addContent: (id: string, title?: string) => http.post<Content>(`${req(id)}/contents`, title ? { title } : {}),
   deleteContent: (id: string, key: string) => http.delete<void>(content(id, key)),
@@ -97,5 +141,6 @@ export function updateContentFiles(
 export function invalidateRequestViews(client: QueryClient, id?: string): void {
   void client.invalidateQueries({ queryKey: ["requests", "list"] });
   void client.invalidateQueries({ queryKey: ["dashboard"] });
+  void client.invalidateQueries({ queryKey: ["workload"] });
   if (id) void client.invalidateQueries({ queryKey: requestKeys.history(id) });
 }

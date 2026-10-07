@@ -3,7 +3,9 @@
 import { formatDateTime } from "@/shared/lib";
 import { Avatar, ReadOnlyBox, Tag } from "@/shared/ui";
 import { ContentMockup, type Content, type Opinion } from "@/entities/request";
+import { AnswerForm, AskForm, OpinionForm } from "@/features/request-workflow";
 import type { RequestPage } from "../model/use-request-page";
+import type { ThreadActions } from "../model/workflow-types";
 import styles from "./work.module.css";
 
 export type SidePanelTab = "proof" | "mock" | "op" | "ask";
@@ -14,10 +16,12 @@ export interface SidePanelProps {
   meId: number;
   tab: SidePanelTab;
   onTab: (tab: SidePanelTab) => void;
+  /** null: read-only threads (content tab of a request without these actions). */
+  thread: ThreadActions | null;
 }
 
 /** `.side-panel` — 교정 / 미리보기 / 의견 / 확인 요청 (reference `vSidePanel`). */
-export function SidePanel({ page, content, meId, tab, onTab }: SidePanelProps) {
+export function SidePanel({ page, content, meId, tab, onTab, thread }: SidePanelProps) {
   const r = page.request;
   const tabs: { key: SidePanelTab; label: string }[] = [
     { key: "proof", label: "교정" },
@@ -44,8 +48,8 @@ export function SidePanel({ page, content, meId, tab, onTab }: SidePanelProps) {
       <div className={styles.spBody} role="tabpanel">
         {tab === "proof" ? <ProofPanel page={page} content={content} /> : null}
         {tab === "mock" ? <MockPanel page={page} content={content} /> : null}
-        {tab === "op" ? <OpinionsPanel page={page} meId={meId} /> : null}
-        {tab === "ask" ? <AsksPanel page={page} /> : null}
+        {tab === "op" ? <OpinionsPanel page={page} meId={meId} content={content} thread={thread} /> : null}
+        {tab === "ask" ? <AsksPanel page={page} content={content} thread={thread} /> : null}
       </div>
     </aside>
   );
@@ -87,7 +91,13 @@ function contentLabel(page: RequestPage, key: string | null): string {
   return `${key} ${title}`.trimEnd();
 }
 
-function OpinionsPanel({ page, meId }: { page: RequestPage; meId: number }) {
+interface ThreadPanelProps {
+  page: RequestPage;
+  content: Content;
+  thread: ThreadActions | null;
+}
+
+function OpinionsPanel({ page, meId, content, thread }: ThreadPanelProps & { meId: number }) {
   const r = page.request;
   const groups = new Map<number, Opinion[]>();
   for (const o of r.opinions) groups.set(o.authorId, [...(groups.get(o.authorId) ?? []), o]);
@@ -117,15 +127,25 @@ function OpinionsPanel({ page, meId }: { page: RequestPage; meId: number }) {
           );
         })
       )}
-      {r.status !== "IN_REVIEW" && r.reviewerIds.includes(meId) ? (
+      {thread?.performable.has("REVIEW") ? (
+        <OpinionForm
+          request={r}
+          content={content}
+          rowVersion={thread.rowVersion}
+          onDone={thread.onDone}
+          onStale={thread.onStale}
+        />
+      ) : r.status !== "IN_REVIEW" && r.reviewerIds.includes(meId) ? (
         <p className={styles.faintSmall}>검수 의견은 검수 중일 때만 등록할 수 있습니다.</p>
       ) : null}
     </>
   );
 }
 
-function AsksPanel({ page }: { page: RequestPage }) {
+function AsksPanel({ page, content, thread }: ThreadPanelProps) {
   const r = page.request;
+  const canReview = !!thread?.performable.has("REVIEW");
+  const canAnswer = !!thread?.performable.has("ANSWER");
   return (
     <>
       {r.asks.length === 0 ? (
@@ -149,6 +169,17 @@ function AsksPanel({ page }: { page: RequestPage }) {
                   </div>
                   {a.answer}
                 </div>
+              ) : canAnswer && thread ? (
+                <div className={styles.a}>
+                  <AnswerForm
+                    request={r}
+                    askId={a.id}
+                    rowVersion={thread.rowVersion}
+                    onDone={thread.onDone}
+                    onStale={thread.onStale}
+                    blockedReason={() => thread.unsavedReason("answer")}
+                  />
+                </div>
               ) : (
                 <div className={styles.a}>답변 대기 중</div>
               )}
@@ -160,6 +191,15 @@ function AsksPanel({ page }: { page: RequestPage }) {
         <p className={`${styles.faintSmall} ${styles.askNote}`}>
           회수 요청이 처리될 때까지 확인 요청을 보낼 수 없습니다.
         </p>
+      ) : canReview && thread ? (
+        <AskForm
+          request={r}
+          content={content}
+          rowVersion={thread.rowVersion}
+          onDone={thread.onDone}
+          onStale={thread.onStale}
+          blockedReason={() => thread.unsavedReason("ask")}
+        />
       ) : null}
     </>
   );

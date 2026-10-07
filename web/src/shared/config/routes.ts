@@ -63,8 +63,8 @@ export const ROUTES: Record<RouteKey, RouteDef> = {
   requests: { key: "requests", title: "요청", icon: "req", group: "work", access: "always", enabled: true },
   request: { key: "request", title: "요청", icon: null, group: null, access: "always", enabled: true },
   content: { key: "content", title: "콘텐츠", icon: null, group: null, access: "always", enabled: true },
-  review: { key: "review", title: "검수", icon: "review", group: "work", access: "reviewer", enabled: false },
-  approval: { key: "approval", title: "승인", icon: "appr", group: "work", access: "approver", enabled: false },
+  review: { key: "review", title: "검수", icon: "review", group: "work", access: "reviewer", enabled: true },
+  approval: { key: "approval", title: "승인", icon: "appr", group: "work", access: "approver", enabled: true },
   contents: { key: "contents", title: "콘텐츠", icon: "box", group: "work", access: "always", enabled: false },
   performance: {
     key: "performance",

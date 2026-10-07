@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { isApiError, type FieldError } from "@/shared/api";
 import { Modal, toast } from "@/shared/ui";
 import { requestApi, type RequestDetail } from "@/entities/request";
@@ -14,7 +14,7 @@ const CORRECTION_NOTE = "텍스트 교정 결과는 필요하지 않습니다.";
 export interface SubmitRequestDialogProps {
   open: boolean;
   onClose: () => void;
-  request: Pick<RequestDetail, "id" | "contents">;
+  request: Pick<RequestDetail, "id" | "contents" | "round" | "nextSubmitRound">;
   projectName: string;
   leadName: string;
   /** Current `rowVersion` (read at submit time: autosave may have changed it). */
@@ -41,20 +41,73 @@ function newIdempotencyKey(): string {
     : `submit-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+/** The server has no submit pre-check yet (older build): fall back to submit-then-list. */
+function checkUnavailable(error: unknown): boolean {
+  return isApiError(error) && (error.status === 404 || error.status === 405);
+}
+
 /**
- * 검수 요청: confirmation (target lead reviewer, correction is optional) → `POST submit` with the
- * row version and an idempotency key (a retried click never submits twice). A `VALIDATION_FAILED`
- * answer lists the missing items like the reference modal.
+ * 검수 요청: pending edits are saved, the submit rules are checked first (`submit-check`, the
+ * reference shows the missing-items list before asking), then the confirmation (target lead reviewer,
+ * round increase after a recall, correction is optional) → `POST submit` with the row version and an
+ * idempotency key (a retried click never submits twice). Servers without the pre-check answer the
+ * submit itself with `VALIDATION_FAILED` and the same list.
  */
 export function SubmitRequestDialog(props: SubmitRequestDialogProps) {
   const { open, onClose, request, projectName, leadName } = props;
   const [missing, setMissing] = useState<Missing | null>(null);
   const [key, setKey] = useState(newIdempotencyKey);
+  const [confirming, setConfirming] = useState(false);
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);
     if (open) setKey(newIdempotencyKey());
+    if (!open) setConfirming(false);
   }
+  const handlers = useRef(props);
+  useEffect(() => {
+    handlers.current = props;
+  });
+
+  const showMissing = (items: string[], fieldErrors: FieldError[]) => {
+    handlers.current.onInvalid(fieldErrors);
+    setMissing({ items, target: fieldErrors.length > 0 ? "info" : "contents" });
+  };
+
+  // Opening runs the pre-check; the confirmation appears only when nothing is missing.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    void (async () => {
+      const p = handlers.current;
+      if (!(await p.beforeSubmit())) {
+        toast(SAVE_BEFORE_SUBMIT_FAILED);
+        if (!cancelled) p.onClose();
+        return;
+      }
+      try {
+        const check = await requestApi.submitCheck(p.request.id);
+        if (cancelled) return;
+        if (check.ok) setConfirming(true);
+        else {
+          showMissing(check.details, check.fieldErrors);
+          p.onClose();
+        }
+      } catch (error) {
+        if (cancelled) return;
+        if (checkUnavailable(error)) setConfirming(true);
+        else {
+          toast(isApiError(error) ? error.message : "검수를 요청하지 못했습니다");
+          if (isApiError(error) && (error.code === "REQUEST_STATE_CONFLICT" || error.status === 403)) p.onStale();
+          p.onClose();
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+  const bump = request.nextSubmitRound !== undefined && request.nextSubmitRound > request.round;
 
   const submit = async () => {
     if (!(await props.beforeSubmit())) {
@@ -68,9 +121,7 @@ export function SubmitRequestDialog(props: SubmitRequestDialogProps) {
       return undefined;
     } catch (error) {
       if (isApiError(error) && error.code === "VALIDATION_FAILED" && error.details.length > 0) {
-        const infoErrors = error.fieldErrors;
-        props.onInvalid(infoErrors);
-        setMissing({ items: error.details, target: infoErrors.length > 0 ? "info" : "contents" });
+        showMissing(error.details, error.fieldErrors);
         onClose();
         return false;
       }
@@ -83,13 +134,16 @@ export function SubmitRequestDialog(props: SubmitRequestDialogProps) {
   return (
     <>
       <Modal
-        open={open}
+        open={open && confirming}
         onClose={onClose}
         title="검수를 요청할까요?"
         description={`${request.contents.length}건의 콘텐츠를 ${projectName} 대표 검수자 ${leadName}님에게 보냅니다.`}
         okLabel="검수 요청"
         onOk={submit}
       >
+        {bump ? (
+          <p className={styles.small}>회수 승인 후 다시 요청하므로 검수 차수가 {request.nextSubmitRound}차로 올라갑니다.</p>
+        ) : null}
         <p className={styles.note}>텍스트 교정은 선택 사항입니다. {CORRECTION_NOTE}</p>
       </Modal>
       <Modal

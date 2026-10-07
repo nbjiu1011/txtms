@@ -19,6 +19,8 @@ export interface ContentListProps {
   request: Pick<RequestDetail, "type" | "status" | "contents">;
   /** Titles as edited locally. */
   titleOf: (content: Content) => string;
+  /** Contents with an unsaved review-time revision in this tab (`수정 중`). */
+  editingKeys?: readonly string[];
   users: UserDirectory;
   meId: number;
   selected: string;
@@ -28,7 +30,8 @@ export interface ContentListProps {
 }
 
 /** `aside.clist` — content items (version, files, edit lock) and the draft footer actions. */
-export function ContentList({ request: r, titleOf, users, meId, selected, onSelect, onOpen, actions }: ContentListProps) {
+export function ContentList(props: ContentListProps) {
+  const { request: r, titleOf, editingKeys = [], users, meId, selected, onSelect, onOpen, actions } = props;
   return (
     <aside className={styles.clist} aria-label="콘텐츠 목록">
       <div className={styles.clistH}>
@@ -40,6 +43,7 @@ export function ContentList({ request: r, titleOf, users, meId, selected, onSele
           key={c.key}
           content={c}
           title={titleOf(c)}
+          editing={editingKeys.includes(c.key)}
           on={c.key === selected}
           lockedBy={r.status !== "DRAFT" && c.lock && c.lock.userId !== meId ? users.name(c.lock.userId) : null}
           onSelect={() => onSelect(c.key)}
@@ -71,12 +75,13 @@ export function ContentList({ request: r, titleOf, users, meId, selected, onSele
 function ContentItem(props: {
   content: Content;
   title: string;
+  editing: boolean;
   on: boolean;
   lockedBy: string | null;
   onSelect: () => void;
   onOpen: () => void;
 }) {
-  const { content: c, title, on, lockedBy, onSelect, onOpen } = props;
+  const { content: c, title, editing, on, lockedBy, onSelect, onOpen } = props;
   return (
     <div
       role="button"
@@ -97,6 +102,7 @@ function ContentItem(props: {
         <span>
           v{c.version}
           {c.files.length ? `  파일 ${c.files.length}` : ""}
+          {editing ? "  수정 중" : ""}
         </span>
         {lockedBy ? <span className={styles.lk}>{lockedBy} 편집 중</span> : null}
       </span>

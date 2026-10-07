@@ -244,7 +244,8 @@ export interface ParentRef {
 export interface Opinion {
   id: number;
   authorId: number;
-  contentKey: string;
+  /** null = 요청 전체. */
+  contentKey: string | null;
   body: string;
   round: number;
   createdAt: string;
@@ -253,13 +254,26 @@ export interface Opinion {
 export interface Ask {
   id: number;
   askedBy: number;
-  contentKey: string;
+  /** null = 요청 전체. */
+  contentKey: string | null;
   question: string;
   askedAt: string;
   answer: string | null;
   answeredBy: number | null;
   answeredAt: string | null;
   round: number;
+}
+
+/** One reviewer of the "공동 검수 결과" (current assignment first, then earlier opinion authors). */
+export interface CoReviewer {
+  userId: number;
+  /** Currently assigned (false = 이전 담당 who left opinions). */
+  current: boolean;
+  /** Current primary reviewer. */
+  primary: boolean;
+  opinionCount: number;
+  /** Rounds with opinions only, ascending. */
+  rounds: { round: number; count: number }[];
 }
 
 export interface StageTimes {
@@ -281,11 +295,17 @@ export interface RequestDetail extends RequestSummary {
   opinions: Opinion[];
   asks: Ask[];
   eligibleApproverIds: number[];
+  coReviewers: CoReviewer[];
   historyCount: number;
   stageTimes: StageTimes;
   bundle: CompletionBundle | null;
   allowedActions: RequestAction[];
   rowVersion: number;
+  /**
+   * Round a submit would get now (`round + 1` after an approved recall). Newer servers only; absent
+   * means unknown.
+   */
+  nextSubmitRound?: number;
 }
 
 /** Editable request info keys (PATCH /api/requests/{id}). */
@@ -308,6 +328,72 @@ export interface ContentSave {
   payload: ContentPayload;
   /** `savedAt` the client last loaded; a newer server save is a `VERSION_CONFLICT`. */
   expectedSavedAt?: string | null;
+}
+
+/** `POST /api/requests/{id}/submit-check` — submit validation without a state change. */
+export interface SubmitCheck {
+  ok: boolean;
+  details: string[];
+  fieldErrors: { field: string; message: string }[];
+}
+
+/** Body keys of the workflow POSTs (§5); `rowVersion` is added by the API call. */
+export interface AssignBody {
+  reviewerIds: number[];
+  primaryReviewerId: number | null;
+  /** KST date `YYYY-MM-DD`. */
+  dueDate: string;
+  urgency: Urgency | null;
+}
+
+export interface ChangeAssignmentBody {
+  reviewerIds: number[];
+  primaryReviewerId: number | null;
+  reason: string;
+  handover: string;
+}
+
+export interface ScheduleBody {
+  dueDate: string;
+  urgency: Urgency | null;
+  reason: string;
+}
+
+export interface ReviseBody {
+  reason: string;
+  expectation: string;
+  contentKey: string;
+  /** Detailed location (optional). */
+  location: string | null;
+}
+
+/** Amounts of one current attachment sent with a revision (`files` of `POST …/revisions`). */
+export interface RevisionFileAmount {
+  fileId: number;
+  totalAmount: number | null;
+  reviewAmount: number | null;
+  rangeNote: string | null;
+}
+
+/** `POST /api/requests/{id}/contents/{key}/revisions` — review-time revision (edit lock held). */
+export interface RevisionSave {
+  baseVersion: number;
+  title?: string;
+  payload: ContentPayload;
+  files?: RevisionFileAmount[];
+}
+
+/** Structured record of a 검수자 변경 (§3.7). */
+export interface AssignmentChange {
+  at: string;
+  actorId: number;
+  round: number;
+  fromReviewerIds: number[];
+  fromPrimaryId: number | null;
+  toReviewerIds: number[];
+  toPrimaryId: number | null;
+  reason: string;
+  handover: string;
 }
 
 /** `PATCH .../files/{fileId}` — review range of an attachment. */

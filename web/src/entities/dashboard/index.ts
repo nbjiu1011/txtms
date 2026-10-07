@@ -8,4 +8,4 @@ export type {
   PipelineItem,
   WorkloadRow,
 } from "./model/types";
-export { dashboardKeys, useDashboard } from "./api/dashboard-queries";
+export { dashboardKeys, useDashboard, useWorkload } from "./api/dashboard-queries";

@@ -6,11 +6,15 @@ export type {
   ArchiveLine,
   ArchivePast,
   Ask,
+  AssignBody,
+  AssignmentChange,
   BulkImportPreview,
   BulkImportRow,
   BundleItem,
   BulkCommitRow,
   BundleVariable,
+  ChangeAssignmentBody,
+  CoReviewer,
   CompletionBundle,
   Content,
   ContentRef,
@@ -44,8 +48,13 @@ export type {
   RequestStatus,
   RequestSummary,
   RequestVolume,
+  ReviseBody,
+  RevisionFileAmount,
+  RevisionSave,
+  ScheduleBody,
   SmsPayload,
   StageTimes,
+  SubmitCheck,
   Urgency,
   WritingGuide,
 } from "./model/types";
@@ -83,6 +92,7 @@ export {
   useRequests,
   useRequestTotal,
   useWritingGuide,
+  DETAIL_POLL_MS,
 } from "./api/request-queries";
 export {
   SMS_CUSTOMER_CENTER_LINE,
@@ -106,6 +116,8 @@ export {
 } from "./model/list-params";
 export type { ListScope, RequestFilters } from "./model/list-params";
 export { IMPLEMENTED_ACTIONS, REQUEST_CREATE_IMPLEMENTED, performableActions } from "./model/actions";
+export { formatVolume } from "./model/volume";
+export { useRequestActionIntent } from "./model/action-intent";
 export { canEditContentByPolicy, readOnlyReason } from "./model/edit-reason";
 export { buildTrack, trackStages } from "./model/track";
 export type { TrackStage, TrackStepModel } from "./model/track";

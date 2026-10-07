@@ -162,11 +162,16 @@ export interface ListItemProps {
   meta?: ReactNode;
   trailing?: ReactNode;
   onClick?: () => void;
+  /**
+   * The trailing content holds its own buttons: the clickable row is then a `div[role=button]`
+   * (a button cannot contain buttons). Clicks on those buttons should stop propagation.
+   */
+  nestedActions?: boolean;
   className?: string;
 }
 
 /** `.list-item` — row with leading visual, title/meta and trailing content. A button when clickable. */
-export function ListItem({ leading, title, meta, trailing, onClick, className }: ListItemProps) {
+export function ListItem({ leading, title, meta, trailing, onClick, nestedActions, className }: ListItemProps) {
   const content = (
     <>
       {leading}
@@ -177,6 +182,24 @@ export function ListItem({ leading, title, meta, trailing, onClick, className }:
       {trailing}
     </>
   );
+  if (onClick && nestedActions) {
+    return (
+      <div
+        role="button"
+        tabIndex={0}
+        className={cn(styles.listItem, className)}
+        onClick={onClick}
+        onKeyDown={(e) => {
+          if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
+            e.preventDefault();
+            onClick();
+          }
+        }}
+      >
+        {content}
+      </div>
+    );
+  }
   if (onClick) {
     return (
       <button type="button" className={cn(styles.listItem, className)} onClick={onClick}>

@@ -1,17 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { Modal, toast } from "@/shared/ui";
 import {
   CONTENT_TYPE_LABEL,
   FINAL_STATUSES,
-  invalidateRequestViews,
   isBlankContent,
-  performableActions,
-  requestKeys,
-  storeRequestDetail,
+  requestApi,
   useContentTypes,
+  useRequestActionIntent,
   type ContentType,
   type HistoryFilter,
   type RequestAction,
@@ -19,12 +16,20 @@ import {
   type RequestStatus,
 } from "@/entities/request";
 import { useRequestCreate } from "@/features/request-create";
-import { CancelRequestDialog, SubmitRequestDialog } from "@/features/request-workflow";
+import {
+  CancelRequestDialog,
+  SubmitRequestDialog,
+  UnlockDialog,
+  checkBeforeComplete,
+  handleWorkflowError,
+} from "@/features/request-workflow";
 import type { WorkViewProps } from "@/widgets/app-shell";
 import { selectBanners } from "../model/banners";
 import { UPLOAD_BUSY_MESSAGE, type DraftEditing } from "../model/use-draft-editing";
 import type { RequestPage } from "../model/use-request-page";
-import { SaveConflictModal, SaveFailureBanner, ScanDemoPanel } from "./draft-chrome";
+import { useRequestWorkflow } from "../model/use-request-workflow";
+import type { RevisionEditing } from "../model/use-revision-editing";
+import { RevisionConflictModal, SaveConflictModal, SaveFailureBanner, ScanDemoPanel } from "./draft-chrome";
 import { HistoryTab } from "./history-tab";
 import { InfoTab } from "./info-tab";
 import { RequestBanners } from "./request-banners";
@@ -32,9 +37,20 @@ import { RequestHeader, type DetailSub } from "./request-header";
 import { ResultTab } from "./result-tab";
 import type { SidePanelTab } from "./side-panel";
 import { WorkGrid } from "./work-grid";
+import { WorkflowDialogs, type WorkflowDialog } from "./workflow-dialogs";
 import header from "./header.module.css";
 
 const APPROVAL_STATUSES: readonly RequestStatus[] = ["APPROVAL_WAITING", "APPROVED"];
+
+/** Header action → modal (submit / cancel / clone / complete are handled separately). */
+const ACTION_DIALOG: Partial<Record<RequestAction, WorkflowDialog>> = {
+  ASSIGN: { kind: "assign" },
+  CHANGE_ASSIGNMENT: { kind: "change" },
+  EDIT_DUE: { kind: "due" },
+  RECALL: { kind: "recall" },
+  APPROVE: { kind: "approve" },
+  REVISE: { kind: "revise" },
+};
 
 export interface RequestTabBodyProps {
   page: RequestPage;
@@ -43,35 +59,44 @@ export interface RequestTabBodyProps {
   demo: boolean;
   openTab: WorkViewProps["openTab"];
   editing: DraftEditing;
+  revision: RevisionEditing;
 }
 
 /** Request tab: header with workflow actions, banners and the four sub tabs. */
-export function RequestTabBody({ page, meId, meIsApprover, demo, openTab, editing }: RequestTabBodyProps) {
+export function RequestTabBody({ page, meId, meIsApprover, demo, openTab, editing, revision }: RequestTabBodyProps) {
   const r = page.request;
-  const client = useQueryClient();
   // The first sub tab is chosen once (a titleless draft opens on 요청 정보) and kept while typing.
   const [sub, setSub] = useState<DetailSub>(() => (r.status === "DRAFT" && !r.title ? "info" : "contents"));
   const [contentKey, setContentKey] = useState<string | null>(null);
   const [sideTab, setSideTab] = useState<SidePanelTab>("proof");
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("all");
   const [dialog, setDialog] = useState<"submit" | "cancel" | null>(null);
+  const [flow, setFlow] = useState<WorkflowDialog | null>(null);
   const [pendingType, setPendingType] = useState<ContentType | null>(null);
   const types = useContentTypes();
   const openRequest = (id: string) => openTab({ route: "request", params: { id } });
   const { clone } = useRequestCreate(openRequest);
-  const performable = performableActions(r.allowedActions);
+  const workflow = useRequestWorkflow(page, meId, revision);
+  const { performable } = workflow;
   const isFinal = FINAL_STATUSES.includes(r.status);
   const session = editing.canEditRequest ? editing.session : null;
   const title = session ? session.infoValue("title", r) : r.title;
   const current: DetailSub = sub === "result" && !isFinal ? "contents" : sub;
   const approvalEnabled = page.customer?.approvalEnabled ?? APPROVAL_STATUSES.includes(r.status);
   const banners = selectBanners(r, { meId, meIsApprover, name: page.users.name });
-  const rowVersion = () => client.getQueryData<RequestDetail>(requestKeys.detail(r.id))?.rowVersion ?? r.rowVersion;
-  const reload = () => void client.invalidateQueries({ queryKey: requestKeys.detail(r.id) });
   const applied = (detail: RequestDetail) => {
-    storeRequestDetail(client, detail);
-    invalidateRequestViews(client, r.id);
+    workflow.applied(detail);
     setSub("contents");
+  };
+
+  const complete = () => {
+    const check = checkBeforeComplete(r, { meId, approvalEnabled, hasUnsavedRevision: revision.session.hasAny() });
+    if (check.kind === "blocked") return toast(check.message);
+    if (check.kind === "confirm") return setFlow({ kind: "complete" });
+    // No eligible approver: the server records the block and notifies the admins, then refuses.
+    void requestApi.complete(r.id, workflow.rowVersion()).then(applied, (error: unknown) => {
+      handleWorkflowError(error, workflow.reload);
+    });
   };
 
   const onAction = (action: RequestAction) => {
@@ -80,6 +105,33 @@ export function RequestTabBody({ page, meId, meIsApprover, demo, openTab, editin
       setDialog("submit");
     } else if (action === "CANCEL") setDialog("cancel");
     else if (action === "CLONE") void clone(r.id);
+    else if (action === "COMPLETE") complete();
+    else {
+      const next = ACTION_DIALOG[action];
+      if (next) setFlow(next);
+    }
+  };
+
+  // 배정 from the 검수 screen opens this tab and asks for the assignment modal: the pending intent
+  // shows its modal until it is closed (an intent the user can no longer perform is dropped).
+  const intent = useRequestActionIntent((s) => s.intents[r.id] ?? null);
+  const intentFlow = intent && performable.has(intent) ? (ACTION_DIALOG[intent] ?? null) : null;
+  useEffect(() => {
+    if (intent && !intentFlow) useRequestActionIntent.getState().consume(r.id);
+  }, [intent, intentFlow, r.id]);
+  const activeFlow = flow ?? intentFlow;
+  const closeFlow = () => {
+    setFlow(null);
+    if (intent) useRequestActionIntent.getState().consume(r.id);
+  };
+
+  const onFlowDone = (done: WorkflowDialog) => {
+    setSub("contents");
+    if (done.kind === "decide" && done.approve) {
+      // The primary reviewer can no longer see the request (it is the requester's draft again).
+      toast("회수를 승인했습니다. 요청이 작성 중으로 돌아갔습니다");
+      openTab({ route: "review", params: {} });
+    }
   };
 
   const onTypeChange = (type: ContentType) => {
@@ -112,7 +164,7 @@ export function RequestTabBody({ page, meId, meIsApprover, demo, openTab, editin
             setSideTab("ask");
           }}
           onShowResult={() => setSub("result")}
-          onDecideRecall={() => undefined}
+          onDecideRecall={(approve) => setFlow({ kind: "decide", approve })}
         />
         {current === "contents" ? (
           <WorkGrid
@@ -124,6 +176,9 @@ export function RequestTabBody({ page, meId, meIsApprover, demo, openTab, editin
             onSideTab={setSideTab}
             onOpenContent={(key) => openTab({ route: "content", params: { id: r.id, key } })}
             editing={editing.canEditContent || editing.canEditRequest ? editing : null}
+            revision={revision}
+            unlock={workflow.unlock}
+            thread={workflow.thread}
           />
         ) : null}
         {current === "info" ? (
@@ -133,6 +188,7 @@ export function RequestTabBody({ page, meId, meIsApprover, demo, openTab, editin
             onOpenRequest={openRequest}
             editing={editing.canEditRequest ? editing : null}
             onTypeChange={onTypeChange}
+            onEditDue={performable.has("EDIT_DUE") ? () => setFlow({ kind: "due" }) : undefined}
           />
         ) : null}
         {current === "hist" ? (
@@ -144,13 +200,27 @@ export function RequestTabBody({ page, meId, meIsApprover, demo, openTab, editin
         ) : null}
       </div>
       <SaveConflictModal editing={editing} />
+      <RevisionConflictModal revision={revision} />
+      <UnlockDialog {...workflow.unlockDialog} />
+      <WorkflowDialogs
+        page={page}
+        meId={meId}
+        approvalEnabled={approvalEnabled}
+        workflow={workflow}
+        dialog={activeFlow}
+        onClose={closeFlow}
+        onDone={(done) => {
+          closeFlow();
+          onFlowDone(done);
+        }}
+      />
       <SubmitRequestDialog
         open={dialog === "submit"}
         onClose={() => setDialog(null)}
         request={r}
         projectName={page.project?.name ?? ""}
         leadName={page.users.name(r.leadUserId ?? page.project?.leadUserId)}
-        rowVersion={rowVersion}
+        rowVersion={workflow.rowVersion}
         beforeSubmit={() => editing.session.flush()}
         onSubmitted={(detail) => {
           editing.setFieldErrors([]);
@@ -158,15 +228,15 @@ export function RequestTabBody({ page, meId, meIsApprover, demo, openTab, editin
         }}
         onInvalid={editing.setFieldErrors}
         onShowMissing={setSub}
-        onStale={reload}
+        onStale={workflow.reload}
       />
       <CancelRequestDialog
         open={dialog === "cancel"}
         onClose={() => setDialog(null)}
         requestId={r.id}
-        rowVersion={rowVersion}
+        rowVersion={workflow.rowVersion}
         onCancelled={applied}
-        onStale={reload}
+        onStale={workflow.reload}
       />
       <Modal
         open={pendingType !== null}

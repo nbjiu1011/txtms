@@ -903,6 +903,15 @@ export const request102U1: RequestDetail = {
   "eligibleApproverIds": [
     4
   ],
+  "coReviewers": [
+    {
+      "userId": 3,
+      "current": true,
+      "primary": true,
+      "opinionCount": 0,
+      "rounds": []
+    }
+  ],
   "historyCount": 4,
   "stageTimes": {
     "DRAFT": "2026-10-03T01:00:00Z",
@@ -988,6 +997,15 @@ export const request088U1: RequestDetail = {
   "asks": [],
   "eligibleApproverIds": [
     4
+  ],
+  "coReviewers": [
+    {
+      "userId": 2,
+      "current": true,
+      "primary": true,
+      "opinionCount": 0,
+      "rounds": []
+    }
   ],
   "historyCount": 5,
   "stageTimes": {
@@ -1191,6 +1209,27 @@ export const request101U2: RequestDetail = {
   "eligibleApproverIds": [
     4
   ],
+  "coReviewers": [
+    {
+      "userId": 2,
+      "current": true,
+      "primary": true,
+      "opinionCount": 0,
+      "rounds": []
+    },
+    {
+      "userId": 6,
+      "current": true,
+      "primary": false,
+      "opinionCount": 1,
+      "rounds": [
+        {
+          "round": 1,
+          "count": 1
+        }
+      ]
+    }
+  ],
   "historyCount": 4,
   "stageTimes": {
     "DRAFT": "2026-10-04T00:00:00Z",
@@ -1345,6 +1384,22 @@ export const request107U2: RequestDetail = {
   "asks": [],
   "eligibleApproverIds": [
     4
+  ],
+  "coReviewers": [
+    {
+      "userId": 2,
+      "current": true,
+      "primary": true,
+      "opinionCount": 0,
+      "rounds": []
+    },
+    {
+      "userId": 3,
+      "current": true,
+      "primary": false,
+      "opinionCount": 0,
+      "rounds": []
+    }
   ],
   "historyCount": 4,
   "stageTimes": {
@@ -1835,6 +1890,22 @@ export const request103U4: RequestDetail = {
   "asks": [],
   "eligibleApproverIds": [
     4
+  ],
+  "coReviewers": [
+    {
+      "userId": 2,
+      "current": true,
+      "primary": false,
+      "opinionCount": 0,
+      "rounds": []
+    },
+    {
+      "userId": 3,
+      "current": true,
+      "primary": true,
+      "opinionCount": 0,
+      "rounds": []
+    }
   ],
   "historyCount": 8,
   "stageTimes": {

@@ -31,6 +31,7 @@ section is hidden) and protected URLs redirect to `/login?next=…`.
 | `npm run build` | production build |
 | `npm run e2e:visual` | visual comparison with the prototype (see below) |
 | `npm run e2e:real` | request authoring flow against a running API in demo mode (see below) |
+| `npm run e2e:real:review` | assignment → review → approval flow against a running API in demo mode (see below) |
 
 ### Visual comparison harness (`e2e/visual/`)
 
@@ -60,11 +61,18 @@ npm run e2e:visual -- login       # one file
   carries the "텍스트 교정은 선택 사항입니다" note). Other intended differences: menus of unbuilt screens, the
   correction check buttons, the prototype-only "첨부 검사 시연" panel.
 
+- `review.visual.ts` — 검수 (이도현 배정 관리 / 내 검수, 박지훈 내 검수), 승인 (최민아) and the 검수자 배정 / 검수자 변경 /
+  검수 완료 modals next to the prototype. Modals are 0.00%; the pages differ only in row order (the server sorts by
+  접수일, the prototype keeps seed order), due-date tags (the prototype pins "today"), file ranges the prototype
+  seed leaves empty (`페이지 ?`) and menus of unbuilt screens.
+
 API mocks for the harness come from `e2e/fixtures/`:
 - `api-snapshot.ts` — contract-shaped responses captured from the demo API (generated; typed exports such as
   `dashboardU1: Dashboard` are type-checked against `entities`, so contract drift fails `typecheck`).
   Regenerate with `node e2e/fixtures/capture-api.mjs [http://localhost:8080]` while the API runs in demo mode.
 - `draft-snapshot.ts` — REQ-2609-105 (detail + history) and the project 1 variables, captured from the API.
+- `review-snapshot.ts` — list views, workload and request details of the 검수 / 승인 screens (seed requests
+  only), regenerated with `node e2e/fixtures/capture-review.mjs [http://localhost:8080]`.
 - `mock-api.ts` — `mockApiAs(page, userId, { extra, onWrite })`: refresh returns that persona, GETs answer from
   the snapshot plus `extra` (query order ignored), writes go to `onWrite` (default 405). Unit tests import the
   same fixtures via `@fixtures/*`.
@@ -79,6 +87,18 @@ change, multi-file upload (accepted, rejected format, demo `UNSAFE`), range vali
 type change with confirmation, card count and image upload. Sample files live in `e2e/real/files`; screenshots
 go to `e2e/real/out/` (gitignored).
 
+### Real-API flow (`e2e/real/review-flow.mjs`)
+
+One fresh request per run, five personas in separate browser contexts: 김서연 creates and submits → 이도현 assigns
+박지훈 (primary) + 한가을 from 검수 › 배정 관리 (validation toast, auto primary) → 한가을 edits C1 (buffer + edit lock)
+and saves v2, adds an opinion → 박지훈 saves on the stale v1 → "다른 사용자가 먼저 저장했습니다" → 최신 버전 불러오기 →
+한가을's lock is shown to others, 이도현 releases it (잠금 해제 (대표 검수자)), 한가을's buffer can no longer be saved →
+박지훈 adds an opinion and a 확인 요청 → 김서연 edits in 확인 요청, cannot answer before saving, saves v3 and answers
+(round 2) → 이도현 changes the assignment (reason + handover) → recall rejected, recall approved (박지훈 lands on
+검수) → resubmit (round 3) → assign again → 박지훈 completes (공동 검수 결과 with "(이전 담당)", confirmation) →
+최민아 asks for a revision (round 4) → 박지훈 completes → 최민아 approves → 완료 결과. Screenshots `review-*.png` in
+`e2e/real/out/`.
+
 Against the real API: `API_ORIGIN=http://localhost:8080 npm run dev`, then sign in with a demo persona.
 If a dev server already runs, `VISUAL_PORT=3000 npm run e2e:visual` reuses it.
 
@@ -89,10 +109,12 @@ src/
 ├─ app/            routing only: (auth)/login, (auth)/invite/[token], (auth)/reset/[token],
 │                  (app)/layout.tsx + (app)/[[...slug]] (renders nothing; the shell renders views),
 │                  globals.css (tokens), providers.tsx
-├─ views/          login, token-password, dashboard, request-list, request-detail (+ content tab), profile
+├─ views/          login, token-password, dashboard, request-list, request-detail (+ content tab), review,
+│                  approval, profile
 ├─ widgets/        app-shell (sidebar, top bar, work tabs, popovers, tab store), auth-layout (login hero)
 ├─ features/       auth (login, demo personas, reset request, token password, session), profile-edit,
-│                  request-create, request-workflow (submit/cancel), variable-picker, bulk-import
+│                  request-create, request-workflow (submit/cancel, assignment, schedule, recall, opinions,
+│                  asks/answers, completion, approval, unlock), variable-picker, bulk-import
 ├─ entities/       me, customer, project, user, request, variable, correction, dashboard,
 │                  notification, notice, audit, ops — contract types + label maps (+ small queries)
 └─ shared/         api (http client, XHR upload, blob GET, ApiError, query client/keys), config (env, routes), lib, ui (kit + icons)
@@ -148,15 +170,17 @@ URL scheme (`src/shared/config/routes.ts`, `pathToTab` / `tabToPath`):
 | `/profile` | done — name/department (`PATCH /api/me`), logout |
 | `/` | done — `+새 요청` (requesters), role dashboard (`GET /api/projects/{id}/dashboard`): today (KST), pipeline + stage modal (`status=`), KPI tiles + list modal (same `view`, `customerId` for customer views), 지금 처리할 일, 최근 요청, 검수자별 업무량 (lead), 공지 (static rows). Operators: placeholder until the ops dashboard |
 | `/requests` | done — `+새 요청` (requesters), all reference filters (title/ID search debounced 250ms), table, recall/후속/긴급/지연 tags, empty / loading / error / no-permission states |
-| `/requests/{id}` | draft authoring (below), other states read-only — header (breadcrumb, chips, round, tags, meta, status track, sub tabs), banners, work grid (content list, type editors in disabled state, lock bar / read-only reason, guide drawer, version compare), side panel (교정 frame, 미리보기 mockups, 의견, 확인 요청), 요청 정보 (read-only), 히스토리 (merged, round separators, filter), 완료 결과 (bundle, XLSX/ZIP export, copy, variables). Not-found / denied states |
-| `/requests/{id}/contents/{key}` | content header + two-column work grid (draft content editable, autosave) |
+| `/review` | done — 내 검수 (진행 중 / 완료: `MY_ASSIGNED_ACTIVE` / `MY_ASSIGNED_DONE`, 내 역할 주담당 / 공동 검수, 검수량, 지연 / 임박) for reviewers; 배정 관리 for the lead (배정 대기 with 배정 → request tab + assignment modal, 지연, 납기 임박, workload table from `GET /api/projects/{id}/workload`) |
+| `/approval` | done — 승인 대기 (`APPROVAL_QUEUE`, 처리 가능 = listed in `APPROVAL_PENDING`, else 본인 관여 요청), 내가 처리한 요청 (`APPROVAL_PROCESSED`), no-active-approver banner |
+| `/requests/{id}` | draft authoring and review workflow (below) — header (breadcrumb, chips, round, tags, meta, status track, sub tabs), banners, work grid (content list with 편집 중 / 수정 중 markers, type editors, lock bars, guide drawer, version compare), side panel (교정 frame, 미리보기 mockups, 의견 + form, 확인 요청 thread + ask / answer forms), 요청 정보, 히스토리 (merged, round separators, filter), 완료 결과 (bundle, XLSX/ZIP export, copy, variables). Not-found / denied states |
+| `/requests/{id}/contents/{key}` | content header + two-column work grid (draft autosave or review-time revision editing) |
 | other routes | not listed in menus; direct URL shows "아직 제공되지 않는 화면입니다" |
 
 ### Request authoring (M1)
 
 - Header buttons render only for actions that are in the request's `allowedActions` **and** in
-  `IMPLEMENTED_ACTIONS` (`entities/request/model/actions.ts`: `EDIT_REQUEST`, `EDIT_CONTENT`, `SUBMIT`, `CANCEL`,
-  `CLONE`). Editing is enabled for drafts only; revision editing during review comes with the review screens.
+  `IMPLEMENTED_ACTIONS` (`entities/request/model/actions.ts`: everything except `FOLLOW_UP` and `EXPORT`, which
+  have no header button yet).
 - **새 요청** (`features/request-create`): `POST /api/requests` (first active type), opens the tab on 요청 정보 (a
   titleless draft starts there). **복제** opens the copy. Repeated clicks are ignored while a call runs.
 - **Draft session** (`views/request-detail/model/draft-session.ts` + `autosave.ts`): local edits (info fields,
@@ -182,8 +206,10 @@ URL scheme (`src/shared/config/routes.ts`, `pathToTab` / `tabToPath`):
   (XHR: the "검사 중" step starts once the bytes are sent).
 - **Demo accounts only**: a small "첨부 검사 결과 선택" panel under 자유입력형/RCS drafts sends
   `X-Demo-Scan-Outcome` with uploads (the server honours it only in demo mode).
-- **Submit** (`features/request-workflow`): saves pending edits, confirms (target lead reviewer), then
-  `POST …/submit` with `rowVersion` and an `Idempotency-Key`; `VALIDATION_FAILED` shows the missing-items list
+- **Submit** (`features/request-workflow`): saves pending edits, runs `POST …/submit-check` and shows the
+  missing-items list before asking (servers without the pre-check answer 404/405: the confirmation opens and a
+  `VALIDATION_FAILED` submit shows the same list), confirms (target lead reviewer; "검수 차수가 n차로 올라갑니다"
+  when `nextSubmitRound` > `round`), then `POST …/submit` with `rowVersion` and an `Idempotency-Key`
   (확인 → 요청 정보 when info fields are missing). **요청 취소** with the reference confirmation.
 - Denied requests: `DRAFT_PRIVATE` → "…아직 작성 중인 요청입니다…", `FORBIDDEN` → member-only text, 404 → not found.
 - Display texts that depend on permissions (banners, read-only reason) are computed from `allowedActions`
@@ -195,13 +221,44 @@ URL scheme (`src/shared/config/routes.ts`, `pathToTab` / `tabToPath`):
   context and opens the tab (403/404 → `이 요청을 볼 권한이 없습니다`, the notification stays unread);
   the add-tab popover lists the first 8 contents of the visible project requests.
 
+### Assignment, review and approval (M2)
+
+- **Header actions** → modals in `features/request-workflow` (every call sends the request `rowVersion`):
+  검수자 배정 (reviewer checklist with `활성 n건`, primary segment — one reviewer becomes primary automatically —
+  확정 납기 + 긴급도, 희망 납기 kept), 검수자 변경 (same picker + 변경 사유 + 인수인계, no-op refused), 납기·긴급도
+  (also from 요청 정보 › 관리 정보), 회수 요청, 회수 승인 / 거절 (banner buttons, 처리 의견 required; after an
+  approval the primary reviewer is taken to 검수), 검수 완료, 수정 요청 (이유, 위치, 세부 위치, 기대 내용), 승인.
+  Input checks follow the server order and show the reference toast (`{항목}을(를) 입력하세요`, `검수자를 한 명 이상
+  고르세요`, …). Errors: `REQUEST_STATE_CONFLICT` → "권한 또는 요청 상태가 변경되었습니다" + reload;
+  `NO_ELIGIBLE_APPROVER` / `LOCKED_BY_OTHER` → server message + reload; `VALIDATION_FAILED` keeps the modal open.
+- **검수 완료**: checks in the reference order — no eligible approver (approval customers) calls the server
+  directly so it records the block and notifies, another reviewer's lock or my unsaved revision blocks with a
+  toast — then "공동 검수 결과" (`coReviewers`: `(주담당)`, `(이전 담당)`, `검수 의견 n건`, per-round split when
+  several), 대상 버전, open-lock warning and the required "공동 검수 결과와 대상 버전을 확인했습니다".
+  `VALIDATION_FAILED` lists the server details.
+- **Revision editing** outside drafts (`views/request-detail/model/revision-session.ts`, reference `mutF` /
+  `saveRev` / `discard`): the first edit of a content opens a tab buffer from the current version and takes the
+  edit lock (`POST …/lock`; refused → buffer dropped + server message); typing refreshes the lock at most once a
+  minute. Bars: `{이름}님이 이 문안을 편집 중입니다…` (+ 잠금 해제 (대표 검수자|고객사 관리자) → confirmation →
+  `force-release`), the read-only reason, `v{base}을 기준으로 수정 중입니다…`. 수정본 저장 → `POST …/revisions
+  {baseVersion, payload, files?}` (attachment amounts are part of the buffer); `VERSION_CONFLICT` → "다른 사용자가
+  먼저 저장했습니다" → 최신 버전 불러오기 (drop + reload); a lost lock → "편집 잠금이 만료되었습니다…". A refreshed
+  detail (polled every 30s while 검수 중 / 확인 요청 and the tab is visible) that no longer shows my lock marks the
+  buffer lost. 변경 취소, closing the tab (`watchTabClose`) and leaving the page (`keepalive` DELETE) release the
+  locks. Reviewers can upload a file revision (same extension) per attachment while 검수 중; RCS images and
+  variable insertion work on the buffer too. A buffer marks the tab dirty.
+- **Threads**: 검수 의견 작성 (current content or 요청 전체), 확인 요청 보내기 (blocked while a revision is unsaved or
+  a recall is pending), 답변하고 검수 재개 per open question (blocked while a revision is unsaved).
+- 배정 from 검수 › 배정 관리 hands the request id + `ASSIGN` to the request tab (`useRequestActionIntent`), which
+  opens the modal once it shows the request.
+
 ## shared/ui components
 
 Button (default/pri/ok/warn/ghost, sm) · IconButton (badge) · Tag (hot/flag/recall/fill) · StatusChip ·
 TypeChip · RoundBadge · Avatar · AvatarStack · Banner (ask/info/danger/done/appr/wait) · Panel/PanelHeader/
-PanelBody · Table (+ `tableClasses`) · KpiGrid/Kpi · SubTabs · Seg · ListItem · Empty (+ EmptyArt) · Field/
+PanelBody · Table (+ `tableClasses`) · KpiGrid/Kpi · SubTabs · Seg · ListItem (`nestedActions` for rows with buttons) · Empty (+ EmptyArt) · Field/
 Label/Hint/ErrorMessage/Input/Select/Textarea/Checkbox · Modal (focus trap, Escape, scrim, busy-safe async
-`onOk`, 560/900) · Popover (+ header/body/section/item) · Drawer · Toaster/`toast()` (single, 2.8s,
+`onOk`, 560/900, ok variant default/pri/ok/warn) · Popover (+ header/body/section/item) · Drawer · Toaster/`toast()` (single, 2.8s,
 `role=status`) · LockBar · ReadOnlyBox · KeyValueList · Bar · SaveIndicator · ProgressTrack · BrandMark ·
 Page/PageHeader (`rawEyebrow` for the dashboard date) · Icon (all reference icons) · TypeGlyph.
 
@@ -212,12 +269,13 @@ the bell's accessible name, Escape/outside click closes the mobile menu.
 
 ## Not implemented yet / stubs
 
-- Review-stage mutations (assignment, edit lock + revisions, opinions, asks, recall, completion, approval).
+- 후속 요청 작성 header button (`FOLLOW_UP`).
 - Correction engine and result cards (panel frame only) — M4.
-- Review, approval, contents archive, performance, notices, admin and ops screens.
+- Contents archive, performance, notices, admin and ops screens.
 - Dark theme (light only).
 
 ## PR order
 
 PR1 foundation (tokens, fonts, shared/ui, API client, entities) → PR2 shell + auth pages → PR3 dashboard +
-request list + read-only request detail (M0 part 2) → PR4 request authoring (M1) → PR5… review / approval.
+request list + read-only request detail (M0 part 2) → PR4 request authoring (M1) → PR5 assignment, review and
+approval (M2 + approval part of M3) → PR6… correction, archive, admin.

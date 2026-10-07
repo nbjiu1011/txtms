@@ -1,4 +1,4 @@
-import type { FileRangePatch } from "@/entities/request";
+import type { FileMeta, FileRangePatch } from "@/entities/request";
 
 /** Attachment range inputs as typed (strings, so an empty or partial value can be shown). */
 export interface FileRangeDraft {
@@ -46,4 +46,13 @@ export function parseFileRange(draft: FileRangeDraft): FileRangeCheck {
     else if (review < 1 || review > total) errors.reviewAmount = RANGE_RULE;
   }
   return { patch: { totalAmount: total, reviewAmount: review, rangeNote: note }, errors };
+}
+
+/** Inputs of a saved attachment (null amounts shown empty). */
+export function readFileRange(file: Pick<FileMeta, "totalAmount" | "reviewAmount" | "rangeNote">): FileRangeDraft {
+  return {
+    totalAmount: file.totalAmount === null ? "" : String(file.totalAmount),
+    reviewAmount: file.reviewAmount === null ? "" : String(file.reviewAmount),
+    rangeNote: file.rangeNote ?? "",
+  };
 }

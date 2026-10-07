@@ -1,9 +1,21 @@
 "use client";
 
 import { useRef, type RefObject, type SyntheticEvent } from "react";
-import { defaultTextPath, getPayloadField, setPayloadField, type Content, type ContentType } from "@/entities/request";
+import {
+  defaultTextPath,
+  getPayloadField,
+  setPayloadField,
+  type Content,
+  type ContentPayload,
+  type ContentType,
+} from "@/entities/request";
 import { insertToken } from "@/features/variable-picker";
-import type { DraftSession } from "./draft-session";
+
+/** Draft session or revision buffer: where the inserted token goes. */
+export interface PayloadEditor {
+  content(server: Content): Content;
+  setPayload(server: Content, payload: ContentPayload): void;
+}
 
 interface Caret {
   path: string;
@@ -25,7 +37,7 @@ export function useVariableInsertion(editorRef: RefObject<HTMLElement | null>) {
     caret.current = { path, start: el.selectionStart, end: el.selectionEnd };
   };
 
-  const insert = (session: DraftSession, server: Content, type: ContentType, key: string) => {
+  const insert = (session: PayloadEditor, server: Content, type: ContentType, key: string) => {
     const payload = session.content(server).payload;
     const last = caret.current;
     const usable = last !== null && typeof getPayloadField(payload, last.path) === "string";

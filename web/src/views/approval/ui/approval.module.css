@@ -1,0 +1,7 @@
+/* reference `.panel{margin-bottom:18px}` around the queue */
+.queue {
+  margin-bottom: 18px;
+}
+.faint {
+  color: var(--faint);
+}

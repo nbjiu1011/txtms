@@ -171,6 +171,11 @@ div.resultHead h1 {
   font-size: 12px;
   color: var(--faint);
 }
+/* reference `p.small.muted` */
+.modalNoteMuted {
+  font-size: 12px;
+  color: var(--sub);
+}
 /* demo-only scan control (`.panel{margin:16px}` at the end of the request view) */
 .demoPanel {
   margin: 16px 0 0;
@@ -182,4 +187,8 @@ div.resultHead h1 {
 .demoSelect {
   width: auto;
   min-width: 160px;
+}
+/* reference `button.btn.sm{margin-top:14px}` under 관리 정보 */
+.dueBtn {
+  margin-top: 14px;
 }

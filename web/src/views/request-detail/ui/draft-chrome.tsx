@@ -2,6 +2,7 @@
 
 import { Banner, Modal, Panel, PanelBody, Select } from "@/shared/ui";
 import type { ScanOutcome, DraftEditing } from "../model/use-draft-editing";
+import type { RevisionEditing } from "../model/use-revision-editing";
 import styles from "./tabs.module.css";
 
 /** Danger banner while the last autosave failed (reference `storeError` banner above the header). */
@@ -28,6 +29,23 @@ export function SaveConflictModal({ editing }: { editing: DraftEditing | null })
       onOk={() => editing?.resolveConflict(true)}
     >
       <p className={styles.modalNote}>최신 내용을 불러온 뒤 수정 내용을 다시 반영하세요.</p>
+    </Modal>
+  );
+}
+
+/** 수정본 저장 blocked by a newer version (reference `saveRev` conflict modal). */
+export function RevisionConflictModal({ revision }: { revision: RevisionEditing }) {
+  const conflict = revision.conflict;
+  return (
+    <Modal
+      open={conflict !== null}
+      onClose={() => revision.resolveConflict(false)}
+      title="다른 사용자가 먼저 저장했습니다"
+      description={conflict?.message}
+      okLabel="최신 버전 불러오기"
+      onOk={() => revision.resolveConflict(true)}
+    >
+      <p className={styles.modalNoteMuted}>최신 버전을 불러온 뒤 수정 내용을 다시 반영하세요.</p>
     </Modal>
   );
 }

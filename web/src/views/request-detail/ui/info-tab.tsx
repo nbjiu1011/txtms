@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useId } from "react";
 import { formatDate } from "@/shared/lib";
-import { Field, Input, KeyValueList, Panel, PanelBody, PanelHeader, SaveIndicator, Select, Textarea } from "@/shared/ui";
+import { Button, Field, Input, KeyValueList, Panel, PanelBody, PanelHeader, SaveIndicator, Select, Textarea } from "@/shared/ui";
 import {
   CONTENT_TYPE_LABEL,
   RequestStatusChip,
@@ -25,10 +25,12 @@ export interface InfoTabProps {
   editing: DraftEditing | null;
   /** Type select changed (the caller confirms when contents would be reset). */
   onTypeChange: (type: ContentType) => void;
+  /** 납기·긴급도 변경 (shown when the user may change the schedule). */
+  onEditDue?: () => void;
 }
 
 /** 요청 정보 sub tab: editable by the draft's author (autosave), read-only otherwise. */
-export function InfoTab({ page, activeTypes, onOpenRequest, editing, onTypeChange }: InfoTabProps) {
+export function InfoTab({ page, activeTypes, onOpenRequest, editing, onTypeChange, onEditDue }: InfoTabProps) {
   const { request: r, project, users } = page;
   const types = activeTypes.length ? activeTypes : [r.type];
   const ed = editing?.canEditRequest ? editing : null;
@@ -144,6 +146,11 @@ export function InfoTab({ page, activeTypes, onOpenRequest, editing, onTypeChang
                   : []),
               ]}
             />
+            {onEditDue ? (
+              <Button size="sm" className={styles.dueBtn} onClick={onEditDue}>
+                납기·긴급도 변경
+              </Button>
+            ) : null}
           </PanelBody>
         </Panel>
       </div>

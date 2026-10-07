@@ -54,6 +54,14 @@ describe("selectBanners", () => {
     expect(keys(request107U2, ctx(3))).toEqual(["recall"]);
   });
 
+  it("co-reviewer banner names the primary; a single primary reviewer has no 공동 검수 결과", () => {
+    expect(selectBanners(request101U2, ctx(6))[0].lines[0]).toBe(
+      "문안 편집, 검수 의견, 확인 요청은 함께 할 수 있습니다. 요청 단위 검수 완료와 회수 처리는 주담당 박지훈님만 합니다.",
+    );
+    const solo = { ...request101U2, reviewerIds: [2] };
+    expect(selectBanners(solo, ctx(2))[0].lines[0]).toBe("최종 대상 버전을 확인한 뒤 요청 단위 검수 완료를 처리합니다.");
+  });
+
   it("approval waiting: names eligible approvers; an ineligible approver gets the extra line", () => {
     const [banner] = selectBanners(request103U4, ctx(4, true));
     expect(banner).toMatchObject({ key: "appr", tone: "appr", title: "최종 승인을 기다리고 있습니다" });

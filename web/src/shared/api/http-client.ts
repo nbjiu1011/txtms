@@ -34,6 +34,8 @@ export interface RequestOptions {
   signal?: AbortSignal;
   /** Attach the bearer token and retry once after refresh on 401. Default true. */
   auth?: boolean;
+  /** Let the call outlive the page (unload clean-up such as releasing an edit lock). */
+  keepalive?: boolean;
 }
 
 const REFRESH_PATH = "/auth/refresh";
@@ -87,6 +89,7 @@ async function send(path: string, options: RequestOptions, withAuth: boolean): P
       body,
       credentials: "same-origin",
       signal: options.signal,
+      keepalive: options.keepalive,
     });
   } catch (cause) {
     if (cause instanceof DOMException && cause.name === "AbortError") throw cause;

@@ -49,4 +49,11 @@ describe("uploadAll", () => {
     expect(classifyUploadError(scanFail).state).toBe("failed");
     expect(classifyUploadError(new Error("offline")).error).toBe("offline");
   });
+
+  it("uses the dedicated codes of newer servers (FILE_UNSAFE / FILE_SCAN_FAILED)", () => {
+    const unsafe = new ApiError(400, { code: "FILE_UNSAFE", message: "위험 파일 검사 결과: 등록할 수 없습니다" });
+    const scanFail = new ApiError(400, { code: "FILE_SCAN_FAILED", message: "검사 서비스 실패: 등록할 수 없습니다" });
+    expect(classifyUploadError(unsafe).state).toBe("blocked");
+    expect(classifyUploadError(scanFail)).toEqual({ state: "failed", error: scanFail.message });
+  });
 });

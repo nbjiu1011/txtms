@@ -7,6 +7,7 @@ import type {
   HistoryEntry,
   RequestDetail,
   RequestListParams,
+  RequestStatus,
   RequestSummary,
   WritingGuide,
 } from "../model/types";
@@ -50,8 +51,22 @@ export function useRequestTotal(params: RequestListParams, enabled = true) {
   });
 }
 
+/** States where other users' edit locks and review activity change what this screen shows. */
+const LIVE_STATUSES: readonly RequestStatus[] = ["IN_REVIEW", "CONFIRMING"];
+export const DETAIL_POLL_MS = 30_000;
+
+/**
+ * Request detail. While review is going on it is refreshed every 30s (only while the tab is visible:
+ * a hidden work tab unsubscribes) so edit locks of other users and status changes show up.
+ */
 export function useRequestDetail(id: string, enabled = true) {
-  return useQuery({ queryKey: requestKeys.detail(id), queryFn: () => fetchRequestDetail(id), enabled: enabled && !!id });
+  return useQuery({
+    queryKey: requestKeys.detail(id),
+    queryFn: () => fetchRequestDetail(id),
+    enabled: enabled && !!id,
+    refetchInterval: (query) =>
+      query.state.data && LIVE_STATUSES.includes(query.state.data.status) ? DETAIL_POLL_MS : false,
+  });
 }
 
 export function useRequestHistory(id: string, enabled = true) {

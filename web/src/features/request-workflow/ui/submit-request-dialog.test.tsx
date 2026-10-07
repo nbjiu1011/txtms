@@ -1,15 +1,20 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/shared/api";
 import { requestApi, type RequestDetail } from "@/entities/request";
 import { request102U1 } from "@fixtures/api-snapshot";
 import { SubmitRequestDialog, type SubmitRequestDialogProps } from "./submit-request-dialog";
 
+const MISSING = {
+  details: ["요청 정보: 대상 고객", "C1 콘텐츠 1: 승인 템플릿"],
+  fieldErrors: [{ field: "target", message: "대상 고객을(를) 입력하세요" }],
+};
+
 function setup(overrides: Partial<SubmitRequestDialogProps> = {}) {
   const props: SubmitRequestDialogProps = {
     open: true,
     onClose: vi.fn(),
-    request: { id: "REQ-2609-105", contents: request102U1.contents },
+    request: { id: "REQ-2609-105", contents: request102U1.contents, round: 1 },
     projectName: "카드 혜택 알림",
     leadName: "이도현",
     rowVersion: () => 7,
@@ -24,36 +29,63 @@ function setup(overrides: Partial<SubmitRequestDialogProps> = {}) {
   return { props, view };
 }
 
+/** Server without the pre-check (today's build): 404 → the confirmation opens directly. */
+function noPrecheck() {
+  return vi.spyOn(requestApi, "submitCheck").mockRejectedValue(new ApiError(404, { code: "NOT_FOUND", message: "대상을 찾을 수 없습니다" }));
+}
+
 describe("SubmitRequestDialog", () => {
+  beforeEach(() => {
+    noPrecheck();
+  });
   afterEach(() => vi.restoreAllMocks());
 
-  it("asks for confirmation with the lead reviewer and the optional correction note", () => {
+  it("asks for confirmation with the lead reviewer and the optional correction note", async () => {
     setup();
-    const dialog = screen.getByRole("dialog", { name: "검수를 요청할까요?" });
+    const dialog = await screen.findByRole("dialog", { name: "검수를 요청할까요?" });
     expect(within(dialog).getByText(`${request102U1.contents.length}건의 콘텐츠를 카드 혜택 알림 대표 검수자 이도현님에게 보냅니다.`)).toBeTruthy();
     expect(within(dialog).getByText(/텍스트 교정 결과는 필요하지 않습니다/)).toBeTruthy();
+    expect(within(dialog).queryByText(/검수 차수가/)).toBeNull();
   });
 
-  it("lists the missing items of a VALIDATION_FAILED answer like the reference modal", async () => {
-    vi.spyOn(requestApi, "submit").mockRejectedValue(
-      new ApiError(400, {
-        code: "VALIDATION_FAILED",
-        message: "검수를 요청하려면 다음 항목을 채우세요",
-        details: ["요청 정보: 대상 고객", "C1 콘텐츠 1: 승인 템플릿"],
-        fieldErrors: [{ field: "target", message: "대상 고객을(를) 입력하세요" }],
-      }),
-    );
+  it("announces the round increase after an approved recall (nextSubmitRound)", async () => {
+    setup({ request: { id: "REQ-2609-105", contents: request102U1.contents, round: 1, nextSubmitRound: 2 } });
+    const dialog = await screen.findByRole("dialog", { name: "검수를 요청할까요?" });
+    expect(within(dialog).getByText("회수 승인 후 다시 요청하므로 검수 차수가 2차로 올라갑니다.")).toBeTruthy();
+  });
+
+  it("shows the missing items before asking when the pre-check fails", async () => {
+    vi.spyOn(requestApi, "submitCheck").mockResolvedValue({ ok: false, ...MISSING });
+    const submit = vi.spyOn(requestApi, "submit");
     const { props, view } = setup();
-    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "검수 요청" }));
     await waitFor(() => expect(props.onClose).toHaveBeenCalled());
     view.rerender(<SubmitRequestDialog {...props} open={false} />);
     const missing = await screen.findByRole("dialog", { name: "검수를 요청하려면 다음 항목을 채우세요" });
-    expect(within(missing).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
-      "요청 정보: 대상 고객",
-      "C1 콘텐츠 1: 승인 템플릿",
-    ]);
+    expect(within(missing).getAllByRole("listitem").map((li) => li.textContent)).toEqual(MISSING.details);
+    expect(screen.queryByRole("dialog", { name: "검수를 요청할까요?" })).toBeNull();
+    expect(props.onInvalid).toHaveBeenCalledWith(MISSING.fieldErrors);
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it("asks for confirmation when the pre-check passes", async () => {
+    vi.spyOn(requestApi, "submitCheck").mockResolvedValue({ ok: true, details: [], fieldErrors: [] });
+    setup();
+    expect(await screen.findByRole("dialog", { name: "검수를 요청할까요?" })).toBeTruthy();
+  });
+
+  it("falls back to listing the missing items of a VALIDATION_FAILED submit (no pre-check)", async () => {
+    vi.spyOn(requestApi, "submit").mockRejectedValue(
+      new ApiError(400, { code: "VALIDATION_FAILED", message: "검수를 요청하려면 다음 항목을 채우세요", ...MISSING }),
+    );
+    const { props, view } = setup();
+    const confirm = await screen.findByRole("dialog", { name: "검수를 요청할까요?" });
+    fireEvent.click(within(confirm).getByRole("button", { name: "검수 요청" }));
+    await waitFor(() => expect(props.onClose).toHaveBeenCalled());
+    view.rerender(<SubmitRequestDialog {...props} open={false} />);
+    const missing = await screen.findByRole("dialog", { name: "검수를 요청하려면 다음 항목을 채우세요" });
+    expect(within(missing).getAllByRole("listitem").map((li) => li.textContent)).toEqual(MISSING.details);
     expect(within(missing).getByText("텍스트 교정 결과는 필요하지 않습니다.")).toBeTruthy();
-    expect(props.onInvalid).toHaveBeenCalledWith([{ field: "target", message: "대상 고객을(를) 입력하세요" }]);
+    expect(props.onInvalid).toHaveBeenCalledWith(MISSING.fieldErrors);
     fireEvent.click(within(missing).getByRole("button", { name: "확인" }));
     expect(props.onShowMissing).toHaveBeenCalledWith("info");
   });
@@ -62,7 +94,8 @@ describe("SubmitRequestDialog", () => {
     const detail = { ...request102U1, status: "WAITING" } as RequestDetail;
     const submit = vi.spyOn(requestApi, "submit").mockResolvedValue(detail);
     const { props } = setup();
-    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "검수 요청" }));
+    const confirm = await screen.findByRole("dialog", { name: "검수를 요청할까요?" });
+    fireEvent.click(within(confirm).getByRole("button", { name: "검수 요청" }));
     await waitFor(() => expect(props.onSubmitted).toHaveBeenCalledWith(detail));
     expect(props.beforeSubmit).toHaveBeenCalled();
     expect(submit.mock.calls[0][0]).toBe("REQ-2609-105");
@@ -70,12 +103,13 @@ describe("SubmitRequestDialog", () => {
     expect(submit.mock.calls[0][2]).toMatch(/.{8,}/);
   });
 
-  it("does not submit when pending edits could not be saved", async () => {
+  it("does not check or submit when pending edits could not be saved", async () => {
+    const check = vi.spyOn(requestApi, "submitCheck");
     const submit = vi.spyOn(requestApi, "submit");
     const { props } = setup({ beforeSubmit: vi.fn(async () => false) });
-    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "검수 요청" }));
-    await waitFor(() => expect(props.beforeSubmit).toHaveBeenCalled());
+    await waitFor(() => expect(props.onClose).toHaveBeenCalled());
+    expect(check).not.toHaveBeenCalled();
     expect(submit).not.toHaveBeenCalled();
-    expect(props.onClose).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog", { name: "검수를 요청할까요?" })).toBeNull();
   });
 });

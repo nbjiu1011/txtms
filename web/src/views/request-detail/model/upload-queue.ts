@@ -19,10 +19,15 @@ export interface UploadItem {
   error: string | null;
 }
 
-/** A malware verdict blocks the file; every other rejection (format, size, scan failure) fails it. */
+/**
+ * A malware verdict blocks the file; every other rejection (format, size, scan failure) fails it.
+ * Newer servers send `FILE_UNSAFE`; older ones only `FILE_REJECTED` with the "위험 파일" message.
+ */
 export function classifyUploadError(error: unknown): Pick<UploadItem, "state" | "error"> {
   const message = isApiError(error) ? error.message : error instanceof Error ? error.message : "업로드하지 못했습니다";
-  const blocked = isApiError(error) && error.code === "FILE_REJECTED" && message.startsWith("위험 파일");
+  const blocked =
+    isApiError(error) &&
+    (error.code === "FILE_UNSAFE" || (error.code === "FILE_REJECTED" && message.startsWith("위험 파일")));
   return { state: blocked ? "blocked" : "failed", error: message };
 }
 

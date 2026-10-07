@@ -70,3 +70,17 @@ export function isTabOpen(tabId: string): boolean {
 export function hasDirtyTab(): boolean {
   return useTabStore.getState().tabs.some((tab) => tab.dirty);
 }
+
+/**
+ * Calls `onClosed` once the work tab is closed (not when it is merely hidden). Returns the
+ * unsubscribe function. Background work of a view (edit locks) uses this instead of an effect
+ * clean-up, which also runs when a tab is hidden.
+ */
+export function watchTabClose(tabId: string, onClosed: () => void): () => void {
+  const unsubscribe = useTabStore.subscribe((state) => {
+    if (state.tabs.some((tab) => tab.id === tabId)) return;
+    unsubscribe();
+    onClosed();
+  });
+  return unsubscribe;
+}

@@ -58,6 +58,7 @@ export const request105U1: RequestDetail = {
   "eligibleApproverIds": [
     4
   ],
+  "coReviewers": [],
   "historyCount": 1,
   "stageTimes": {
     "DRAFT": "2026-10-07T02:00:00Z",

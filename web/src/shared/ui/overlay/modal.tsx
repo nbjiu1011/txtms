@@ -21,7 +21,7 @@ export interface ModalProps {
   foot?: ReactNode;
   /** Confirm button label. Omit to render only the cancel button. */
   okLabel?: string;
-  okVariant?: "pri" | "warn" | "ok";
+  okVariant?: "pri" | "warn" | "ok" | "default";
   okDisabled?: boolean;
   /** Cancel button label (default 취소). */
   cancelLabel?: string;

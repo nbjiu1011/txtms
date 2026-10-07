@@ -1,0 +1,16 @@
+/* reference `.fld` with `margin-top:12px` under the opinion / ask threads */
+.form {
+  margin-top: 12px;
+}
+.ta {
+  min-height: 80px;
+}
+.send {
+  align-self: flex-start;
+}
+.answerTa {
+  min-height: 70px;
+}
+.answerBtn {
+  margin-top: 6px;
+}

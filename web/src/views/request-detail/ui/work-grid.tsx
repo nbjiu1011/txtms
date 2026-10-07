@@ -3,22 +3,26 @@
 import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/shared/lib";
-import { Button, Empty, Icon, Input, LockBar, Modal, SaveIndicator, Tag } from "@/shared/ui";
+import { Empty, Modal } from "@/shared/ui";
 import {
   canEditContentByPolicy,
   invalidateRequestViews,
   readOnlyReason,
   storeRequestDetail,
+  type FileMeta,
 } from "@/entities/request";
 import { BULK_TYPES, BulkImportModal } from "@/features/bulk-import";
 import { VariablePicker } from "@/features/variable-picker";
+import type { FileRangeDraft } from "../model/file-range";
 import type { DraftEditing } from "../model/use-draft-editing";
 import type { RequestPage } from "../model/use-request-page";
-import { saveLabel } from "../model/save-label";
+import type { RevisionEditing } from "../model/use-revision-editing";
 import { useVariableInsertion } from "../model/use-variable-insertion";
 import { ContentEditor } from "./content-editor";
 import { ContentList } from "./content-list";
+import { EditorLockBars, EditorToolbar } from "./editor-bars";
 import { GuideDrawer } from "./guide-drawer";
+import type { ThreadActions, UnlockAction } from "../model/workflow-types";
 import { SidePanel, type SidePanelTab } from "./side-panel";
 import { VersionCompareModal } from "./version-compare-modal";
 import styles from "./work.module.css";
@@ -34,13 +38,18 @@ export interface WorkGridProps {
   sideTab: SidePanelTab;
   onSideTab: (tab: SidePanelTab) => void;
   onOpenContent: (key: string) => void;
-  /** Draft editing of this tab (null: read-only). */
+  /** Draft editing of this tab (null: no draft editing). */
   editing: DraftEditing | null;
+  /** Review-time editing (buffer + edit lock) of this tab. */
+  revision: RevisionEditing | null;
+  unlock?: UnlockAction | null;
+  /** Opinion / ask / answer forms of the side panel. */
+  thread?: ThreadActions | null;
 }
 
 /** `.work` — content list, editor and side panel (reference `vWork`). */
 export function WorkGrid(props: WorkGridProps) {
-  const { page, meId, contentKey, onSelectContent, single, sideTab, onSideTab, onOpenContent, editing } = props;
+  const { page, meId, contentKey, onSelectContent, single, sideTab, onSideTab, onOpenContent, editing, revision } = props;
   const r = page.request;
   const client = useQueryClient();
   const [guideOpen, setGuideOpen] = useState(false);
@@ -54,13 +63,18 @@ export function WorkGrid(props: WorkGridProps) {
 
   const server = r.contents.find((c) => c.key === contentKey) ?? r.contents[0];
   if (!server) return <Empty title="콘텐츠가 없습니다" />;
-  const session = editing?.session ?? null;
-  const content = session ? session.content(server) : server;
+  const draftMode = r.status === "DRAFT";
+  const session = draftMode ? (editing?.session ?? null) : null;
+  const rev = draftMode ? null : revision;
+  const payloadEditor = session ?? rev?.session ?? null;
+  const content = payloadEditor ? payloadEditor.content(server) : server;
 
-  const lockedBy = r.status !== "DRAFT" && content.lock && content.lock.userId !== meId ? content.lock.userId : null;
+  const lockedBy = !draftMode && content.lock && content.lock.userId !== meId ? content.lock.userId : null;
   const policyEditable = canEditContentByPolicy(r, meId);
-  const editable = !!editing?.canEditContent;
-  const listActions = editing?.canEditRequest
+  const editable = draftMode ? !!editing?.canEditContent : !!rev?.canEdit;
+  const writable = editable && lockedBy === null;
+  const buffer = rev?.session.buffer(server.key);
+  const listActions = draftMode && editing?.canEditRequest
     ? {
         onAdd: () =>
           void editing.addContent().then((key) => {
@@ -71,13 +85,54 @@ export function WorkGrid(props: WorkGridProps) {
       }
     : undefined;
 
-  const state = session?.saveState;
+  const attachments = (() => {
+    if (session && editing && writable) {
+      return {
+        range: (file: FileMeta) => session.fileRange(file),
+        onRange: (file: FileMeta, next: FileRangeDraft) => session.setFileRange(server.key, file.id, next),
+        onUpload: (files: File[]) => editing.uploadFiles(server, files),
+        onDelete: (file: FileMeta) => editing.deleteFile(server, file),
+        uploads: editing.uploads,
+        busy: editing.uploadBusy,
+      };
+    }
+    if (rev && writable) {
+      return {
+        range: (file: FileMeta) => rev.session.fileRange(server.key, file),
+        onRange: (file: FileMeta, next: FileRangeDraft) => rev.session.setFileRange(server, file, next),
+        busy: false,
+        onUploadVersion: rev.canUploadFileVersions
+          ? (file: FileMeta, picked: File) => rev.uploadFileVersion(server, file, picked)
+          : undefined,
+        versionBusy: rev.fileVersionBusy,
+      };
+    }
+    return undefined;
+  })();
+
+  const images = (() => {
+    if (draftMode && editing && writable) {
+      return {
+        busyIndex: editing.imageBusy?.key === server.key ? editing.imageBusy.index : null,
+        upload: (index: number, file: File) => editing.uploadImage(server, index, file),
+      };
+    }
+    if (rev && writable) {
+      return {
+        busyIndex: rev.imageBusy?.key === server.key ? rev.imageBusy.index : null,
+        upload: (index: number, file: File) => rev.uploadImage(server, index, file),
+      };
+    }
+    return undefined;
+  })();
+
   return (
     <div className={cn(styles.work, single && styles.single)}>
       {single ? null : (
         <ContentList
           request={r}
           titleOf={(c) => (session ? session.content(c).title : c.title)}
+          editingKeys={rev ? rev.session.keys() : []}
           users={page.users}
           meId={meId}
           selected={server.key}
@@ -86,92 +141,52 @@ export function WorkGrid(props: WorkGridProps) {
           actions={listActions}
         />
       )}
-      <section
-        ref={editorRef}
-        className={styles.editor}
-        aria-label="콘텐츠 편집"
-        {...variables.handlers}
-      >
-        <div className={styles.edTop}>
-          {editable && editing?.canEditRequest && session ? (
-            <Input
-              className={styles.titleIn}
-              aria-label="콘텐츠 제목"
-              value={content.title}
-              onChange={(e) => session.setContentTitle(server, e.target.value)}
-            />
-          ) : (
-            <h3>{content.title}</h3>
-          )}
-          <Tag variant="fill">
-            {content.key} v{content.version}
-          </Tag>
-          {content.versions.length > 1 ? (
-            <Button size="sm" variant="ghost" onClick={() => setCompareOpen(true)}>
-              버전 비교
-            </Button>
-          ) : null}
-          <span className={styles.sp} />
-          {editable && state ? <SaveIndicator state={state.status}>{saveLabel(state)}</SaveIndicator> : null}
-          <Button size="sm" variant="ghost" className={styles.btnIcon} onClick={() => setGuideOpen(true)}>
-            <Icon name="book" />
-            가이드
-          </Button>
-          {editable && r.type !== "RCS" ? (
-            <Button
-              ref={setVarAnchor}
-              size="sm"
-              className={styles.btnIcon}
-              aria-haspopup="dialog"
-              aria-expanded={varOpen}
-              onClick={() => setVarOpen((v) => !v)}
-            >
-              <Icon name="brace" />
-              변수 삽입
-            </Button>
-          ) : null}
-          {editable && session ? (
-            <Button size="sm" onClick={() => void session.flush()}>
-              저장
-            </Button>
-          ) : null}
-        </div>
-        {lockedBy !== null ? (
-          <LockBar>
-            {page.users.name(lockedBy)}님이 이 문안을 편집 중입니다. 편집이 끝나면 최신 버전으로 수정할 수 있습니다.
-          </LockBar>
-        ) : null}
-        {!policyEditable && lockedBy === null ? <LockBar neutral>{readOnlyReason(r, meId)}</LockBar> : null}
+      <section ref={editorRef} className={styles.editor} aria-label="콘텐츠 편집" {...variables.handlers}>
+        <EditorToolbar
+          content={content}
+          draft={session && editable ? { session, server, titleEditable: !!editing?.canEditRequest } : null}
+          revision={
+            rev && writable
+              ? {
+                  buffered: !!buffer,
+                  saving: rev.saving === server.key,
+                  onSave: () => rev.save(server),
+                  onDiscard: () => rev.discard(server.key),
+                }
+              : null
+          }
+          variables={
+            writable && r.type !== "RCS"
+              ? { open: varOpen, onToggle: () => setVarOpen((v) => !v) }
+              : null
+          }
+          variablesRef={setVarAnchor}
+          onCompare={() => setCompareOpen(true)}
+          onGuide={() => setGuideOpen(true)}
+        />
+        <EditorLockBars
+          content={content}
+          lockedByName={lockedBy === null ? null : page.users.name(lockedBy)}
+          unlock={
+            lockedBy !== null && props.unlock
+              ? { label: props.unlock.label, onUnlock: () => props.unlock?.onUnlock(server.key, lockedBy) }
+              : null
+          }
+          readOnlyReason={policyEditable ? null : readOnlyReason(r, meId)}
+          buffer={buffer}
+        />
         <ContentEditor
           requestId={r.id}
           type={r.type}
           content={content}
           project={page.project}
-          disabled={!editable}
-          onPayload={session && editable ? (payload) => session.setPayload(server, payload) : undefined}
-          attachments={
-            editing && session && editable
-              ? {
-                  range: (file) => session.fileRange(file),
-                  onRange: (file, next) => session.setFileRange(server.key, file.id, next),
-                  onUpload: (files) => editing.uploadFiles(server, files),
-                  onDelete: (file) => editing.deleteFile(server, file),
-                  uploads: editing.uploads,
-                  busy: editing.uploadBusy,
-                }
-              : undefined
-          }
-          images={
-            editing && editable
-              ? {
-                  busyIndex: editing.imageBusy?.key === server.key ? editing.imageBusy.index : null,
-                  upload: (index, file) => editing.uploadImage(server, index, file),
-                }
-              : undefined
-          }
+          disabled={!writable}
+          onPayload={payloadEditor && writable ? (payload) => payloadEditor.setPayload(server, payload) : undefined}
+          attachments={attachments}
+          images={images}
         />
       </section>
-      <SidePanel page={page} content={content} meId={meId} tab={sideTab} onTab={onSideTab} />
+      <SidePanel page={page} content={content} meId={meId} tab={sideTab} onTab={onSideTab} thread={props.thread ?? null} />
       <GuideDrawer type={r.type} open={guideOpen} onClose={() => setGuideOpen(false)} />
       <VersionCompareModal
         open={compareOpen}
@@ -181,16 +196,18 @@ export function WorkGrid(props: WorkGridProps) {
         content={content}
         users={page.users}
       />
-      {editing ? (
+      {payloadEditor && writable ? (
+        <VariablePicker
+          open={varOpen}
+          anchor={varAnchor}
+          onClose={() => setVarOpen(false)}
+          projectId={r.projectId}
+          projectName={page.project?.name ?? ""}
+          onInsert={(key) => variables.insert(payloadEditor, server, r.type, key)}
+        />
+      ) : null}
+      {draftMode && editing ? (
         <>
-          <VariablePicker
-            open={varOpen}
-            anchor={varAnchor}
-            onClose={() => setVarOpen(false)}
-            projectId={r.projectId}
-            projectName={page.project?.name ?? ""}
-            onInsert={(key) => session && variables.insert(session, server, r.type, key)}
-          />
           <Modal
             open={deleteOpen}
             onClose={() => setDeleteOpen(false)}

@@ -2,9 +2,9 @@
 
 import { useId } from "react";
 import { downloadFile } from "@/shared/api";
-import { Button, Field, Icon, Input, Label, Tag, Textarea, toast } from "@/shared/ui";
+import { Button, Field, Icon, Input, Label, Tag, Textarea, buttonClassName, toast } from "@/shared/ui";
 import { FILE_UNIT_LABEL, requestFilePaths, type Content, type FileMeta, type FreeformPayload } from "@/entities/request";
-import { parseFileRange, type FileRangeDraft } from "../model/file-range";
+import { parseFileRange, readFileRange, type FileRangeDraft } from "../model/file-range";
 import { UPLOAD_STATE_LABEL, type UploadItem } from "../model/upload-queue";
 import { bindText, type FieldsProps } from "./editor-binding";
 import styles from "./work.module.css";
@@ -12,22 +12,21 @@ import styles from "./work.module.css";
 /** Policy note next to the attachment label. */
 const ATTACHMENT_LIMIT_NOTE = "요청당 10개 · 파일당 20MB · 총 100MB";
 
-/** Attachment actions of a draft (upload, range autosave, delete). */
+/**
+ * Attachment editing: amounts always; new files and deletion only in a draft (autosave); file
+ * revisions (`수정본 업로드`, same extension) for assigned reviewers during review (revision buffer).
+ */
 export interface AttachmentEditing {
   range: (file: FileMeta) => FileRangeDraft;
   onRange: (file: FileMeta, next: FileRangeDraft) => void;
-  onUpload: (files: File[]) => void;
-  onDelete: (file: FileMeta) => void;
-  uploads: UploadItem[];
+  onUpload?: (files: File[]) => void;
+  onDelete?: (file: FileMeta) => void;
+  uploads?: UploadItem[];
   busy: boolean;
-}
-
-function readRange(file: FileMeta): FileRangeDraft {
-  return {
-    totalAmount: file.totalAmount === null ? "" : String(file.totalAmount),
-    reviewAmount: file.reviewAmount === null ? "" : String(file.reviewAmount),
-    rangeNote: file.rangeNote ?? "",
-  };
+  /** Review: uploads a new version of an attachment. */
+  onUploadVersion?: (file: FileMeta, picked: File) => void;
+  /** File id whose revision is uploading. */
+  versionBusy?: number | null;
 }
 
 /** 자유입력형 fields: title, text and attachment rows with download, review range and upload. */
@@ -56,7 +55,7 @@ export function FreeformFields(
       </Label>
       {content.files.map((file) => {
         const unit = FILE_UNIT_LABEL[file.unit];
-        const range = attachments ? attachments.range(file) : readRange(file);
+        const range = attachments ? attachments.range(file) : readFileRange(file);
         const errors = attachments ? parseFileRange(range).errors : {};
         const set = (key: keyof FileRangeDraft) => ({
           readOnly: !attachments,
@@ -72,6 +71,25 @@ export function FreeformFields(
               </div>
             </div>
             <div className={styles.fileBtns}>
+              {attachments?.onUploadVersion ? (
+                <label
+                  className={buttonClassName("default", "sm")}
+                  aria-disabled={attachments.versionBusy === file.id || undefined}
+                >
+                  {attachments.versionBusy === file.id ? "업로드 중" : "수정본 업로드"}
+                  <input
+                    type="file"
+                    hidden
+                    aria-label={`${file.name} 수정본 업로드`}
+                    disabled={attachments.versionBusy !== null && attachments.versionBusy !== undefined}
+                    onChange={(e) => {
+                      const picked = e.target.files?.[0];
+                      e.target.value = "";
+                      if (picked) attachments.onUploadVersion?.(file, picked);
+                    }}
+                  />
+                </label>
+              ) : null}
               <Button
                 size="sm"
                 variant="ghost"
@@ -82,7 +100,7 @@ export function FreeformFields(
               >
                 <Icon name="down" />
               </Button>
-              {attachments ? (
+              {attachments?.onDelete ? (
                 <Button
                   size="sm"
                   variant="ghost"
@@ -90,7 +108,7 @@ export function FreeformFields(
                   aria-label={`${file.name} 삭제`}
                   title="삭제"
                   disabled={attachments.busy}
-                  onClick={() => attachments.onDelete(file)}
+                  onClick={() => attachments.onDelete?.(file)}
                 >
                   <Icon name="x" />
                 </Button>
@@ -132,7 +150,7 @@ export function FreeformFields(
           </div>
         );
       })}
-      {attachments ? (
+      {attachments?.onUpload ? (
         <>
           <label className={styles.drop} aria-disabled={attachments.busy || undefined}>
             파일을 선택해 올립니다. PDF, Word, 한글, Excel, PPT, 텍스트, 이미지
@@ -145,12 +163,12 @@ export function FreeformFields(
               onChange={(e) => {
                 const files = Array.from(e.target.files ?? []);
                 e.target.value = "";
-                if (files.length) attachments.onUpload(files);
+                if (files.length) attachments.onUpload?.(files);
               }}
             />
           </label>
           <div role="status" aria-live="polite" className={styles.uploads}>
-            {attachments.uploads.map((u) => (
+            {(attachments.uploads ?? []).map((u) => (
               <p key={u.id} data-state={u.state}>
                 {u.name} · {UPLOAD_STATE_LABEL[u.state]}
                 {u.error ? ` · ${u.error}` : ""}

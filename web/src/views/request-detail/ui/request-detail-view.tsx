@@ -1,14 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Empty, Page, Panel, RoundBadge } from "@/shared/ui";
 import { projectRoles } from "@/entities/me";
 import { RequestStatusChip } from "@/entities/request";
 import { AccessDenied, type WorkViewProps } from "@/widgets/app-shell";
+import { UnlockDialog } from "@/features/request-workflow";
 import { useDraftEditing, type DraftEditing } from "../model/use-draft-editing";
 import { useRequestPage, type RequestPage } from "../model/use-request-page";
-import { SaveConflictModal, SaveFailureBanner } from "./draft-chrome";
+import { useRequestWorkflow } from "../model/use-request-workflow";
+import { useRevisionEditing, type RevisionEditing } from "../model/use-revision-editing";
+import { RevisionConflictModal, SaveConflictModal, SaveFailureBanner } from "./draft-chrome";
 import { statusColorStyle } from "./request-header";
 import { RequestTabBody } from "./request-tab-body";
 import type { SidePanelTab } from "./side-panel";
@@ -98,9 +101,28 @@ interface ReadyBodyProps {
   setDirty: WorkViewProps["setDirty"];
 }
 
+/** Tab dirty marker = unsaved draft edits OR an unsaved review-time revision. */
+function useCombinedDirty(setDirty: (dirty: boolean) => void) {
+  const parts = useRef({ draft: false, revision: false });
+  const target = useRef(setDirty);
+  useEffect(() => {
+    target.current = setDirty;
+  });
+  const update = useCallback((part: "draft" | "revision", dirty: boolean) => {
+    parts.current[part] = dirty;
+    target.current(parts.current.draft || parts.current.revision);
+  }, []);
+  return useMemo(
+    () => ({ draft: (d: boolean) => update("draft", d), revision: (d: boolean) => update("revision", d) }),
+    [update],
+  );
+}
+
 function ReadyBody(props: ReadyBodyProps) {
   const { page, tabId, contentKey, setTitle, setDirty } = props;
-  const editing = useDraftEditing(page.request, tabId, setDirty);
+  const dirty = useCombinedDirty(setDirty);
+  const editing = useDraftEditing(page.request, tabId, dirty.draft);
+  const revision = useRevisionEditing(page.request, tabId, props.meId, dirty.revision);
   const r = page.request;
   const requestTitle = editing.canEditRequest ? editing.session.infoValue("title", r) : r.title;
   const content = contentKey === null ? null : r.contents.find((c) => c.key === contentKey);
@@ -124,10 +146,21 @@ function ReadyBody(props: ReadyBodyProps) {
         demo={props.demo}
         openTab={props.openTab}
         editing={editing}
+        revision={revision}
       />
     );
   }
-  return <ContentTabBody page={page} meId={props.meId} openTab={props.openTab} contentKey={contentKey} editing={editing} title={title} />;
+  return (
+    <ContentTabBody
+      page={page}
+      meId={props.meId}
+      openTab={props.openTab}
+      contentKey={contentKey}
+      editing={editing}
+      revision={revision}
+      title={title}
+    />
+  );
 }
 
 interface ContentTabBodyProps {
@@ -136,12 +169,14 @@ interface ContentTabBodyProps {
   openTab: WorkViewProps["openTab"];
   contentKey: string;
   editing: DraftEditing;
+  revision: RevisionEditing;
   title: string;
 }
 
-function ContentTabBody({ page, meId, openTab, contentKey, editing, title }: ContentTabBodyProps) {
+function ContentTabBody({ page, meId, openTab, contentKey, editing, revision, title }: ContentTabBodyProps) {
   const r = page.request;
   const [sideTab, setSideTab] = useState<SidePanelTab>("proof");
+  const workflow = useRequestWorkflow(page, meId, revision);
   const content = r.contents.find((c) => c.key === contentKey);
   return (
     <>
@@ -177,12 +212,17 @@ function ContentTabBody({ page, meId, openTab, contentKey, editing, title }: Con
             onSideTab={setSideTab}
             onOpenContent={(key) => openTab({ route: "content", params: { id: r.id, key } })}
             editing={editing.canEditContent ? editing : null}
+            revision={revision}
+            unlock={workflow.unlock}
+            thread={workflow.thread}
           />
         ) : (
           <Empty title="콘텐츠가 없습니다" description={`${r.id}에 ${contentKey} 콘텐츠가 없습니다.`} />
         )}
       </div>
       <SaveConflictModal editing={editing} />
+      <RevisionConflictModal revision={revision} />
+      <UnlockDialog {...workflow.unlockDialog} />
     </>
   );
 }

@@ -7,4 +7,4 @@ export { AccessDenied, ACCESS_POLICY_NOTE } from "./ui/access-denied";
 export { tabTitle } from "./ui/work-tabs";
 export type { RecentContent } from "./model/use-recent-contents";
 export type { WorkContext } from "./model/use-work-context";
-export { isTabOpen } from "./model/tab-store";
+export { isTabOpen, watchTabClose } from "./model/tab-store";
