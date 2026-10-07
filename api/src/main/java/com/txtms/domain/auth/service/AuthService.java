@@ -20,6 +20,7 @@ import com.txtms.domain.auth.repository.PasswordResetRepository;
 import com.txtms.domain.auth.repository.UserInvitationRepository;
 import com.txtms.domain.customer.service.CustomerService;
 import com.txtms.domain.demo.DemoPersonas;
+import com.txtms.domain.mail.MailKind;
 import com.txtms.domain.mail.MailSender;
 import com.txtms.domain.request.service.ContentLockService;
 import com.txtms.domain.user.entity.User;
@@ -168,7 +169,7 @@ public class AuthService {
         passwordResets.save(new PasswordReset(user.getId(), OpaqueTokens.hash(token), now,
                 now.plus(properties.auth().passwordResetTtl())));
         String link = properties.webBaseUrl() + "/reset/" + token;
-        mailSender.send(user.getCustomerId(), user.getEmail(), "TX TMS 비밀번호 재설정",
+        mailSender.send(MailKind.PASSWORD_RESET, user.getCustomerId(), user.getEmail(), "TX TMS 비밀번호 재설정",
                 user.getName() + "님, 아래 링크에서 1시간 안에 새 비밀번호를 설정하세요.\n" + link);
     }
 

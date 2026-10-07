@@ -2,10 +2,14 @@ package com.txtms.domain.project.dto;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.txtms.domain.project.entity.Project;
 import com.txtms.domain.project.entity.ProjectRole;
 
-/** Contract Project (§2.2). */
+/**
+ * Contract Project (§2.2). {@code activeRequestCount} (requests submitted and not finally completed) is given only
+ * in the customer's project list for its admins; for every other response the key is left out.
+ */
 public record ProjectResponse(
         long id,
         long customerId,
@@ -15,7 +19,8 @@ public record ProjectResponse(
         List<Template> templates,
         List<String> senders,
         List<Member> members,
-        int variablesRevision) {
+        int variablesRevision,
+        @JsonInclude(JsonInclude.Include.NON_NULL) Long activeRequestCount) {
 
     public record Template(String code, String name) {
     }
@@ -24,11 +29,15 @@ public record ProjectResponse(
     }
 
     public static ProjectResponse of(Project p) {
+        return of(p, null);
+    }
+
+    public static ProjectResponse of(Project p, Long activeRequestCount) {
         List<Template> templates = p.getTemplates().stream().map(t -> new Template(t.getCode(), t.getName())).toList();
         List<Member> members = p.roleMap().entrySet().stream()
                 .map(e -> new Member(e.getKey(), e.getValue().stream().sorted().toList()))
                 .toList();
         return new ProjectResponse(p.getId(), p.getCustomerId(), p.getName(), p.isActive(), p.getLeadUserId(),
-                templates, p.getSenders(), members, p.getVariablesRevision());
+                templates, p.getSenders(), members, p.getVariablesRevision(), activeRequestCount);
     }
 }

@@ -205,6 +205,8 @@ class AuthIntegrationTest extends IntegrationTestBase {
                 "SELECT body FROM outbound_emails WHERE to_address = ? ORDER BY id DESC LIMIT 1", String.class,
                 SHIN_REVIEWER);
         String token = mail.substring(mail.indexOf("/reset/") + "/reset/".length()).trim();
+        assertThat(jdbc.queryForObject("SELECT kind FROM outbound_emails WHERE to_address = ? ORDER BY id DESC "
+                + "LIMIT 1", String.class, SHIN_REVIEWER)).isEqualTo("PASSWORD_RESET");
         Integer stored = jdbc.queryForObject("SELECT count(*) FROM password_resets WHERE token_hash = ?",
                 Integer.class, token);
         assertThat(stored).as("raw token must not be stored").isZero();

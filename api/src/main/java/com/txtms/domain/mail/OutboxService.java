@@ -17,10 +17,11 @@ public class OutboxService {
 
     /**
      * Contract OutboxMail (§11, §12). {@code status} stays {@code PENDING} until real delivery is connected;
-     * {@code masked}: an invitation or reset link in {@code body} was hidden ({@link OutboxMasking}).
+     * {@code masked}: an invitation or reset link in {@code body} was hidden ({@link OutboxMasking}); {@code kind}:
+     * what the mail is for.
      */
     public record OutboxMail(long id, Long customerId, String to, String subject, String body, Instant createdAt,
-            String status, boolean masked) {
+            String status, boolean masked, MailKind kind) {
     }
 
     private final OutboundEmailRepository repository;
@@ -44,7 +45,7 @@ public class OutboxService {
         return PageResponse.of(page, m -> {
             OutboxMasking.Shown shown = OutboxMasking.show(m.getBody(), reveal);
             return new OutboxMail(m.getId(), m.getCustomerId(), m.getTo(), m.getSubject(), shown.body(),
-                    m.getCreatedAt(), m.getStatus(), shown.masked());
+                    m.getCreatedAt(), m.getStatus(), shown.masked(), m.getKind());
         });
     }
 }

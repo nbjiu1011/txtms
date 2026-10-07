@@ -4,7 +4,7 @@ import java.time.Instant;
 
 import com.txtms.domain.variable.entity.VariableType;
 
-/** Contract Variable (§7). */
+/** Contract Variable (§7). {@code deleted} is true only for logically deleted variables (admin listing). */
 public record VariableResponse(
         long id,
         long projectId,
@@ -16,5 +16,6 @@ public record VariableResponse(
         boolean inUse,
         Long createdBy,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        boolean deleted) {
 }

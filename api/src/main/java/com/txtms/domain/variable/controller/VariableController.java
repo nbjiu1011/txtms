@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.txtms.domain.variable.dto.ProjectVariableLogResponse;
 import com.txtms.domain.variable.dto.VariableCreateRequest;
 import com.txtms.domain.variable.dto.VariableLogResponse;
 import com.txtms.domain.variable.dto.VariableResponse;
@@ -32,8 +33,16 @@ public class VariableController {
 
     @GetMapping("/api/projects/{projectId}/variables")
     public List<VariableResponse> list(@AuthenticationPrincipal AuthUser auth, @PathVariable long projectId,
-            @RequestParam(required = false) String q, @RequestParam(required = false) Boolean active) {
-        return variables.list(auth, projectId, q, active);
+            @RequestParam(required = false) String q, @RequestParam(required = false) Boolean active,
+            @RequestParam(defaultValue = "false") boolean includeDeleted) {
+        return variables.list(auth, projectId, q, active, includeDeleted);
+    }
+
+    /** Change log of all variables of the project, newest first (customer admins). */
+    @GetMapping("/api/projects/{projectId}/variable-logs")
+    public List<ProjectVariableLogResponse> projectLogs(@AuthenticationPrincipal AuthUser auth,
+            @PathVariable long projectId) {
+        return variables.projectLogs(auth, projectId);
     }
 
     @PostMapping("/api/projects/{projectId}/variables")

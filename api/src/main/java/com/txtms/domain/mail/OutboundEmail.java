@@ -4,6 +4,8 @@ import java.time.Instant;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -32,6 +34,10 @@ public class OutboundEmail {
     @Column(nullable = false, updatable = false, columnDefinition = "text")
     private String body;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, updatable = false, length = 20)
+    private MailKind kind;
+
     @Column(nullable = false, length = 20)
     private String status;
 
@@ -44,7 +50,8 @@ public class OutboundEmail {
     protected OutboundEmail() {
     }
 
-    public OutboundEmail(Long customerId, String to, String subject, String body, Instant now) {
+    public OutboundEmail(MailKind kind, Long customerId, String to, String subject, String body, Instant now) {
+        this.kind = kind == null ? MailKind.OTHER : kind;
         this.customerId = customerId;
         this.to = to;
         this.subject = subject;
@@ -71,6 +78,10 @@ public class OutboundEmail {
 
     public String getBody() {
         return body;
+    }
+
+    public MailKind getKind() {
+        return kind;
     }
 
     public String getStatus() {

@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -126,5 +127,77 @@ class VariableIntegrationTest extends IntegrationTestBase {
         assertThat(revision(admin, t.projectId())).isEqualTo(rev0 + 7);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM audit_logs WHERE customer_id = ? AND action IN "
                 + "('변수 변경', '변수 삭제')", Integer.class, t.customerId())).isEqualTo(4);
+    }
+
+    @Test
+    void adminsListDeletedVariablesAndReadTheProjectLog() throws Exception {
+        Tenant t = newTenant();
+        Login req = login(t.requester());
+        Login lead = login(t.lead());
+        Login admin = login(t.admin());
+        String base = "/api/projects/" + t.projectId() + "/variables";
+        String logUrl = "/api/projects/" + t.projectId() + "/variable-logs";
+
+        long alpha = expect(201, req, post(base), Map.of("key", "alpha", "type", "TEXT", "value", "1"))
+                .path("id").asLong();
+        long beta = expect(201, admin, post(base), Map.of("key", "beta", "type", "TEXT", "value", "2"))
+                .path("id").asLong();
+        expect(200, admin, patch("/api/variables/" + alpha), Map.of("value", "3"));
+        expect(204, admin, delete("/api/variables/" + beta), null);
+
+        // includeDeleted: admins only, deleted variables marked
+        assertThat(keys(getJson(admin, base))).containsExactly("customer_name", "alpha");
+        assertThat(keys(getJson(req, base + "?includeDeleted=false"))).containsExactly("customer_name", "alpha");
+        getJson(req, base).forEach(v -> assertThat(v.path("deleted").asBoolean()).isFalse());
+        JsonNode all = getJson(admin, base + "?includeDeleted=true");
+        assertThat(keys(all)).containsExactly("customer_name", "alpha", "beta");
+        List<Boolean> deleted = new ArrayList<>();
+        all.forEach(v -> deleted.add(v.path("deleted").asBoolean()));
+        assertThat(deleted).containsExactly(false, false, true);
+        assertThat(all.get(2).path("active").asBoolean()).isFalse();
+        assertThat(keys(getJson(admin, base + "?includeDeleted=true&q=bet"))).containsExactly("beta");
+        assertThat(keys(getJson(admin, base + "?includeDeleted=true&active=true")))
+                .containsExactly("customer_name", "alpha");
+        assertThat(expect(403, req, get(base + "?includeDeleted=true"), null).path("message").asString())
+                .isEqualTo("고객사 관리자 권한이 필요합니다");
+        expect(403, lead, get(base + "?includeDeleted=true"), null);
+        expect(404, login(KANG_ADMIN), get(base + "?includeDeleted=true"), null);
+        expect(404, login(MOON_REQUESTER), get(base + "?includeDeleted=true"), null);
+        expect(404, login(JUNG_OPERATOR), get(base + "?includeDeleted=true"), null);
+
+        // project change log: every variable (deleted included), newest first, with the actor's name
+        JsonNode log = getJson(admin, logUrl);
+        List<String> entries = new ArrayList<>();
+        log.forEach(l -> entries.add(l.path("variableId").asLong() + " " + l.path("action").asString() + " "
+                + l.path("actorName").asString()));
+        assertThat(entries).containsExactly(beta + " 삭제 (이력 보존) 사용자 admin", alpha + " 변경 사용자 admin",
+                beta + " 등록 사용자 admin", alpha + " 등록 사용자 req");
+        JsonNode change = log.get(1);
+        assertThat(change.path("actorId").asLong()).isEqualTo(userId(t.admin()));
+        assertThat(change.path("before").path("value").asString()).isEqualTo("1");
+        assertThat(change.path("after").path("value").asString()).isEqualTo("3");
+        assertThat(log.get(3).path("before").isNull()).isTrue();
+        assertThat(log.get(3).path("at").asString()).isNotEmpty();
+
+        assertThat(expect(403, req, get(logUrl), null).path("message").asString())
+                .isEqualTo("고객사 관리자 권한이 필요합니다");
+        expect(403, lead, get(logUrl), null);
+        expect(404, login(KANG_ADMIN), get(logUrl), null);
+        expect(404, login(MOON_REQUESTER), get(logUrl), null);
+        expect(404, login(JUNG_OPERATOR), get(logUrl), null);
+        expect(404, admin, get("/api/projects/999999999/variable-logs"), null);
+
+        // at most 500 entries: older entries beyond the cap are left out
+        LocalDateTime past = LocalDateTime.of(2020, 6, 1, 0, 0);
+        List<Object[]> rows = new ArrayList<>();
+        for (int i = 0; i < 510; i++) {
+            rows.add(new Object[] {alpha, past.plusMinutes(i), userId(t.admin()), "변경"});
+        }
+        jdbc.batchUpdate("INSERT INTO variable_logs (variable_id, at, actor_id, action, before_json, after_json) "
+                + "VALUES (?, ?, ?, ?, NULL, NULL)", rows);
+        JsonNode capped = getJson(admin, logUrl);
+        assertThat(capped).hasSize(500);
+        assertThat(capped.get(0).path("action").asString()).isEqualTo("삭제 (이력 보존)");
+        assertThat(capped.get(499).path("at").asString()).startsWith("2020-0");
     }
 }

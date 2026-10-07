@@ -48,6 +48,11 @@ public class MemberAdminService {
 
     static final int LIST_LIMIT = 500;
     static final String INVITED_COLOR = "#6A6F7A";
+
+    /** 409 EXTERNAL_DOMAIN_CONFIRM_REQUIRED messages: the invitation and the email change read differently. */
+    public static final String INVITE_EXTERNAL_DOMAIN =
+            "회사 도메인과 다른 이메일입니다. 주소를 확인한 뒤 초대 링크 생성을 다시 누르면 초대됩니다";
+    public static final String EMAIL_CHANGE_EXTERNAL_DOMAIN = "회사 도메인이 아닌 이메일입니다. 확인 후 다시 저장하세요";
     private static final Pattern EMAIL = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
     private static final Set<RequestStatus> REVIEW_IN_PROGRESS = Set.of(RequestStatus.IN_REVIEW,
             RequestStatus.CONFIRMING, RequestStatus.APPROVAL_WAITING);
@@ -210,8 +215,7 @@ public class MemberAdminService {
         if (userService.findByEmail(email).isPresent()) {
             throw new BusinessException(ErrorCode.DUPLICATE, "이미 등록된 이메일입니다");
         }
-        requireDomainConfirmed(admin.customer(), email, b.externalDomainConfirmed(),
-                "회사 도메인과 다른 이메일입니다. 주소를 확인한 뒤 초대 링크 생성을 다시 누르면 초대됩니다");
+        requireDomainConfirmed(admin.customer(), email, b.externalDomainConfirmed(), INVITE_EXTERNAL_DOMAIN);
 
         User user = userService.create(User.invited(admin.customerId(), email, name, dept, INVITED_COLOR,
                 clock.instant()));
@@ -271,8 +275,7 @@ public class MemberAdminService {
                 throw BusinessException.validation("role", ProjectRoleRules.APPROVAL_NOT_USED);
             }
         }
-        requireDomainConfirmed(customer, email, b.externalDomainConfirmed(),
-                "회사 도메인과 다른 이메일입니다. 주소를 확인한 뒤 초대 링크 생성을 다시 누르면 초대됩니다");
+        requireDomainConfirmed(customer, email, b.externalDomainConfirmed(), INVITE_EXTERNAL_DOMAIN);
 
         User user = User.invited(customer.getId(), email, name, dept, INVITED_COLOR, clock.instant());
         if (asAdmin) {
@@ -317,8 +320,7 @@ public class MemberAdminService {
         if (userService.findByEmail(email).isPresent()) {
             throw new BusinessException(ErrorCode.DUPLICATE, invalid);
         }
-        requireDomainConfirmed(admin.customer(), email, body.externalDomainConfirmed(),
-                "회사 도메인과 다른 이메일입니다. 주소를 확인한 뒤 다시 저장하면 변경됩니다");
+        requireDomainConfirmed(admin.customer(), email, body.externalDomainConfirmed(), EMAIL_CHANGE_EXTERNAL_DOMAIN);
         String before = target.getEmail();
         target.changeEmail(email, clock.instant());
         if (target.isPending()) {

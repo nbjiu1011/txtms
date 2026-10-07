@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.txtms.domain.auth.entity.UserInvitation;
 import com.txtms.domain.auth.repository.UserInvitationRepository;
+import com.txtms.domain.mail.MailKind;
 import com.txtms.domain.mail.MailSender;
 import com.txtms.domain.user.entity.User;
 import com.txtms.global.config.AppProperties;
@@ -48,7 +49,7 @@ public class InvitationService {
         Instant expiresAt = now.plus(properties.auth().invitationTtl());
         invitations.save(new UserInvitation(user.getId(), OpaqueTokens.hash(token), now, expiresAt, createdBy));
         String link = properties.webBaseUrl() + "/invite/" + token;
-        mailSender.send(user.getCustomerId(), user.getEmail(), SUBJECT,
+        mailSender.send(MailKind.INVITATION, user.getCustomerId(), user.getEmail(), SUBJECT,
                 user.getName() + "님, " + customerName + "의 TX TMS에 초대되었습니다. 아래 링크에서 7일 안에 이름과 "
                         + "비밀번호를 설정하세요.\n" + link);
         return expiresAt;

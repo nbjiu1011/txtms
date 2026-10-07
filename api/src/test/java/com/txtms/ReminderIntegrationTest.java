@@ -124,6 +124,8 @@ class ReminderIntegrationTest extends IntegrationTestBase {
         assertThat(texts(id, reviewer)).hasSize(3).last().isEqualTo("납기 임박 재통지 3/3: 적립 안내");
         assertThat(jdbc.queryForObject("SELECT subject FROM outbound_emails WHERE to_address = ?", String.class,
                 t.reviewer())).isEqualTo("납기 임박 재통지 3/3: 적립 안내");
+        assertThat(jdbc.queryForObject("SELECT kind FROM outbound_emails WHERE to_address = ?", String.class,
+                t.reviewer())).isEqualTo("REMINDER");
         assertThat(texts(id, lead)).hasSize(3); // nothing more for the lead
 
         // ---- a due date change starts the count over (the schedule change clears the state)

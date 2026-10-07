@@ -465,4 +465,98 @@ class CustomerAdminIntegrationTest extends IntegrationTestBase {
         expect(204, admin, post(base + "/users/" + approver + "/deactivate"), null);
         assertThat(lastAuditDetail("사용자 비활성화", t.customerId())).isNull();
     }
+
+    @Test
+    void projectListCountsRequestsInProgressForAdminsOnly() throws Exception {
+        Tenant t = newTenant();
+        Login admin = login(t.admin());
+        Login req = login(t.requester());
+        String base = "/api/customers/" + t.customerId();
+        long second = expect(201, admin, post(base + "/projects"), Map.of("name", "두 번째 프로젝트", "leadUserId",
+                userId(t.reviewer()))).path("id").asLong();
+
+        // a draft, two submitted requests (one then finally completed) and a cancelled one
+        expect(201, req, post("/api/requests"), Map.of("projectId", t.projectId(), "type", "SMS"));
+        String waiting = submitted(req, t.projectId());
+        String completed = submitted(req, t.projectId());
+        jdbc.update("UPDATE requests SET status = 'REVIEW_COMPLETED' WHERE id = ?", completed);
+        String cancelled = submitted(req, t.projectId());
+        expect(200, req, post("/api/requests/" + cancelled + "/cancel"), Map.of("rowVersion",
+                rowVersion(req, cancelled)));
+        assertThat(getJson(req, "/api/requests/" + waiting).path("status").asString()).isEqualTo("WAITING");
+
+        Map<Long, Long> counts = new LinkedHashMap<>();
+        for (JsonNode p : getJson(admin, base + "/projects")) {
+            assertThat(p.has("activeRequestCount")).as("admin listing of project " + p.path("id")).isTrue();
+            counts.put(p.path("id").asLong(), p.path("activeRequestCount").asLong());
+        }
+        assertThat(counts).containsExactly(Map.entry(t.projectId(), 1L), Map.entry(second, 0L));
+        jdbc.update("UPDATE requests SET status = 'APPROVAL_WAITING' WHERE id = ?", completed);
+        assertThat(getJson(admin, base + "/projects").get(0).path("activeRequestCount").asLong()).isEqualTo(2);
+
+        // members and operators get the list without the key; single projects and writes never carry it
+        for (Login other : List.of(req, login(t.lead()), login(JUNG_OPERATOR))) {
+            JsonNode listed = getJson(other, base + "/projects");
+            assertThat(listed).isNotEmpty();
+            listed.forEach(p -> assertThat(p.has("activeRequestCount")).isFalse());
+        }
+        assertThat(getJson(admin, "/api/projects/" + t.projectId()).has("activeRequestCount")).isFalse();
+        assertThat(expect(200, admin, patch("/api/projects/" + second), Map.of("name", "이름 변경"))
+                .has("activeRequestCount")).isFalse();
+        // another customer's admin
+        expect(404, login(KANG_ADMIN), get(base + "/projects"), null);
+    }
+
+    @Test
+    void pendingUsersWithoutDeptEmailChangeWordingAndOutboxKinds() throws Exception {
+        Tenant t = newTenant();
+        Login admin = login(t.admin());
+        String base = "/api/customers/" + t.customerId();
+
+        // an invitation without a department: dept is null (key kept) in Member and UserSummary
+        String pendingEmail = "nodept@" + domain(t);
+        JsonNode invited = expect(201, admin, post(base + "/invitations"), Map.of("email", pendingEmail, "name",
+                "부서 없음"));
+        long pendingId = invited.path("user").path("id").asLong();
+        assertThat(invited.path("user").has("dept")).isTrue();
+        assertThat(invited.path("user").path("dept").isNull()).isTrue();
+        assertThat(member(admin, t.customerId(), pendingId).path("user").path("dept").isNull()).isTrue();
+        JsonNode summary = null;
+        for (JsonNode u : getJson(admin, base + "/users")) {
+            if (u.path("id").asLong() == pendingId) {
+                summary = u;
+            }
+        }
+        assertThat(summary).isNotNull();
+        assertThat(summary.has("dept")).isTrue();
+        assertThat(summary.path("dept").isNull()).isTrue();
+
+        // the same 409 code, worded for the invitation and for the email change
+        String external = "nodept-" + t.customerId() + "@partner.example";
+        JsonNode inviteConfirm = expect(409, admin, post(base + "/invitations"), Map.of("email", external, "name",
+                "손님"));
+        assertThat(inviteConfirm.path("code").asString()).isEqualTo("EXTERNAL_DOMAIN_CONFIRM_REQUIRED");
+        assertThat(inviteConfirm.path("message").asString())
+                .isEqualTo("회사 도메인과 다른 이메일입니다. 주소를 확인한 뒤 초대 링크 생성을 다시 누르면 초대됩니다");
+        JsonNode changeConfirm = expect(409, admin, patch(base + "/users/" + pendingId + "/email"),
+                Map.of("email", external));
+        assertThat(changeConfirm.path("code").asString()).isEqualTo("EXTERNAL_DOMAIN_CONFIRM_REQUIRED");
+        assertThat(changeConfirm.path("message").asString()).isEqualTo("회사 도메인이 아닌 이메일입니다. 확인 후 다시 저장하세요");
+        expect(200, admin, patch(base + "/users/" + pendingId + "/email"), Map.of("email", external,
+                "externalDomainConfirmed", true));
+
+        // outbox kinds: invitation mails and a password reset mail
+        mvc.perform(post("/api/auth/password-reset-requests").contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("email", t.requester()))));
+        List<String> kinds = new ArrayList<>();
+        for (JsonNode mail : getJson(admin, base + "/outbox?size=100").path("content")) {
+            kinds.add(mail.path("to").asString() + " " + mail.path("kind").asString());
+        }
+        assertThat(kinds).containsExactly(t.requester() + " PASSWORD_RESET", external + " INVITATION",
+                pendingEmail + " INVITATION");
+        assertThat(jdbc.queryForObject("SELECT kind FROM outbound_emails WHERE to_address = ?", String.class,
+                t.requester())).isEqualTo("PASSWORD_RESET");
+        assertThat(getJson(login(JUNG_OPERATOR), "/api/ops/outbox?size=5").path("content").get(0).path("kind")
+                .asString()).isNotEmpty();
+    }
 }

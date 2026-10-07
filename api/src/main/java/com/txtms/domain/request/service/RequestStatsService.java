@@ -47,4 +47,19 @@ public class RequestStatsService {
     public RequestCounts countsOf(long customerId) {
         return countsByCustomer().getOrDefault(customerId, RequestCounts.NONE);
     }
+
+    /**
+     * Requests in progress (submitted and not finally completed, as {@link RequestCounts#active()}) per project of the
+     * customer. Projects without any are absent from the map.
+     */
+    public Map<Long, Long> activeCountsByProject(long customerId) {
+        Map<Long, Long> result = new HashMap<>();
+        jdbc.query("SELECT r.project_id, COUNT(*) FROM requests r JOIN projects p ON p.id = r.project_id "
+                + "WHERE p.customer_id = ? AND r.status IN ('WAITING', 'IN_REVIEW', 'CONFIRMING', 'APPROVAL_WAITING') "
+                + "GROUP BY r.project_id",
+                rs -> {
+                    result.put(rs.getLong(1), rs.getLong(2));
+                }, customerId);
+        return result;
+    }
 }

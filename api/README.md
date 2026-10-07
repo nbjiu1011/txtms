@@ -95,7 +95,7 @@ curl -s -b cookies.txt -X POST http://localhost:8080/api/auth/refresh
 
 | Command | What runs | Needs the database |
 |---|---|---|
-| `./gradlew build` | compile + unit tests (operator customer rules, ops dashboard aggregation, project sending rules, outbox masking, policy and visibility, views, due dates, volume, password, session rules, submit validation, payload shape, SMS bytes, links, file signatures, malware stub, request ids, round/version rules, variable rules, XLSX row rules, review transitions, edit lock states, revision decisions, notification recipients and texts, completion/approval transitions, eligible approvers, bundle snapshot, export rows, lineage, archive filters, co-review summary, correction engine rules and every scenario of the client test-case sheet, dataset XLSX reader and row validation, correction fields, demo datasets, autosave conflict rule, performance statistics, re-notification rules, project role rules, deactivation rules) | no |
+| `./gradlew build` | compile + unit tests (operator customer rules, ops dashboard aggregation, project sending rules, outbox masking, policy and visibility, views, due dates, volume, password, session rules, submit validation, payload shape, SMS bytes, links, file signatures, malware stub, request ids, round/version rules, variable rules, XLSX row rules, review transitions, edit lock states, revision decisions, notification recipients and texts, completion/approval transitions, eligible approvers, bundle snapshot, export rows, lineage, archive filters, co-review summary, correction engine rules and every scenario of the client test-case sheet, dataset XLSX reader and row validation, correction fields, demo datasets, autosave conflict rule, performance statistics, re-notification rules, project role rules, deactivation rules, external domain wording, response shapes of the admin listings) | no |
 | `./gradlew integrationTest` | `@Tag("integration")` tests against `txtms_test` (Flyway clean + migrate, demo seed, HTTP flows) | yes |
 
 Write tests (`RequestAuthoringIntegrationTest`, `VariableIntegrationTest`, `BulkImportIntegrationTest`, `ReviewWorkflowIntegrationTest`,
@@ -157,6 +157,9 @@ The database schema for every planned feature is in `src/main/resources/db/migra
 the completion milestone (`completion_bundles`, `completion_bundle_items` and the per-content lineage columns
 `contents.parent_request_id` / `parent_content_key` are in V1), nor does text correction (`datasets`, `dataset_rules`
 with the seven engine columns, `dataset_assignments`, `correction_suggestions` are in V1).
+`V3__correction_suggestion_expr.sql` adds `correction_suggestions.suggested_expr`; `V4__outbound_email_kind.sql` adds
+`outbound_emails.kind` (`INVITATION`, `PASSWORD_RESET`, `REMINDER`, `OTHER`; rows queued before it are classified by
+subject).
 
 ## Not implemented yet (stubs)
 
@@ -177,7 +180,7 @@ with the seven engine columns, `dataset_assignments`, `correction_suggestions` a
 | Attachments | `POST .../contents/{key}/files`, `POST .../files/{fileId}/versions`, `PATCH`/`DELETE .../files/{fileId}`, `GET .../files/{fileId}/versions/{v}/download` |
 | RCS images | `POST .../contents/{key}/images`, `GET /api/requests/{id}/images/{imageKey}` |
 | XLSX bulk | `GET /api/content-types/{type}/bulk-template`, `POST /api/requests/{id}/bulk-import/preview`, `.../commit` (Apache POI) |
-| Variables | `GET`/`POST /api/projects/{projectId}/variables`, `PATCH`/`DELETE /api/variables/{id}`, `GET /api/variables/{id}/logs` |
+| Variables | `GET`/`POST /api/projects/{projectId}/variables` (`includeDeleted=true` for customer admins), `PATCH`/`DELETE /api/variables/{id}`, `GET /api/variables/{id}/logs`, `GET /api/projects/{projectId}/variable-logs` (customer admins: every variable of the project, newest first, at most 500, with `actorName`) |
 
 - Every request mutation locks the request row (`SELECT … FOR UPDATE`), re-checks visibility and the action with
   `RequestPolicy`, then writes history/notifications in the same transaction. Same-customer requests the user cannot
@@ -346,7 +349,7 @@ curl -s -H "Authorization: Bearer $OPERATOR_TOKEN" -F scope=SMS -F file=@rules.x
 
 | Area | Endpoints |
 |---|---|
-| Projects | `POST /api/customers/{id}/projects`, `PATCH /api/projects/{id}` (`name`, `leadUserId`, `approverIds`, `active`) |
+| Projects | `POST /api/customers/{id}/projects`, `PATCH /api/projects/{id}` (`name`, `leadUserId`, `approverIds`, `active`); `GET /api/customers/{id}/projects` adds `activeRequestCount` per project for the customer's admins |
 | Members and roles | `GET /api/customers/{id}/members`, `PUT /api/customers/{id}/users/{userId}/project-roles` |
 | Invitations | `POST /api/customers/{id}/invitations`, `POST …/users/{userId}/invitation/reissue`, `PATCH …/users/{userId}/email` |
 | Deactivation | `GET …/users/{userId}/deactivation-impact`, `POST …/users/{userId}/deactivate` (`substituteUserId`, `handover`), `POST …/users/{userId}/reactivate` |
@@ -361,7 +364,13 @@ curl -s -H "Authorization: Bearer $OPERATOR_TOKEN" -F scope=SMS -F file=@rules.x
   active approver keep their roles) and `DeactivationRules` (self, last admin, confirming/approval assignments,
   own requests in progress, last approver, substitute and handover).
 - Invitations and email changes outside the customer's domain need `externalDomainConfirmed: true`, otherwise 409
-  `EXTERNAL_DOMAIN_CONFIRM_REQUIRED`.
+  `EXTERNAL_DOMAIN_CONFIRM_REQUIRED` (worded for each: `…초대 링크 생성을 다시 누르면 초대됩니다` /
+  `회사 도메인이 아닌 이메일입니다. 확인 후 다시 저장하세요`).
+- `activeRequestCount` (requests `WAITING`…`APPROVAL_WAITING`, from `RequestStatsService`) is only in the admin's
+  project list; members, operators, single projects and project writes leave the key out. Variables carry `deleted`;
+  the deleted ones are listed only with `includeDeleted=true` (admins; members `FORBIDDEN`).
+- Outbox mails carry `kind`, set by the sender (`MailSender.send(kind, …)`): invitations `INVITATION`, password
+  resets `PASSWORD_RESET`, re-notifications `REMINDER`.
 - Deactivation runs in one transaction: in-review assignments go to the substitute
   (`ReviewWorkflowService.handOverOnDeactivation`: history `검수자 변경`, locks released and logged, substitute and
   requester notified), led projects get the substitute as lead, the account becomes inactive and its sessions end.
@@ -371,7 +380,8 @@ curl -s -H "Authorization: Bearer $OPERATOR_TOKEN" -F scope=SMS -F file=@rules.x
   a customer admin could otherwise take over the recipient's account. The stored mail keeps the full body. Full links
   are listed only in demo mode for a sample customer's admin (demo invitation flow) and, in demo mode, for the
   operator (`OutboxMasking`). Tests read tokens from `outbound_emails`, like a mailbox.
-- Tests: `PerformanceCalculatorTest`, `ReminderRulesTest`, `ProjectRoleRulesTest`, `DeactivationRulesTest` (unit);
+- Tests: `PerformanceCalculatorTest`, `ReminderRulesTest`, `ProjectRoleRulesTest`, `DeactivationRulesTest`,
+  `ExternalDomainRuleTest`, `ResponseShapeTest` (unit);
   `CustomerAdminIntegrationTest`, `NoticeIntegrationTest`, `PerformanceIntegrationTest`, `ReminderIntegrationTest`,
   `LockStateIntegrationTest` (each on its own tenant).
 

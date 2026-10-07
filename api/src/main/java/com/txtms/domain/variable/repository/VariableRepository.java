@@ -12,6 +12,9 @@ public interface VariableRepository extends JpaRepository<Variable, Long> {
 
     List<Variable> findByProjectIdAndDeletedFalseOrderByIdAsc(Long projectId);
 
+    /** Every variable of the project, deleted ones included, in registration order. */
+    List<Variable> findByProjectIdOrderByIdAsc(Long projectId);
+
     List<Variable> findByProjectIdAndActiveTrueAndDeletedFalseOrderByIdAsc(Long projectId);
 
     /** Case-insensitive key match within the project, deleted variables included. */

@@ -1,6 +1,7 @@
 package com.txtms.domain.customer.service;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -8,7 +9,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.txtms.domain.customer.dto.CustomerResponse;
 import com.txtms.domain.customer.entity.Customer;
 import com.txtms.domain.project.dto.ProjectResponse;
+import com.txtms.domain.project.entity.Project;
 import com.txtms.domain.project.service.ProjectAccess;
+import com.txtms.domain.request.service.RequestStatsService;
 import com.txtms.domain.user.dto.UserSummary;
 import com.txtms.domain.user.entity.User;
 import com.txtms.domain.user.service.UserService;
@@ -24,10 +27,13 @@ public class CustomerQueryService {
 
     private final ProjectAccess projectAccess;
     private final UserService userService;
+    private final RequestStatsService requestStats;
 
-    public CustomerQueryService(ProjectAccess projectAccess, UserService userService) {
+    public CustomerQueryService(ProjectAccess projectAccess, UserService userService,
+            RequestStatsService requestStats) {
         this.projectAccess = projectAccess;
         this.userService = userService;
+        this.requestStats = requestStats;
     }
 
     public List<CustomerResponse> customers(AuthUser auth) {
@@ -38,8 +44,13 @@ public class CustomerQueryService {
     public List<ProjectResponse> projects(AuthUser auth, long customerId) {
         User user = userService.require(auth.userId());
         Customer customer = projectAccess.requireAccessibleCustomer(user, customerId);
-        return projectAccess.readableProjects(user, customer).stream()
-                .limit(LIST_LIMIT).map(ProjectResponse::of).toList();
+        List<Project> projects = projectAccess.readableProjects(user, customer).stream().limit(LIST_LIMIT).toList();
+        if (!userService.actorOf(user).adminOf(customer.getId())) {
+            return projects.stream().map(ProjectResponse::of).toList();
+        }
+        // customer admins also get the number of requests in progress per project
+        Map<Long, Long> active = requestStats.activeCountsByProject(customer.getId());
+        return projects.stream().map(p -> ProjectResponse.of(p, active.getOrDefault(p.getId(), 0L))).toList();
     }
 
     public ProjectResponse project(AuthUser auth, long projectId) {

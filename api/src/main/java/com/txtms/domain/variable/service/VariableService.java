@@ -10,6 +10,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,7 @@ import com.txtms.domain.request.service.RequestQueryService;
 import com.txtms.domain.request.validation.VariableTokens;
 import com.txtms.domain.user.entity.User;
 import com.txtms.domain.user.service.UserService;
+import com.txtms.domain.variable.dto.ProjectVariableLogResponse;
 import com.txtms.domain.variable.dto.VariableCreateRequest;
 import com.txtms.domain.variable.dto.VariableLogResponse;
 import com.txtms.domain.variable.dto.VariableResponse;
@@ -37,7 +39,8 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Project variables. Any project member (or customer admin) may register a variable; editing, deleting and the
- * change log are for customer admins. A variable is "in use" when the current content of any request of the project
+ * change logs (per variable or for the whole project) and the listing of deleted variables are for customer admins.
+ * A variable is "in use" when the current content of any request of the project
  * contains {@code #{key}} (versions and completion bundles are not considered). Every change bumps the project's
  * {@code variablesRevision} and is logged.
  */
@@ -46,6 +49,11 @@ import tools.jackson.databind.json.JsonMapper;
 public class VariableService {
 
     static final int MAX_DESCRIPTION_LENGTH = 200;
+
+    /** Server-side cap for variable lists and the project change log. */
+    static final int LIST_LIMIT = 500;
+
+    static final String ADMIN_REQUIRED = "고객사 관리자 권한이 필요합니다";
 
     private final VariableRepository variables;
     private final VariableLogRepository logs;
@@ -69,16 +77,26 @@ public class VariableService {
         this.clock = clock;
     }
 
-    public List<VariableResponse> list(AuthUser auth, long projectId, String q, Boolean active) {
+    /**
+     * Variables of the project in registration order. {@code includeDeleted} (customer admins only; other members get
+     * FORBIDDEN) adds logically deleted variables, marked {@code deleted: true}.
+     */
+    public List<VariableResponse> list(AuthUser auth, long projectId, String q, Boolean active,
+            boolean includeDeleted) {
         User user = userService.require(auth.userId());
         Project project = projectAccess.requireWorkProject(user, projectId);
+        if (includeDeleted && !userService.actorOf(user).adminOf(project.getCustomerId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, ADMIN_REQUIRED);
+        }
         List<String> payloads = requestQueries.currentPayloadsOfProject(project.getId());
         String needle = q == null || q.isBlank() ? null : q.trim().toLowerCase(Locale.ROOT);
-        return variables.findByProjectIdAndDeletedFalseOrderByIdAsc(project.getId()).stream()
+        List<Variable> source = includeDeleted ? variables.findByProjectIdOrderByIdAsc(project.getId())
+                : variables.findByProjectIdAndDeletedFalseOrderByIdAsc(project.getId());
+        return source.stream()
                 .filter(v -> active == null || v.isActive() == active)
                 .filter(v -> needle == null || v.getKey().toLowerCase(Locale.ROOT).contains(needle)
                         || v.getDescription() != null && v.getDescription().toLowerCase(Locale.ROOT).contains(needle))
-                .limit(500)
+                .limit(LIST_LIMIT)
                 .map(v -> response(v, inUse(v.getKey(), payloads)))
                 .toList();
     }
@@ -198,6 +216,26 @@ public class VariableService {
     }
 
     /**
+     * Change log of every variable of the project (deleted ones included), newest first, at most {@link #LIST_LIMIT}
+     * entries, with the actor's name. Customer admins only.
+     */
+    public List<ProjectVariableLogResponse> projectLogs(AuthUser auth, long projectId) {
+        User user = userService.require(auth.userId());
+        Project project = projectAccess.requireProject(projectId);
+        requireAdmin(user, project);
+        List<VariableLog> entries = logs.findByProjectNewestFirst(project.getId(), PageRequest.of(0, LIST_LIMIT));
+        Map<Long, User> actors = userService.byIds(entries.stream().map(VariableLog::getActorId)
+                .filter(Objects::nonNull).distinct().toList());
+        return entries.stream()
+                .map(l -> {
+                    User actor = l.getActorId() == null ? null : actors.get(l.getActorId());
+                    return new ProjectVariableLogResponse(l.getVariableId(), l.getAt(), l.getActorId(),
+                            actor == null ? null : actor.getName(), l.getAction(), l.getBefore(), l.getAfter());
+                })
+                .toList();
+    }
+
+    /**
      * The variable when the user administers its customer. Users who can work in the project but are not admins get
      * FORBIDDEN; anyone else NOT_FOUND.
      */
@@ -206,15 +244,19 @@ public class VariableService {
         if (v.isDeleted() && !includeDeleted) {
             throw BusinessException.notFound();
         }
-        Project project = projectAccess.requireProject(v.getProjectId());
-        boolean admin = userService.actorOf(user).adminOf(project.getCustomerId());
-        if (!admin) {
-            if (projectAccess.canWorkIn(user, project)) {
-                throw new BusinessException(ErrorCode.FORBIDDEN, "고객사 관리자 권한이 필요합니다");
-            }
-            throw BusinessException.notFound();
-        }
+        requireAdmin(user, projectAccess.requireProject(v.getProjectId()));
         return v;
+    }
+
+    /** Admins of the project's customer pass; members who are not admins get FORBIDDEN, anyone else NOT_FOUND. */
+    private void requireAdmin(User user, Project project) {
+        if (userService.actorOf(user).adminOf(project.getCustomerId())) {
+            return;
+        }
+        if (projectAccess.canWorkIn(user, project)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, ADMIN_REQUIRED);
+        }
+        throw BusinessException.notFound();
     }
 
     private void rejectDuplicate(long projectId, String key, Long selfId) {
@@ -265,6 +307,6 @@ public class VariableService {
 
     private static VariableResponse response(Variable v, boolean inUse) {
         return new VariableResponse(v.getId(), v.getProjectId(), v.getKey(), v.getDescription(), v.getType(),
-                v.getValue(), v.isActive(), inUse, v.getCreatedBy(), v.getCreatedAt(), v.getUpdatedAt());
+                v.getValue(), v.isActive(), inUse, v.getCreatedBy(), v.getCreatedAt(), v.getUpdatedAt(), v.isDeleted());
     }
 }

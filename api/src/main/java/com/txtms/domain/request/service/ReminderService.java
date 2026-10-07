@@ -17,6 +17,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import com.txtms.domain.customer.entity.Customer;
 import com.txtms.domain.customer.entity.NotifyChannel;
 import com.txtms.domain.customer.service.CustomerService;
+import com.txtms.domain.mail.MailKind;
 import com.txtms.domain.mail.MailSender;
 import com.txtms.domain.notification.service.NotificationService;
 import com.txtms.domain.notification.service.NotificationService.Original;
@@ -127,7 +128,8 @@ public class ReminderService {
             String text = ReminderRules.text(d.urgent(), d.count(), maxCount, r.getTitle());
             notifications.remind(o.id(), ReminderRules.kind(d.urgent(), o.kind()), text);
             if (d.email()) {
-                mailSender.send(customer.getId(), user.getEmail(), text.length() > 200 ? text.substring(0, 200) : text,
+                mailSender.send(MailKind.REMINDER, customer.getId(), user.getEmail(),
+                        text.length() > 200 ? text.substring(0, 200) : text,
                         text + "\n요청 " + r.getId() + "\n" + webBaseUrl);
             }
             sent++;
