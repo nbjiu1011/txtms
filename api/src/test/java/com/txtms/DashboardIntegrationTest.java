@@ -23,7 +23,10 @@ class DashboardIntegrationTest extends IntegrationTestBase {
 
         List<String> views = new ArrayList<>();
         dash.path("kpis").forEach(k -> views.add(k.path("view").asString()));
-        assertThat(views).containsExactly("MY_REVIEW", "RECALL_PENDING", "WAITING_ASSIGNMENT", "OVERDUE", "DUE_SOON");
+        // 기획서 8.3: 검수자 = 내 검수 대기·진행·확인 요청, 대표 검수자 = 배정 대기·지연 (+ 납기 임박)
+        assertThat(views).containsExactly("MY_REVIEW", "MY_ASSIGNED_CONFIRMING", "RECALL_PENDING",
+                "WAITING_ASSIGNMENT", "OVERDUE", "DUE_SOON");
+        assertThat(kpi(dash, "MY_ASSIGNED_CONFIRMING").path("label").asString()).isEqualTo("확인 요청 중");
         assertThat(kpi(dash, "MY_REVIEW").path("label").asString()).isEqualTo("내 검수");
         assertThat(kpi(dash, "MY_REVIEW").path("count").asInt()).isEqualTo(1);
         assertThat(kpi(dash, "WAITING_ASSIGNMENT").path("count").asInt()).isEqualTo(1);
@@ -65,7 +68,19 @@ class DashboardIntegrationTest extends IntegrationTestBase {
     @Test
     void requesterAndApproverDashboards() throws Exception {
         long p1 = projectId("카드 혜택 알림");
-        JsonNode kim = getJson(login(KIM_REQUESTER), "/api/projects/" + p1 + "/dashboard");
+        Login kimLogin = login(KIM_REQUESTER);
+        JsonNode kim = getJson(kimLogin, "/api/projects/" + p1 + "/dashboard");
+        List<String> kimViews = new ArrayList<>();
+        kim.path("kpis").forEach(k -> kimViews.add(k.path("view").asString()));
+        // 기획서 8.3: 요청자 = 내 요청 상태별 현황 + 납기 임박
+        assertThat(kimViews).containsExactly("MY_DRAFT", "MY_CONFIRMING", "MY_IN_PROGRESS", "DUE_SOON");
+        for (JsonNode k : kim.path("kpis")) {
+            JsonNode list = getJson(kimLogin, "/api/requests?projectId=" + p1 + "&view=" + k.path("view").asString());
+            assertThat(list.path("page").path("totalElements").asInt()).as("KPI %s", k.path("view").asString())
+                    .isEqualTo(k.path("count").asInt());
+            list.path("content").forEach(r -> assertThat(r.path("requesterId").asLong())
+                    .isEqualTo(kimLogin.userId()));
+        }
         assertThat(kpi(kim, "MY_DRAFT").path("count").asInt()).isEqualTo(1);
         assertThat(kpi(kim, "MY_CONFIRMING").path("count").asInt()).isEqualTo(1);
         assertThat(kpi(kim, "MY_IN_PROGRESS").path("count").asInt()).isEqualTo(5);

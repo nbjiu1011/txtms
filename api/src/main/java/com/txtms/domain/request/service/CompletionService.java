@@ -48,6 +48,9 @@ public class CompletionService {
 
     static final String FINAL_CHECK_FAILED = "최종 콘텐츠의 필수값과 연결값을 확인하세요";
 
+    /** A "no eligible approver" notice is sent to the same person about the same request at most once per window. */
+    static final java.time.Duration NO_APPROVER_NOTICE_WINDOW = java.time.Duration.ofHours(24);
+
     private final RequestWriteSupport support;
     private final RequestPolicy policy;
     private final ContentLockService locks;
@@ -141,18 +144,21 @@ public class CompletionService {
 
     /**
      * No eligible approver: the request stays in review; the active customer admins are asked to assign an
-     * approver, the requester and the lead reviewer are told the completion is delayed.
+     * approver, the requester and the lead reviewer are told the completion is delayed. Every attempt is logged
+     * ({@code 승인 대기 전환 차단}), but a recipient who already got the same notice about this request within
+     * {@link #NO_APPROVER_NOTICE_WINDOW} is not notified again (repeated completion attempts used to repeat the
+     * notices each time).
      */
     private void recordNoEligibleApprover(Ctx ctx) {
         Request r = ctx.request();
         support.log(r, ctx.userId(), "승인 대기 전환 차단", "적격 승인자 없음", null, null);
-        notifications.notify(userService.activeAdminIdsOf(ctx.project().getCustomerId()), NotificationKind.INFO,
-                r.getId(), "적격 승인자 지정 필요: " + r.getTitle(), ctx.userId());
+        notifications.notifyOnce(userService.activeAdminIdsOf(ctx.project().getCustomerId()), NotificationKind.INFO,
+                r.getId(), "적격 승인자 지정 필요: " + r.getTitle(), ctx.userId(), NO_APPROVER_NOTICE_WINDOW);
         List<Long> delayed = new ArrayList<>();
         delayed.add(r.getRequesterId());
         delayed.add(ctx.project().getLeadUserId());
-        notifications.notify(delayed, NotificationKind.INFO, r.getId(), "적격 승인자 부재로 완료 지연: " + r.getTitle(),
-                ctx.userId());
+        notifications.notifyOnce(delayed, NotificationKind.INFO, r.getId(), "적격 승인자 부재로 완료 지연: " + r.getTitle(),
+                ctx.userId(), NO_APPROVER_NOTICE_WINDOW);
     }
 
     // ------------------------------------------------------------------ approve / revise

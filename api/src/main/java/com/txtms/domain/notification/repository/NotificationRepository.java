@@ -31,6 +31,12 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
             + "GROUP BY n.request_id, n.user_id", nativeQuery = true)
     List<Object[]> findLatestOriginalsOfOpenRequests();
 
+    /** Recipients among {@code userIds} who already got this text about the request after {@code since}. */
+    @Query("select distinct n.userId from Notification n where n.requestId = :requestId and n.text = :text "
+            + "and n.createdAt > :since and n.userId in :userIds")
+    List<Long> recentRecipients(@Param("requestId") String requestId, @Param("text") String text,
+            @Param("since") Instant since, @Param("userIds") java.util.Collection<Long> userIds);
+
     @Modifying(flushAutomatically = true)
     @Query("update Notification n set n.readAt = :now where n.userId = :userId and n.readAt is null")
     int markAllRead(@Param("userId") Long userId, @Param("now") Instant now);

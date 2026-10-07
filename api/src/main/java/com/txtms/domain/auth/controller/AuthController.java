@@ -37,15 +37,17 @@ public class AuthController {
 
     private final AuthService authService;
     private final RefreshCookies cookies;
+    private final RefreshRequestGuard refreshGuard;
 
-    public AuthController(AuthService authService, RefreshCookies cookies) {
+    public AuthController(AuthService authService, RefreshCookies cookies, RefreshRequestGuard refreshGuard) {
         this.authService = authService;
         this.cookies = cookies;
+        this.refreshGuard = refreshGuard;
     }
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        return withCookie(authService.login(request.email(), request.password(), request.remember()));
+        return withCookie(authService.login(request.email(), request.password(), request.rememberMe()));
     }
 
     @GetMapping("/demo-personas")
@@ -58,9 +60,13 @@ public class AuthController {
         return withCookie(authService.demoLogin(request.userId()));
     }
 
-    /** On failure the error body is returned and the stale cookie is removed. */
+    /**
+     * On failure the error body is returned and the stale cookie is removed. A cross-site call is refused first
+     * ({@link RefreshRequestGuard}) and keeps the cookie.
+     */
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(HttpServletRequest request) {
+        refreshGuard.check(request);
         Cookie cookie = WebUtils.getCookie(request, cookies.name());
         try {
             return withCookie(authService.refresh(cookie == null ? null : cookie.getValue()));

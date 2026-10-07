@@ -56,7 +56,6 @@ public class BundleExportService {
     private final CompletionBundleRepository bundles;
     private final CompletionBundleItemRepository bundleItems;
     private final ContentFileVersionRepository fileVersions;
-    private final RequestWriteSupport support;
     private final FileStorage storage;
     private final AuditLogService audit;
     private final JsonMapper json;
@@ -64,7 +63,7 @@ public class BundleExportService {
 
     public BundleExportService(RequestQueryService queries, RequestPolicy policy, UserService userService,
             CompletionBundleRepository bundles, CompletionBundleItemRepository bundleItems,
-            ContentFileVersionRepository fileVersions, RequestWriteSupport support, FileStorage storage,
+            ContentFileVersionRepository fileVersions, FileStorage storage,
             AuditLogService audit, JsonMapper json, PlatformTransactionManager transactionManager) {
         this.queries = queries;
         this.policy = policy;
@@ -72,7 +71,6 @@ public class BundleExportService {
         this.bundles = bundles;
         this.bundleItems = bundleItems;
         this.fileVersions = fileVersions;
-        this.support = support;
         this.storage = storage;
         this.audit = audit;
         this.json = json;
@@ -191,21 +189,23 @@ public class BundleExportService {
     // ------------------------------------------------------------------ copy events
 
     /**
-     * A user copied a content text: audited as an export ({@code 완료본 반출}, {@code 문안 복사 {키}}). The key must be a
-     * bundle item of a completed request, otherwise a current content.
+     * A user copied a completed content text: audited as an export ({@code 완료본 반출}, {@code 문안 복사 {키}}). Only
+     * finally completed requests are exported (EXPORT, otherwise {@code REQUEST_STATE_CONFLICT}) and the key must be
+     * an item of their completion bundle. Copying a draft or in-progress text is not an export of a completed
+     * original and is not audited as one.
      */
     public void recordCopy(AuthUser auth, String id, String contentKey) {
         tx.executeWithoutResult(status -> {
+            User user = userService.require(auth.userId());
+            Actor actor = userService.actorOf(user);
+            ScopedRequest s = queries.requireVisible(actor, id);
+            policy.require(actor, s.project(), s.facts(), RequestAction.EXPORT);
             if (contentKey == null || contentKey.isBlank()) {
                 throw BusinessException.validation("contentKey", "복사한 콘텐츠를 지정하세요");
             }
-            User user = userService.require(auth.userId());
-            ScopedRequest s = queries.requireVisible(userService.actorOf(user), id);
             String key = contentKey.trim();
-            boolean known = s.request().getStatus().isFinal()
-                    ? bundleItems.findByRequestIdOrderBySortOrderAsc(s.request().getId()).stream()
-                            .anyMatch(i -> i.getContentKey().equals(key))
-                    : support.currentContents(s.request().getId()).stream().anyMatch(c -> c.getKey().equals(key));
+            boolean known = bundleItems.findByRequestIdOrderBySortOrderAsc(s.request().getId()).stream()
+                    .anyMatch(i -> i.getContentKey().equals(key));
             if (!known) {
                 throw BusinessException.notFound();
             }
@@ -226,9 +226,12 @@ public class BundleExportService {
         return new Scope(user, s, bundle, bundleItems.findByRequestIdOrderBySortOrderAsc(s.request().getId()));
     }
 
-    /** File name safe inside a ZIP path: {@code \ / : * ? " < > |} become {@code _}. */
+    /**
+     * File name safe inside a ZIP path: {@code \ / : * ? " < > |} and control characters become {@code _}, so an
+     * entry can never leave its {@code {콘텐츠키}/v{n}_} folder or break extraction (no zip slip).
+     */
     static String safeName(String name) {
-        return name == null ? "_" : name.replaceAll("[\\\\/:*?\"<>|]", "_");
+        return name == null || name.isEmpty() ? "_" : name.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]", "_");
     }
 
     private static String uniquePath(String path, Set<String> used) {

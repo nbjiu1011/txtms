@@ -193,12 +193,15 @@ public class AuthService {
         return new TokenInfo(null, false, null, null);
     }
 
-    /** Invitation: sets name and password and activates the account. Reset: sets the password. Then logs in. */
+    /**
+     * Invitation: sets name and password and activates the account. Reset: sets the password. Then logs in. The token
+     * row is read under a write lock so a link is used once even when submitted twice at the same time.
+     */
     @Transactional
     public LoginResult completeToken(String token, String name, String password) {
         Instant now = clock.instant();
         String hash = OpaqueTokens.hash(token);
-        Optional<UserInvitation> invitation = invitations.findByTokenHash(hash);
+        Optional<UserInvitation> invitation = invitations.lockByTokenHash(hash);
         if (invitation.isPresent()) {
             User user = userService.find(invitation.get().getUserId())
                     .filter(u -> invitation.get().isUsable(now) && u.isPending())
@@ -217,7 +220,7 @@ public class AuthService {
             }
             return startSession(user, false);
         }
-        PasswordReset reset = passwordResets.findByTokenHash(hash)
+        PasswordReset reset = passwordResets.lockByTokenHash(hash)
                 .filter(r -> r.isUsable(now))
                 .orElseThrow(AuthService::invalidLink);
         User user = userService.find(reset.getUserId())

@@ -18,6 +18,8 @@ public enum RequestView {
     CUSTOMER_COMPLETED(true),
     MY_ASSIGNED_ACTIVE,
     MY_ASSIGNED_DONE,
+    /** Requests I am assigned to that wait for the requester's answer (reviewer KPI "확인 요청", plan §30). */
+    MY_ASSIGNED_CONFIRMING,
     APPROVAL_QUEUE,
     APPROVAL_PROCESSED;
 

@@ -48,16 +48,24 @@ public final class BundleSheet {
                 CompletionBundles.statusLabel(status), CompletionBundles.completedDate(completedAt));
     }
 
-    /** Workbook with the header and the rows (multi-line cells wrap). */
+    /**
+     * Workbook with the header and the rows (multi-line cells wrap). Every value is a text cell; a value that a
+     * spreadsheet would read as a formula ({@link #formulaLike}) also gets the quote-prefix style (Excel's leading
+     * apostrophe), so it stays text even when the cell is edited and re-entered (formula injection). The value itself
+     * is exported unchanged — it is the completed original.
+     */
     public static byte[] workbook(List<List<String>> rows) {
         try (XSSFWorkbook wb = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = wb.createSheet(SHEET_NAME);
             CellStyle wrap = wb.createCellStyle();
             wrap.setWrapText(true);
-            write(sheet.createRow(0), HEADER, null);
+            CellStyle wrapText = wb.createCellStyle();
+            wrapText.setWrapText(true);
+            wrapText.setQuotePrefixed(true);
+            write(sheet.createRow(0), HEADER, null, null);
             int r = 1;
             for (List<String> row : rows) {
-                write(sheet.createRow(r++), row, wrap);
+                write(sheet.createRow(r++), row, wrap, wrapText);
             }
             wb.write(out);
             return out.toByteArray();
@@ -66,12 +74,23 @@ public final class BundleSheet {
         }
     }
 
-    private static void write(Row row, List<String> values, CellStyle style) {
+    /** Starts with a character spreadsheets treat as the start of a formula or command ({@code = + - @}, tab, CR). */
+    public static boolean formulaLike(String value) {
+        if (value == null || value.isEmpty()) {
+            return false;
+        }
+        char c = value.charAt(0);
+        return c == '=' || c == '+' || c == '-' || c == '@' || c == '\t' || c == '\r';
+    }
+
+    private static void write(Row row, List<String> values, CellStyle style, CellStyle textStyle) {
         for (int i = 0; i < values.size(); i++) {
             var cell = row.createCell(i);
-            cell.setCellValue(values.get(i));
-            if (style != null) {
-                cell.setCellStyle(style);
+            String value = values.get(i);
+            cell.setCellValue(value);
+            CellStyle s = textStyle != null && formulaLike(value) ? textStyle : style;
+            if (s != null) {
+                cell.setCellStyle(s);
             }
         }
     }

@@ -37,15 +37,17 @@ class DueStatusTest {
     }
 
     @Test
-    void dueSoonWithinConfiguredDaysOfTheDeadline() {
+    void dueSoonCountsKstCalendarDaysIncludingTheDueDay() {
         LocalDate due = LocalDate.of(2026, 10, 10);
-        // deadline 2026-10-10T14:59:59.999Z; three days earlier is 2026-10-07T14:59:59.999Z
-        assertThat(DueStatus.dueSoon(RequestStatus.IN_REVIEW, due, Instant.parse("2026-10-07T14:59:59.998Z"), 3))
-                .isFalse();
-        assertThat(DueStatus.dueSoon(RequestStatus.IN_REVIEW, due, Instant.parse("2026-10-07T14:59:59.999Z"), 3))
-                .isTrue();
+        // D-4 until 2026-10-06 23:59:59.999 KST (= 14:59:59.999Z), D-3 from 2026-10-07 00:00 KST (= 2026-10-06T15:00Z)
+        assertThat(DueStatus.dueSoon(RequestStatus.IN_REVIEW, due, Instant.parse("2026-10-06T14:59:59.999Z"), 3))
+                .as("D-4").isFalse();
+        assertThat(DueStatus.dueSoon(RequestStatus.IN_REVIEW, due, Instant.parse("2026-10-06T15:00:00Z"), 3))
+                .as("D-3 from KST midnight").isTrue();
+        assertThat(DueStatus.dueSoon(RequestStatus.IN_REVIEW, due, Instant.parse("2026-10-07T01:00:00Z"), 3))
+                .as("D-3 in the morning (KST 10:00), not only after the same clock time").isTrue();
         assertThat(DueStatus.dueSoon(RequestStatus.IN_REVIEW, due, Instant.parse("2026-10-10T14:59:59.999Z"), 3))
-                .isTrue();
+                .as("D-day").isTrue();
         assertThat(DueStatus.dueSoon(RequestStatus.IN_REVIEW, due, Instant.parse("2026-10-10T15:00:00Z"), 3))
                 .as("overdue is not due soon").isFalse();
     }

@@ -224,6 +224,30 @@ class CorrectionIntegrationTest extends IntegrationTestBase {
         assertThat(jdbc.queryForObject("SELECT CONCAT(content_key, '|', matched_text, '|', rule_ids, '|', body) "
                 + "FROM correction_suggestions WHERE request_id = ?", String.class, id))
                 .isEqualTo("C1|처리|[\"R3\"]|업무 용어라 유지가 필요합니다");
+        assertThat(jdbc.queryForObject("SELECT suggested_expr FROM correction_suggestions WHERE request_id = ?",
+                String.class, id)).as("suggestedExpr is optional").isNull();
+
+        // ---- contract §14.4: ruleId on events (history detail), suggestedExpr on suggestions, variablesRevision
+        expect(204, req, post("/api/requests/" + id + "/corrections/events"), Map.of("contentKey", "C1",
+                "action", "APPLY", "field", "body", "before", "첫번째", "after", "첫 번째", "ruleId", " R2 "));
+        assertThat(history(req, id)).contains("교정 적용|body: 첫번째 → 첫 번째 (R2)");
+        assertThat(expect(400, req, post("/api/requests/" + id + "/corrections/events"), Map.of("contentKey", "C1",
+                "action", "APPLY", "field", "body", "before", "a", "after", "b", "ruleId", "R".repeat(51)))
+                .path("fieldErrors").get(0).path("field").asString()).isEqualTo("ruleId");
+        expect(204, req, post("/api/requests/" + id + "/corrections/suggestions"), Map.of("contentKey", "C1",
+                "matchedText", "되요", "ruleIds", List.of("R1"), "body", "다른 표현 제안", "suggestedExpr", "됩니다"));
+        assertThat(jdbc.queryForList("SELECT suggested_expr FROM correction_suggestions WHERE request_id = ? "
+                + "AND suggested_expr IS NOT NULL", String.class, id)).containsExactly("됩니다");
+        assertThat(expect(400, req, post("/api/requests/" + id + "/corrections/suggestions"), Map.of("contentKey",
+                "C1", "matchedText", "되요", "body", "길다", "suggestedExpr", "가".repeat(201))).path("message")
+                .asString()).isEqualTo("제안 표현은 최대 200자입니다");
+        long project = jdbc.queryForObject("SELECT project_id FROM requests WHERE id = ?", Long.class, id);
+        int revision = jdbc.queryForObject("SELECT variables_revision FROM projects WHERE id = ?", Integer.class,
+                project);
+        assertThat(getJson(req, "/api/requests/" + id).path("variablesRevision").asInt()).isEqualTo(revision);
+        expect(201, req, post("/api/projects/" + project + "/variables"), Map.of("key", "rev_probe_" + System.nanoTime()
+                % 100000, "type", "TEXT", "value", "x", "description", "신선도"));
+        assertThat(getJson(req, "/api/requests/" + id).path("variablesRevision").asInt()).isEqualTo(revision + 1);
 
         // ---- permissions: other customers and operators 404, someone else's draft 403
         Login other = login(KIM_REQUESTER);

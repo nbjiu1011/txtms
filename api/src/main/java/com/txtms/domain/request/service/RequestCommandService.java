@@ -160,6 +160,7 @@ public class RequestCommandService {
     public RequestDetail cloneRequest(AuthUser auth, String id) {
         Ctx ctx = support.lock(auth, id);
         support.require(ctx, RequestAction.CLONE);
+        requireActiveProject(ctx.project());
         Request source = ctx.request();
         Instant now = support.now();
         Request copy = new Request(idGenerator.next(now), source.getProjectId(), source.getType(), ctx.userId(), now);
@@ -205,6 +206,7 @@ public class RequestCommandService {
     public RequestDetail followUp(AuthUser auth, String id, FollowUpBody body) {
         Ctx ctx = support.lock(auth, id);
         support.require(ctx, RequestAction.FOLLOW_UP);
+        requireActiveProject(ctx.project());
         Request source = ctx.request();
         String only = body == null || body.contentKey() == null || body.contentKey().isBlank() ? null
                 : body.contentKey().trim();
@@ -588,6 +590,14 @@ public class RequestCommandService {
         if (!project.rolesOf(user.getId()).contains(ProjectRole.REQUESTER)) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "요청자 역할이 있어야 요청을 만들 수 있습니다");
         }
+        requireActiveProject(project);
+    }
+
+    /**
+     * New drafts (new request, clone, follow-up) only in a project in use: a stopped project takes no new work
+     * (기획서 11.2), and such a draft could never be submitted anyway.
+     */
+    private static void requireActiveProject(Project project) {
         if (!project.isActive()) {
             throw new BusinessException(ErrorCode.REQUEST_STATE_CONFLICT, "사용 중인 프로젝트에서 요청을 만드세요");
         }

@@ -62,6 +62,8 @@ public class RequestCorrectionService {
 
     static final int SPAN_TEXT_MAX = 1000;
     static final int RULE_IDS_MAX = 50;
+    static final int RULE_ID_MAX = 50;
+    static final int SUGGESTED_EXPR_MAX = 200;
     static final String FILES_EXCLUDED = "첨부파일이 있는 자유입력형은 교정을 적용할 수 없습니다";
 
     private final RequestQueryService queries;
@@ -212,12 +214,37 @@ public class RequestCorrectionService {
         }
         String before = spanText(body.before(), "before");
         String after = spanText(body.after(), "after");
+        String ruleId = optionalRuleId(body.ruleId());
         if (type == ContentType.FREEFORM
                 && !files.findByContentIdAndDeletedFalseOrderBySortOrderAsc(c.getId()).isEmpty()) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, FILES_EXCLUDED);
         }
         requireNotLockedByOther(ctx, c);
-        support.log(ctx.request(), ctx.userId(), action, body.field() + ": " + before + " → " + after, c);
+        support.log(ctx.request(), ctx.userId(), action,
+                body.field() + ": " + before + " → " + after + (ruleId == null ? "" : " (" + ruleId + ")"), c);
+    }
+
+    /** Optional rule id of an apply/restore event (contract §14.4): trimmed, at most 50 characters. */
+    static String optionalRuleId(String raw) {
+        String v = raw == null ? "" : raw.trim();
+        if (v.isEmpty()) {
+            return null;
+        }
+        if (v.length() > RULE_ID_MAX) {
+            throw BusinessException.validation("ruleId", "규칙 ID는 최대 50자입니다");
+        }
+        return v;
+    }
+
+    /** Optional proposed expression of a suggestion (contract §14.4): at most 200 characters, blank = none. */
+    static String optionalSuggestedExpr(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        if (raw.length() > SUGGESTED_EXPR_MAX) {
+            throw BusinessException.validation("suggestedExpr", "제안 표현은 최대 200자입니다");
+        }
+        return raw;
     }
 
     // ------------------------------------------------------------------ suggestions
@@ -258,8 +285,9 @@ public class RequestCorrectionService {
             throw BusinessException.validation("body",
                     String.format("건의 이유은(는) 최대 %,d자입니다", limits.maxInfoTextLength()));
         }
-        suggestions.record(ctx.request().getId(), c.getKey(), body.matchedText(), ruleIds, reason, ctx.userId(),
-                support.now());
+        String suggestedExpr = optionalSuggestedExpr(body.suggestedExpr());
+        suggestions.record(ctx.request().getId(), c.getKey(), body.matchedText(), suggestedExpr, ruleIds, reason,
+                ctx.userId(), support.now());
         support.log(ctx.request(), ctx.userId(), "교정 건의", c.getKey() + ": " + reason, c);
     }
 

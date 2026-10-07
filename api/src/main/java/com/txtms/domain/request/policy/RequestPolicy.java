@@ -230,12 +230,14 @@ public class RequestPolicy {
             case RECALL_PENDING -> request.primary(me) && request.recallPending() && s == RequestStatus.IN_REVIEW;
             case WAITING_ASSIGNMENT -> s == RequestStatus.WAITING && project.lead(me);
             case OVERDUE -> overdue(request, now);
-            case DUE_SOON -> dueSoon(project, request, now) && (project.lead(me) || request.reviewer(me));
+            case DUE_SOON -> dueSoon(project, request, now)
+                    && (project.lead(me) || request.reviewer(me) || request.requester(me));
             case APPROVAL_PENDING -> allows(actor, project, request, RequestAction.APPROVE);
             case CUSTOMER_IN_PROGRESS -> s != RequestStatus.DRAFT && !s.isFinal();
             case CUSTOMER_COMPLETED -> s.isFinal();
             case MY_ASSIGNED_ACTIVE -> request.reviewer(me) && !s.isFinal();
             case MY_ASSIGNED_DONE -> request.reviewer(me) && s.isFinal();
+            case MY_ASSIGNED_CONFIRMING -> request.reviewer(me) && s == RequestStatus.CONFIRMING;
             case APPROVAL_QUEUE -> s == RequestStatus.APPROVAL_WAITING;
             case APPROVAL_PROCESSED -> processedByMe.contains(request.id());
         };

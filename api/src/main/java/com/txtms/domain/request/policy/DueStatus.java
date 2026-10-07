@@ -1,6 +1,5 @@
 package com.txtms.domain.request.policy;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 
@@ -24,13 +23,21 @@ public final class DueStatus {
         return tracked(status, dueDate) && deadline(dueDate).isBefore(now);
     }
 
-    /** Not overdue yet and the deadline is within {@code dueSoonDays} days from now. */
+    /**
+     * "D-{dueSoonDays} 이내" in KST calendar days (기획서 8.2 "확정 납기 D-3 이내", 협의 08 KST 날짜 경계): not overdue
+     * yet and the due date is at most {@code dueSoonDays} days after today's KST date (D-day included). A request due
+     * in three days is due soon from the first minute of today, not only from the same clock time three days ahead.
+     */
     public static boolean dueSoon(RequestStatus status, LocalDate dueDate, Instant now, int dueSoonDays) {
         if (!tracked(status, dueDate)) {
             return false;
         }
-        Instant deadline = deadline(dueDate);
-        return !deadline.isBefore(now) && !deadline.isAfter(now.plus(Duration.ofDays(dueSoonDays)));
+        return !deadline(dueDate).isBefore(now) && withinDays(dueDate, now, dueSoonDays);
+    }
+
+    /** The due date is at most {@code days} KST calendar days after today (past dates included). */
+    public static boolean withinDays(LocalDate dueDate, Instant now, int days) {
+        return !dueDate.isAfter(Kst.dateOf(now).plusDays(days));
     }
 
     private static boolean tracked(RequestStatus status, LocalDate dueDate) {

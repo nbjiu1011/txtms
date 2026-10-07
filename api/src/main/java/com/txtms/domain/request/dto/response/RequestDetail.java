@@ -30,7 +30,9 @@ public record RequestDetail(
         BundleResponse bundle,
         Set<RequestAction> allowedActions,
         long rowVersion,
-        int nextSubmitRound) {
+        int nextSubmitRound,
+        /** Project variables revision (§14.4) — compared with CorrectionResult.variablesRevision. */
+        int variablesRevision) {
 
     public record Recall(Long requestedBy, Instant requestedAt, String reason) {
     }

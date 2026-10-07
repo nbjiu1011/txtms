@@ -429,6 +429,17 @@ class CompletionIntegrationTest extends IntegrationTestBase {
                 t.projectId(), leadId);
         complete(rev, id, 409);
         assertThat(history(id, "승인 대기 전환 차단")).hasSize(2);
+        // every attempt is logged, but the same notice is not sent to the same people again within 24 hours
+        assertThat(recipients(id, "INFO", "적격 승인자 지정 필요: 승인 시나리오")).containsExactly(admin.userId());
+        assertThat(recipients(id, "INFO", "적격 승인자 부재로 완료 지연: 승인 시나리오"))
+                .containsExactlyInAnyOrder(req.userId(), leadId);
+        jdbc.update("UPDATE notifications SET created_at = DATE_SUB(created_at, INTERVAL 25 HOUR) "
+                + "WHERE request_id = ?", id);
+        complete(rev, id, 409);
+        assertThat(history(id, "승인 대기 전환 차단")).hasSize(3);
+        assertThat(recipients(id, "INFO", "적격 승인자 지정 필요: 승인 시나리오"))
+                .containsExactly(admin.userId(), admin.userId());
+        assertThat(recipients(id, "INFO", "적격 승인자 부재로 완료 지연: 승인 시나리오")).hasSize(4);
 
         // ---- an eligible approver exists: APPROVAL_WAITING
         long approverId = addUser(t, "appr", "APPROVER");

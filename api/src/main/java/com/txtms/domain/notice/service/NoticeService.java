@@ -43,6 +43,8 @@ import com.txtms.global.security.AuthUser;
 public class NoticeService {
 
     static final int TITLE_MAX = 200;
+    /** Server cap of the (non-paged) notice lists, newest first (contract §0.1 small lists). */
+    static final int LIST_LIMIT = 500;
     static final String WITHDRAWN = "철회된 공지는 수정하거나 다시 철회할 수 없습니다";
 
     private final NoticeRepository notices;
@@ -72,7 +74,7 @@ public class NoticeService {
     public List<NoticeResponse> list(AuthUser auth, long customerId) {
         User user = userService.require(auth.userId());
         Customer customer = projectAccess.requireAccessibleCustomer(user, customerId);
-        return responses(visible(user, customer));
+        return responses(visible(user, customer).stream().limit(LIST_LIMIT).toList());
     }
 
     /** Newest visible notices of the customer, for dashboards. */
@@ -104,7 +106,8 @@ public class NoticeService {
     /** Every notice of the customer, withdrawn ones included, newest first. */
     public List<NoticeResponse> manage(AuthUser auth, long customerId) {
         Admin admin = adminAccess.require(auth, customerId);
-        return responses(notices.findByCustomerIdOrderByCreatedAtDescIdDesc(admin.customerId()));
+        return responses(notices.findByCustomerIdOrderByCreatedAtDescIdDesc(admin.customerId()).stream()
+                .limit(LIST_LIMIT).toList());
     }
 
     @Transactional

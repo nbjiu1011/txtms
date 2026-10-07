@@ -113,7 +113,14 @@ task is never considered up to date, so it always runs against the current datab
 - Access tokens live 15 minutes and are sent as `Authorization: Bearer`. `POST /api/auth/refresh` issues a new one.
 - The server session is the source of truth: idle timeout 30 minutes, or 14 days from login with `remember`.
   Every authenticated request validates the session and the account/customer state.
-- 5 consecutive failures for an email lock it for 15 minutes (`RATE_LIMITED`).
+- 5 consecutive failures for an email lock it for 15 minutes (`RATE_LIMITED`). `remember` is optional in the login
+  body; over-long input (email > 255, password > 1,000 characters) is `VALIDATION_FAILED` and not counted.
+- CSRF posture: every API call except refresh needs the bearer token (kept in memory by the web app), so a cookie
+  alone cannot act. The refresh cookie is SameSite=Strict and `POST /api/auth/refresh` additionally refuses
+  cross-site calls (`RefreshRequestGuard`: `Sec-Fetch-Site` other than `same-origin`/`none`, or a foreign/`null`
+  `Origin`, unless the origin is `app.web-base-url`, a CORS origin or the API itself) with 403 and keeps the cookie.
+  Login and the token endpoints accept JSON only (a cross-site form post gets 400).
+- Invitation and reset links are single use even when submitted twice at once (token row read with a write lock).
 
 ## Layout
 
@@ -239,14 +246,18 @@ curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -H
   (`APPROVAL_WAITING`) and an eligible approver approves (`APPROVED`) or sends it back (`IN_REVIEW`, round + 1).
 - No eligible approver: the completion transaction writes `승인 대기 전환 차단` and the notifications (admins: approver
   needed, requester + lead: delay), **commits**, and only then the API answers 409 `NO_ELIGIBLE_APPROVER`
-  (`TransactionTemplate` in the service; the row lock is released at that commit).
+  (`TransactionTemplate` in the service; the row lock is released at that commit). Every attempt is logged, but a
+  recipient who already got the same notice about the request within 24 hours is skipped
+  (`NotificationService.notifyOnce`, `CompletionService.NO_APPROVER_NOTICE_WINDOW`).
 - Final completion freezes the bundle (`CompletionBundles`): every current content with its version, payload and the
   FileMeta array of its current attachments, plus the project's active variables. Previews, exports and the archive
   resolve variables with these frozen values.
 - Exports (`BundleExportService`): XLSX (`BundleSheet`, 10 columns, sheet `완료본`, `{id}_완료본.xlsx`), ZIP streamed
   file by file (`{key}/v{n}_{name}` + `완료_버전_명세.json` with sizes and SHA-256, `{id}_첨부_완료본.zip`). A ZIP whose
   frozen file has no stored object (seeded demo files) is refused as a whole with `NOT_FOUND`. Audits: `완료본 반출`
-  (`XLSX`, `문안 복사 {key}`) and `첨부 반출` (`ZIP`) with the customer id.
+  (`XLSX`, `문안 복사 {key}`) and `첨부 반출` (`ZIP`) with the customer id. Copy events are accepted for finally
+  completed requests only (`EXPORT`, otherwise 409). XLSX cells that start with `= + - @`, tab or CR get the
+  quote-prefix style (stay text when edited; value unchanged); ZIP entry names drop separators and control characters.
 - Follow-ups copy the bundle items (frozen file version → new file v1 sharing the stored object, card images copied)
   and record the source of each new content in `contents.parent_request_id` / `parent_content_key`. The archive
   (`ArchiveService`, pure rules in `ContentLineage` and `ArchiveLines`) groups completed contents by the root of that
@@ -282,7 +293,9 @@ curl -s -H "Authorization: Bearer $TOKEN" "http://localhost:8080/api/archive/con
 - Check: view permission (any viewer may run the read-only check, as in the prototype; operators and other
   customers `NOT_FOUND`), buffer payload checked like an autosave, free-form contents with attachments (buffer flag or
   stored files) are `excluded`, results are not stored. Events need `EDIT_CONTENT`; suggestions `EDIT_CONTENT` or
-  `REVIEW` (stored in `correction_suggestions`, Phase 2 processing).
+  `REVIEW` (stored in `correction_suggestions` with the optional `suggestedExpr` ≤ 200, Phase 2 processing). Events
+  take an optional `ruleId` (≤ 50) appended to the history detail as ` ({ruleId})`. `RequestDetail.variablesRevision`
+  carries the project's variables revision (contract §14.4).
 - Tests: `CorrectionEngineTest` (spec rules one by one), `CorrectionScenarioTest` (every scenario of
   `docs/텍스트 교정 테스트 케이스&시나리오_260714.xlsx` against the sample dataset; deviations noted per case),
   `DatasetImportTest`, `CorrectionFieldsTest`, `CorrectionIntegrationTest`, `DemoDatasetRefresherIntegrationTest`.
@@ -319,7 +332,15 @@ curl -s -H "Authorization: Bearer $OPERATOR_TOKEN" -F scope=SMS -F file=@rules.x
   `완료본 반출`, `첨부 반출`) older than `app.audit.retention.days` (1095). The daily `AuditRetentionJob`
   (`app.audit.retention.cron`, KST) is off by default (`app.audit.retention.enabled=false`, client agreement 17).
 - Notices: every admin write is audited (`공지 게시`, `공지 수정`, `공지 철회`); edits and withdrawals keep the full
-  previous snapshot (scope, project, title, body) and the actor in `notice_logs`.
+  previous snapshot (scope, project, title, body) and the actor in `notice_logs`. Lists are capped at 500.
+- Due soon / urgent: KST calendar days — a due date at most `dueSoonDays` days after today's KST date (D-3 이내 =
+  D-3…D-day) and not yet overdue (`DueStatus.dueSoon`, `ReminderRules.urgent` includes overdue). Dashboards: the
+  requester KPI row ends with `DUE_SOON` (own requests); reviewers have `MY_ASSIGNED_CONFIRMING` (기획서 8.3).
+- Scale limits (documented, not paged in the database): the request list, dashboard, archive, performance and
+  deactivation impact load the visible requests of the project (or customer) and filter in memory so KPI counts and
+  lists share one predicate. Responses are paged (size ≤ 100) or capped (todos 100, recent 6, small lists 500); the
+  scan itself is fine up to a few thousand requests per project. Beyond that, move the predicates to queries
+  (docs/IMPROVEMENTS.md P2).
 
 ## Customer admin (M6)
 

@@ -30,6 +30,10 @@ public class CorrectionSuggestion {
     @Column(name = "matched_text", nullable = false, updatable = false, columnDefinition = "text")
     private String matchedText;
 
+    /** Expression the user proposes instead (optional, contract §14.4). */
+    @Column(name = "suggested_expr", updatable = false, length = 200)
+    private String suggestedExpr;
+
     @Column(name = "rule_ids", nullable = false, updatable = false, columnDefinition = "json")
     private String ruleIds;
 
@@ -45,11 +49,12 @@ public class CorrectionSuggestion {
     protected CorrectionSuggestion() {
     }
 
-    public CorrectionSuggestion(String requestId, String contentKey, String matchedText, String ruleIds, String body,
-            Long createdBy, Instant createdAt) {
+    public CorrectionSuggestion(String requestId, String contentKey, String matchedText, String suggestedExpr,
+            String ruleIds, String body, Long createdBy, Instant createdAt) {
         this.requestId = requestId;
         this.contentKey = contentKey;
         this.matchedText = matchedText;
+        this.suggestedExpr = suggestedExpr;
         this.ruleIds = ruleIds;
         this.body = body;
         this.createdBy = createdBy;
@@ -70,6 +75,10 @@ public class CorrectionSuggestion {
 
     public String getMatchedText() {
         return matchedText;
+    }
+
+    public String getSuggestedExpr() {
+        return suggestedExpr;
     }
 
     public String getRuleIds() {

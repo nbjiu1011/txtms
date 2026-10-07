@@ -58,9 +58,10 @@ class ReminderRulesTest {
     }
 
     @Test
-    void urgencyIncludesOverdueAndUsesTheKstDeadline() {
-        // deadline 2026-10-10 23:59:59.999 KST = 2026-10-10T14:59:59.999Z, 3 days = 2026-10-10T03:00Z → not urgent
-        assertThat(ReminderRules.urgent(RequestStatus.IN_REVIEW, LocalDate.of(2026, 10, 10), 3, NOW)).isFalse();
+    void urgencyIncludesOverdueAndUsesKstCalendarDays() {
+        // today is 2026-10-07 (KST): D-3 = 2026-10-10 is urgent all day, D-4 = 2026-10-11 is not
+        assertThat(ReminderRules.urgent(RequestStatus.IN_REVIEW, LocalDate.of(2026, 10, 10), 3, NOW)).isTrue();
+        assertThat(ReminderRules.urgent(RequestStatus.IN_REVIEW, LocalDate.of(2026, 10, 11), 3, NOW)).isFalse();
         assertThat(ReminderRules.urgent(RequestStatus.IN_REVIEW, LocalDate.of(2026, 10, 9), 3, NOW)).isTrue();
         assertThat(ReminderRules.urgent(RequestStatus.WAITING, LocalDate.of(2026, 9, 1), 3, NOW)).isTrue();
         assertThat(ReminderRules.urgent(RequestStatus.APPROVED, LocalDate.of(2026, 9, 1), 3, NOW)).isFalse();

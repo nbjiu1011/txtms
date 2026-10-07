@@ -29,9 +29,9 @@ public class CorrectionSuggestionService {
 
     /** Runs inside the caller's request transaction (validated input). */
     @Transactional(propagation = Propagation.MANDATORY)
-    public CorrectionSuggestion record(String requestId, String contentKey, String matchedText, List<String> ruleIds,
-            String body, long userId, Instant now) {
-        return repository.save(new CorrectionSuggestion(requestId, contentKey, matchedText,
+    public CorrectionSuggestion record(String requestId, String contentKey, String matchedText, String suggestedExpr,
+            List<String> ruleIds, String body, long userId, Instant now) {
+        return repository.save(new CorrectionSuggestion(requestId, contentKey, matchedText, suggestedExpr,
                 json.writeValueAsString(ruleIds), body, userId, now));
     }
 }

@@ -86,6 +86,25 @@ class RequestViewTest {
         assertThat(matches(RequestView.DUE_SOON, LEAD, soonWaiting)).as("lead sees all").isTrue();
         assertThat(matches(RequestView.DUE_SOON, LEAD, later)).isFalse();
         assertThat(matches(RequestView.DUE_SOON, LEAD, overdue)).isFalse();
+        // 기획서 8.3 요청자 지표 "납기 임박": the requester's own requests
+        assertThat(matches(RequestView.DUE_SOON, REQUESTER, soonWaiting)).as("my request").isTrue();
+        assertThat(matches(RequestView.DUE_SOON, REQUESTER_2, soonWaiting)).as("someone else's").isFalse();
+        // D-3 counts in KST calendar days: 2026-10-10 is D-3 on 2026-10-07 (10:00 KST), 2026-10-11 is D-4
+        RequestFacts dMinus3 = due(RequestStatus.IN_REVIEW, LocalDate.of(2026, 10, 10), List.of(REVIEWER));
+        RequestFacts dMinus4 = due(RequestStatus.IN_REVIEW, LocalDate.of(2026, 10, 11), List.of(REVIEWER));
+        assertThat(matches(RequestView.DUE_SOON, LEAD, dMinus3)).isTrue();
+        assertThat(matches(RequestView.DUE_SOON, LEAD, dMinus4)).isFalse();
+    }
+
+    @Test
+    void reviewerConfirmingView() {
+        // 기획서 8.3 검수자 지표 "확인 요청": assigned requests waiting for the requester's answer
+        assertThat(matches(RequestView.MY_ASSIGNED_CONFIRMING, REVIEWER, request(RequestStatus.CONFIRMING))).isTrue();
+        assertThat(matches(RequestView.MY_ASSIGNED_CONFIRMING, LEAD, request(RequestStatus.CONFIRMING))).isTrue();
+        assertThat(matches(RequestView.MY_ASSIGNED_CONFIRMING, REVIEWER, request(RequestStatus.IN_REVIEW))).isFalse();
+        assertThat(matches(RequestView.MY_ASSIGNED_CONFIRMING, REQUESTER, request(RequestStatus.CONFIRMING)))
+                .isFalse();
+        assertThat(RequestView.MY_ASSIGNED_CONFIRMING.customerScoped()).isFalse();
     }
 
     @Test

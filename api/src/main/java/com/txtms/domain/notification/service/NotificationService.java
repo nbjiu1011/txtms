@@ -73,6 +73,26 @@ public class NotificationService {
                         text.length() > 500 ? text.substring(0, 500) : text, now, false, actorId)));
     }
 
+    /**
+     * Like {@link #notify}, but recipients who already received the same text about the same request within
+     * {@code window} are skipped (repeated attempts of an action that keeps failing for the same reason must not
+     * flood the same people). Returns the recipients actually notified.
+     */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public List<Long> notifyOnce(java.util.Collection<Long> userIds, NotificationKind kind, String requestId,
+            String text, Long actorId, java.time.Duration window) {
+        List<Long> candidates = com.txtms.domain.request.service.ReviewRecipients.finalRecipients(userIds, actorId);
+        if (candidates.isEmpty()) {
+            return candidates;
+        }
+        String stored = text.length() > 500 ? text.substring(0, 500) : text;
+        java.util.Set<Long> already = new java.util.HashSet<>(repository.recentRecipients(requestId, stored,
+                clock.instant().minus(window), candidates));
+        List<Long> fresh = candidates.stream().filter(id -> !already.contains(id)).toList();
+        notify(fresh, kind, requestId, stored, actorId);
+        return fresh;
+    }
+
     /** The newest original notification of one request and recipient (re-notification source). */
     public record Original(long id, String requestId, long userId, NotificationKind kind, Instant createdAt) {
     }

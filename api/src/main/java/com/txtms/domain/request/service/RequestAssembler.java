@@ -61,12 +61,14 @@ public class RequestAssembler {
     private final RequestPolicy policy;
     private final JsonMapper json;
     private final Duration lockTtl;
+    private final com.txtms.domain.project.repository.ProjectRepository projects;
 
     public RequestAssembler(ContentRepository contents, ContentVersionRepository contentVersions,
             ContentFileRepository files, ContentFileVersionRepository fileVersions, RequestOpinionRepository opinions,
             RequestAskRepository asks, RequestHistoryRepository history, CompletionBundleRepository bundles,
             CompletionBundleItemRepository bundleItems, RequestPolicy policy, JsonMapper json,
-            AppProperties properties) {
+            AppProperties properties, com.txtms.domain.project.repository.ProjectRepository projects) {
+        this.projects = projects;
         this.contents = contents;
         this.contentVersions = contentVersions;
         this.files = files;
@@ -164,7 +166,13 @@ public class RequestAssembler {
         return new RequestDetail(summary, r.getPurpose(), r.getTarget(), r.getBackground(), recall, parent,
                 contentResponses, opinionResponses, askResponses, policy.eligibleApprovers(s.project(), s.facts()),
                 coReviewers, entries.size(), stageTimes(entries), bundle(r), allowedActions, r.getRowVersion(),
-                r.nextSubmitRound());
+                r.nextSubmitRound(), variablesRevision(r.getProjectId()));
+    }
+
+    /** The project's variables revision (contract §14.4: correction freshness follows the detail refresh). */
+    private int variablesRevision(long projectId) {
+        Integer revision = projects.findVariablesRevision(projectId);
+        return revision == null ? 0 : revision;
     }
 
     /** Content responses with their files and versions. */

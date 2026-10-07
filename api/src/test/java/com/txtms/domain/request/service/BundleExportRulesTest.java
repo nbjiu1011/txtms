@@ -153,4 +153,43 @@ class BundleExportRulesTest {
         assertThat(BundleExportService.sha256("abc".getBytes()))
                 .isEqualTo("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
     }
+
+    @Test
+    void zipNamesCannotLeaveTheirFolder() {
+        // zip slip: separators and control characters never survive, so "C1/v1_{name}" stays one entry in C1/
+        assertThat(BundleExportService.safeName("../../etc/passwd")).isEqualTo(".._.._etc_passwd");
+        assertThat(BundleExportService.safeName("..\\..\\win.ini")).isEqualTo(".._.._win.ini");
+        assertThat(BundleExportService.safeName("a\nb\tc\u0000.txt")).isEqualTo("a_b_c_.txt");
+        assertThat(BundleExportService.safeName("")).isEqualTo("_");
+        assertThat(BundleExportService.safeName(null)).isEqualTo("_");
+        assertThat(BundleExportService.safeName("약관 개정안.pdf")).isEqualTo("약관 개정안.pdf");
+    }
+
+    @Test
+    void formulaLikeCellsStayTextWithTheQuotePrefix() throws Exception {
+        assertThat(BundleSheet.formulaLike("=HYPERLINK(\"http://x\")")).isTrue();
+        assertThat(BundleSheet.formulaLike("+82 10")).isTrue();
+        assertThat(BundleSheet.formulaLike("-1+1")).isTrue();
+        assertThat(BundleSheet.formulaLike("@SUM(A1)")).isTrue();
+        assertThat(BundleSheet.formulaLike("\tcmd")).isTrue();
+        assertThat(BundleSheet.formulaLike("일반 문안 = 값")).isFalse();
+        assertThat(BundleSheet.formulaLike("")).isFalse();
+        assertThat(BundleSheet.formulaLike(null)).isFalse();
+
+        byte[] bytes = BundleSheet.workbook(List.of(List.of("C1", "알림톡", "=1+1", "-할인 안내", "@이벤트", "",
+                "", "v1", "검수 완료", "2026-10-07 (KST)")));
+        try (XSSFWorkbook wb = new XSSFWorkbook(new ByteArrayInputStream(bytes))) {
+            Sheet sheet = wb.getSheetAt(0);
+            var row = sheet.getRow(1);
+            for (int i : new int[] {2, 3, 4}) {
+                var cell = row.getCell(i);
+                assertThat(cell.getCellType()).as("column %d is text, never a formula", i)
+                        .isEqualTo(org.apache.poi.ss.usermodel.CellType.STRING);
+                assertThat(cell.getCellStyle().getQuotePrefixed()).as("column %d quote prefix", i).isTrue();
+            }
+            assertThat(row.getCell(2).getStringCellValue()).as("value exported unchanged").isEqualTo("=1+1");
+            assertThat(row.getCell(0).getCellStyle().getQuotePrefixed()).isFalse();
+            assertThat(row.getCell(1).getCellStyle().getWrapText()).isTrue();
+        }
+    }
 }

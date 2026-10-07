@@ -55,12 +55,15 @@ public final class ReminderRules {
         return new Decision(next, true, urgent, next.count(), email);
     }
 
-    /** Not final, with a due date whose deadline is at most {@code dueSoonDays} days away (overdue included). */
+    /**
+     * Not final, with a due date at most {@code dueSoonDays} KST calendar days after today (D-N 이내, overdue
+     * included) — the same day boundary as {@link DueStatus#dueSoon}.
+     */
     public static boolean urgent(RequestStatus status, LocalDate dueDate, int dueSoonDays, Instant now) {
         if (status.isFinal() || dueDate == null) {
             return false;
         }
-        return !DueStatus.deadline(dueDate).isAfter(now.plus(Duration.ofDays(dueSoonDays)));
+        return DueStatus.withinDays(dueDate, now, dueSoonDays);
     }
 
     public static String text(boolean urgent, int count, int maxCount, String title) {

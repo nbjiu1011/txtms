@@ -17,11 +17,13 @@ public final class CorrectionBodies {
     public record CheckItem(String contentKey, JsonNode payload, Boolean hasFiles) {
     }
 
-    /** {@code { contentKey, action: "APPLY"|"RESTORE", field, before, after }}. */
-    public record EventBody(String contentKey, String action, String field, String before, String after) {
+    /** {@code { contentKey, action: "APPLY"|"RESTORE", field, before, after, ruleId? }} (ruleId: contract §14.4). */
+    public record EventBody(String contentKey, String action, String field, String before, String after,
+            String ruleId) {
     }
 
-    /** {@code { contentKey, matchedText, ruleIds, body }}. */
-    public record SuggestionBody(String contentKey, String matchedText, List<String> ruleIds, String body) {
+    /** {@code { contentKey, matchedText, ruleIds, body, suggestedExpr? }} (suggestedExpr: contract §14.4). */
+    public record SuggestionBody(String contentKey, String matchedText, List<String> ruleIds, String body,
+            String suggestedExpr) {
     }
 }

@@ -95,13 +95,16 @@ public class DashboardService {
         }
         if (roles.contains(ProjectRole.REVIEWER)) {
             kpis.add(kpi(RequestView.MY_REVIEW, "내 검수", RequestStatus.IN_REVIEW, inProject, actor, now));
+            kpis.add(kpi(RequestView.MY_ASSIGNED_CONFIRMING, "확인 요청 중", RequestStatus.CONFIRMING, inProject, actor,
+                    now));
             kpis.add(kpi(RequestView.RECALL_PENDING, "회수 처리 필요", RequestStatus.CONFIRMING, inProject, actor, now));
         }
         if (lead) {
             kpis.add(kpi(RequestView.WAITING_ASSIGNMENT, "배정 대기", RequestStatus.WAITING, inProject, actor, now));
             kpis.add(kpi(RequestView.OVERDUE, "지연", RequestStatus.CONFIRMING, inProject, actor, now));
         }
-        if (roles.contains(ProjectRole.REVIEWER) || lead) {
+        // 납기 임박 (plan §30, 기획서 8.3): the lead sees every request, reviewers their assignments, requesters their own
+        if (roles.contains(ProjectRole.REVIEWER) || lead || roles.contains(ProjectRole.REQUESTER)) {
             kpis.add(kpi(RequestView.DUE_SOON, "납기 임박", RequestStatus.WAITING, inProject, actor, now));
         }
         if (roles.contains(ProjectRole.APPROVER)) {

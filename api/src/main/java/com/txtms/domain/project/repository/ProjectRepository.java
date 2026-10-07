@@ -20,6 +20,10 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     @Query("select p.customerId, count(p) from Project p group by p.customerId")
     List<Object[]> countByCustomer();
 
+    /** Current variables revision read from the row (not the possibly stale entity in the persistence context). */
+    @Query("select p.variablesRevision from Project p where p.id = :id")
+    Integer findVariablesRevision(@Param("id") Long id);
+
     /** Atomic increment (the entity never writes this column). */
     @Modifying(flushAutomatically = true)
     @Query("update Project p set p.variablesRevision = p.variablesRevision + 1 where p.id = :id")
