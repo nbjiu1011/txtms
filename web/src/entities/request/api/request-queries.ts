@@ -17,6 +17,7 @@ export const requestKeys = {
   detail: (id: string) => queryKeys.detail("requests", id),
   history: (id: string) => ["requests", "history", id] as const,
   version: (id: string, key: string, version: number) => ["requests", "version", id, key, version] as const,
+  image: (id: string, imageKey: string) => ["requests", "image", id, imageKey] as const,
 };
 
 export function fetchRequests(params: RequestListParams): Promise<Page<RequestSummary>> {

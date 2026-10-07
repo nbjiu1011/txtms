@@ -1,13 +1,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { API_SNAPSHOT, dashboardU1, dashboardU11, dashboardU3, requestListU1 } from "@fixtures/api-snapshot";
+import { API_SNAPSHOT, dashboardU1, dashboardU11, dashboardU3, request102U1, requestListU1 } from "@fixtures/api-snapshot";
 import { formatKstToday } from "@/shared/lib";
 import type { Customer } from "@/entities/customer";
 import { dashboardKeys, type Dashboard } from "@/entities/dashboard";
 import type { Me } from "@/entities/me";
 import type { Project } from "@/entities/project";
-import { requestKeys, viewListParams } from "@/entities/request";
+import { requestApi, requestKeys, viewListParams } from "@/entities/request";
 import { userKeys, type UserSummary } from "@/entities/user";
 import type { WorkViewProps } from "@/widgets/app-shell";
 import { DashboardView } from "./dashboard-view";
@@ -72,9 +72,20 @@ describe("DashboardView", () => {
     // Recent requests show the requester name; notices list the project scope.
     expect(screen.getAllByText(/REQ-2609-105 알림톡 김서연/).length).toBeGreaterThan(0);
     expect(screen.getByText(/프로젝트 공지 카드 혜택 알림/)).toBeTruthy();
-    // Not a lead: no workload panel. Create flow not available yet: no 새 요청 button.
+    // Not a lead: no workload panel. Requester: 새 요청 button.
     expect(screen.queryByText("검수자별 업무량")).toBeNull();
-    expect(screen.queryByRole("button", { name: /새 요청/ })).toBeNull();
+    expect(screen.getByRole("button", { name: /새 요청/ })).toBeTruthy();
+  });
+
+  it("creates a draft with 새 요청 and opens its tab", async () => {
+    const created = { ...request102U1, id: "REQ-2610-121", status: "DRAFT" as const, title: "" };
+    const create = vi.spyOn(requestApi, "create").mockResolvedValue(created);
+    const { openTab, client } = setup(1, dashboardU1);
+    fireEvent.click(screen.getByRole("button", { name: /새 요청/ }));
+    await waitFor(() => expect(openTab).toHaveBeenCalledWith({ route: "request", params: { id: "REQ-2610-121" } }));
+    expect(create).toHaveBeenCalledWith({ projectId: 1 });
+    expect(client.getQueryData(requestKeys.detail("REQ-2610-121"))).toEqual(created);
+    create.mockRestore();
   });
 
   it("opens the KPI list modal with the same server view", () => {

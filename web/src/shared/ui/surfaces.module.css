@@ -89,7 +89,8 @@
   grid-template-columns: 140px 1fr;
   gap: 8px 16px;
   font-size: 13px;
-  margin: 0;
+  /* the reference keeps the browser's default dl margin (1em) */
+  margin: 1em 0;
 }
 .kv dt {
   color: var(--sub);

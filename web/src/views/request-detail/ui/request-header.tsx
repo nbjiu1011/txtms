@@ -21,6 +21,8 @@ export type DetailSub = "contents" | "info" | "hist" | "result";
 
 export interface RequestHeaderProps {
   page: RequestPage;
+  /** Title as edited locally (draft autosave). */
+  title?: string;
   approvalEnabled: boolean;
   sub: DetailSub;
   onSub: (sub: DetailSub) => void;
@@ -36,7 +38,7 @@ export function statusColorStyle(request: Pick<RequestDetail, "status">): CSSPro
 
 /** `.req-head` — breadcrumb, title row with actions, meta, status track and sub tabs. */
 export function RequestHeader(props: RequestHeaderProps) {
-  const { page, approvalEnabled, sub, onSub, performable, onAction, onOpenRequest, onOpenList } = props;
+  const { page, title, approvalEnabled, sub, onSub, performable, onAction, onOpenRequest, onOpenList } = props;
   const { request: r, users, project, customer } = page;
   const buttons = headerButtons(performable);
   const requester = users.get(r.requesterId);
@@ -85,7 +87,7 @@ export function RequestHeader(props: RequestHeaderProps) {
       </div>
       <div className={styles.reqTitle}>
         <ContentTypeChip type={r.type} size="lg" />
-        <h1>{r.title || "제목 없는 요청"}</h1>
+        <h1>{(title ?? r.title) || "제목 없는 요청"}</h1>
         <RequestStatusChip status={r.status} />
         <RoundBadge title="검수 차수">{r.round}차</RoundBadge>
         {r.recallRequested ? <Tag variant="recall">회수 요청됨</Tag> : null}

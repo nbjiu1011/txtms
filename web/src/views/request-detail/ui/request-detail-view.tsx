@@ -4,47 +4,27 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button, Empty, Page, Panel, RoundBadge } from "@/shared/ui";
 import { projectRoles } from "@/entities/me";
-import {
-  FINAL_STATUSES,
-  RequestStatusChip,
-  performableActions,
-  useContentTypes,
-  type HistoryFilter,
-  type RequestStatus,
-} from "@/entities/request";
+import { RequestStatusChip } from "@/entities/request";
 import { AccessDenied, type WorkViewProps } from "@/widgets/app-shell";
-import { selectBanners } from "../model/banners";
+import { useDraftEditing, type DraftEditing } from "../model/use-draft-editing";
 import { useRequestPage, type RequestPage } from "../model/use-request-page";
-import { HistoryTab } from "./history-tab";
-import { InfoTab } from "./info-tab";
-import { RequestBanners } from "./request-banners";
-import { RequestHeader, statusColorStyle, type DetailSub } from "./request-header";
-import { ResultTab } from "./result-tab";
+import { SaveConflictModal, SaveFailureBanner } from "./draft-chrome";
+import { statusColorStyle } from "./request-header";
+import { RequestTabBody } from "./request-tab-body";
 import type { SidePanelTab } from "./side-panel";
 import { WorkGrid } from "./work-grid";
 import header from "./header.module.css";
 
-const APPROVAL_STATUSES: readonly RequestStatus[] = ["APPROVAL_WAITING", "APPROVED"];
-
 /**
- * Request detail (`request`) and single-content (`content`) tab. Read-only in this build: action
- * buttons appear only for actions the server allows and this build implements.
+ * Request detail (`request`) and single-content (`content`) tab. A draft is edited in place by its
+ * author (autosave); other states are read-only in this build. Action buttons appear only for
+ * actions the server allows and this build implements.
  */
-export function RequestDetailView({ tab, me, setTitle, openTab }: WorkViewProps) {
+export function RequestDetailView({ tab, me, setTitle, setDirty, openTab }: WorkViewProps) {
   const id = tab.params.id ?? "";
   const state = useRequestPage(id);
   const goHome = () => openTab({ route: "home", params: {} });
   const isContentTab = tab.route === "content";
-  const ready = state.kind === "ready" ? state.page : null;
-  const title = ready
-    ? isContentTab
-      ? (ready.request.contents.find((c) => c.key === tab.params.key)?.title ?? "콘텐츠")
-      : ready.request.title || "제목 없는 요청"
-    : null;
-
-  useEffect(() => {
-    if (title !== null) setTitle(title);
-  }, [title, setTitle]);
 
   if (state.kind === "loading") {
     return (
@@ -60,7 +40,7 @@ export function RequestDetailView({ tab, me, setTitle, openTab }: WorkViewProps)
     return (
       <AccessDenied
         title={isContentTab ? "이 콘텐츠에 접근할 권한이 없습니다" : "이 요청에 접근할 권한이 없습니다"}
-        description={`${id}는 프로젝트 구성원과 고객사 관리자만 조회할 수 있습니다. 작성 중 요청은 작성한 요청자만 조회할 수 있습니다.`}
+        description={deniedDescription(id, isContentTab, state.draftPrivate)}
         onGoHome={goHome}
       />
     );
@@ -78,91 +58,94 @@ export function RequestDetailView({ tab, me, setTitle, openTab }: WorkViewProps)
       </Page>
     );
   }
-  const view = { page: state.page, meId: me.id, openTab };
-  return isContentTab ? (
-    <ContentTabBody {...view} contentKey={tab.params.key ?? ""} />
-  ) : (
-    <RequestTabBody {...view} meIsApprover={projectRoles(me, state.page.request.projectId).includes("APPROVER")} />
+  return (
+    <ReadyBody
+      page={state.page}
+      tabId={tab.id}
+      contentKey={isContentTab ? (tab.params.key ?? "") : null}
+      meId={me.id}
+      meIsApprover={projectRoles(me, state.page.request.projectId).includes("APPROVER")}
+      demo={me.demo}
+      openTab={openTab}
+      setTitle={setTitle}
+      setDirty={setDirty}
+    />
   );
 }
 
-interface BodyProps {
+/** Reference denied texts: someone else's draft vs. a request of a project the user is not in. */
+export function deniedDescription(id: string, contentTab: boolean, draftPrivate: boolean): string {
+  if (draftPrivate) {
+    return contentTab
+      ? "작성 중 요청의 콘텐츠는 작성한 요청자만 조회할 수 있습니다."
+      : `${id}는 아직 작성 중인 요청입니다. 작성 중 요청은 작성한 요청자만 조회할 수 있습니다.`;
+  }
+  return contentTab
+    ? "프로젝트 구성원과 고객사 관리자만 조회할 수 있습니다."
+    : `${id}는 다른 프로젝트의 요청입니다. 프로젝트 구성원과 고객사 관리자만 조회할 수 있습니다.`;
+}
+
+interface ReadyBodyProps {
+  page: RequestPage;
+  tabId: string;
+  /** Content tab: the content key; request tab: null. */
+  contentKey: string | null;
+  meId: number;
+  meIsApprover: boolean;
+  demo: boolean;
+  openTab: WorkViewProps["openTab"];
+  setTitle: WorkViewProps["setTitle"];
+  setDirty: WorkViewProps["setDirty"];
+}
+
+function ReadyBody(props: ReadyBodyProps) {
+  const { page, tabId, contentKey, setTitle, setDirty } = props;
+  const editing = useDraftEditing(page.request, tabId, setDirty);
+  const r = page.request;
+  const requestTitle = editing.canEditRequest ? editing.session.infoValue("title", r) : r.title;
+  const content = contentKey === null ? null : r.contents.find((c) => c.key === contentKey);
+  const title =
+    contentKey === null
+      ? requestTitle || "제목 없는 요청"
+      : content
+        ? editing.session.content(content).title
+        : "콘텐츠";
+
+  useEffect(() => {
+    setTitle(title);
+  }, [title, setTitle]);
+
+  if (contentKey === null) {
+    return (
+      <RequestTabBody
+        page={page}
+        meId={props.meId}
+        meIsApprover={props.meIsApprover}
+        demo={props.demo}
+        openTab={props.openTab}
+        editing={editing}
+      />
+    );
+  }
+  return <ContentTabBody page={page} meId={props.meId} openTab={props.openTab} contentKey={contentKey} editing={editing} title={title} />;
+}
+
+interface ContentTabBodyProps {
   page: RequestPage;
   meId: number;
   openTab: WorkViewProps["openTab"];
+  contentKey: string;
+  editing: DraftEditing;
+  title: string;
 }
 
-function RequestTabBody({ page, meId, meIsApprover, openTab }: BodyProps & { meIsApprover: boolean }) {
-  const r = page.request;
-  const [sub, setSub] = useState<DetailSub | null>(null);
-  const [contentKey, setContentKey] = useState<string | null>(null);
-  const [sideTab, setSideTab] = useState<SidePanelTab>("proof");
-  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("all");
-  const types = useContentTypes();
-  const performable = performableActions(r.allowedActions);
-  const isFinal = FINAL_STATUSES.includes(r.status);
-  const defaultSub: DetailSub = r.status === "DRAFT" && !r.title ? "info" : "contents";
-  const current: DetailSub = sub === "result" && !isFinal ? "contents" : (sub ?? defaultSub);
-  const approvalEnabled = page.customer?.approvalEnabled ?? APPROVAL_STATUSES.includes(r.status);
-  const banners = selectBanners(r, { meId, meIsApprover, name: page.users.name });
-  const openRequest = (id: string) => openTab({ route: "request", params: { id } });
-
-  return (
-    <>
-      <RequestHeader
-        page={page}
-        approvalEnabled={approvalEnabled}
-        sub={current}
-        onSub={setSub}
-        performable={performable}
-        onAction={() => undefined}
-        onOpenRequest={openRequest}
-        onOpenList={() => openTab({ route: "requests", params: {} })}
-      />
-      <div className={header.reqBody}>
-        <RequestBanners
-          banners={banners}
-          performable={performable}
-          onAnswer={() => {
-            setSub("contents");
-            setSideTab("ask");
-          }}
-          onShowResult={() => setSub("result")}
-          onDecideRecall={() => undefined}
-        />
-        {current === "contents" ? (
-          <WorkGrid
-            page={page}
-            meId={meId}
-            contentKey={contentKey}
-            onSelectContent={setContentKey}
-            sideTab={sideTab}
-            onSideTab={setSideTab}
-            onOpenContent={(key) => openTab({ route: "content", params: { id: r.id, key } })}
-          />
-        ) : null}
-        {current === "info" ? (
-          <InfoTab
-            page={page}
-            activeTypes={(types.data ?? []).filter((t) => t.active).map((t) => t.type)}
-            onOpenRequest={openRequest}
-          />
-        ) : null}
-        {current === "hist" ? (
-          <HistoryTab requestId={r.id} users={page.users} filter={historyFilter} onFilter={setHistoryFilter} />
-        ) : null}
-        {current === "result" ? <ResultTab page={page} /> : null}
-      </div>
-    </>
-  );
-}
-
-function ContentTabBody({ page, meId, openTab, contentKey }: BodyProps & { contentKey: string }) {
+function ContentTabBody({ page, meId, openTab, contentKey, editing, title }: ContentTabBodyProps) {
   const r = page.request;
   const [sideTab, setSideTab] = useState<SidePanelTab>("proof");
   const content = r.contents.find((c) => c.key === contentKey);
   return (
     <>
+      <SaveFailureBanner editing={editing} />
       <div className={`${header.reqHead} ${header.contentHead}`} style={statusColorStyle(r)}>
         <div className={header.crumb}>
           <Link
@@ -173,11 +156,11 @@ function ContentTabBody({ page, meId, openTab, contentKey }: BodyProps & { conte
               openTab({ route: "request", params: { id: r.id } });
             }}
           >
-            {r.id} {r.title}
+            {r.id} {editing.canEditRequest ? editing.session.infoValue("title", r) : r.title}
           </Link>
         </div>
         <div className={header.reqTitle}>
-          <h1>{content?.title ?? ""}</h1>
+          <h1>{content ? title : ""}</h1>
           <RequestStatusChip status={r.status} />
           <RoundBadge>{r.round}차</RoundBadge>
         </div>
@@ -193,11 +176,13 @@ function ContentTabBody({ page, meId, openTab, contentKey }: BodyProps & { conte
             sideTab={sideTab}
             onSideTab={setSideTab}
             onOpenContent={(key) => openTab({ route: "content", params: { id: r.id, key } })}
+            editing={editing.canEditContent ? editing : null}
           />
         ) : (
           <Empty title="콘텐츠가 없습니다" description={`${r.id}에 ${contentKey} 콘텐츠가 없습니다.`} />
         )}
       </div>
+      <SaveConflictModal editing={editing} />
     </>
   );
 }

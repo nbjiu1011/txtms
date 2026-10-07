@@ -76,6 +76,7 @@ function MockPanel({ page, content }: { page: RequestPage; content: Content }) {
       customerName={page.customer?.name ?? ""}
       templateName={page.project?.templates.find((t) => t.code === templateCode)?.name ?? null}
       values={page.variableValues}
+      requestId={r.id}
     />
   );
 }

@@ -44,3 +44,4 @@ next-env.d.ts
 /e2e/visual/out/
 /test-results/
 /playwright-report/
+/e2e/real/out/

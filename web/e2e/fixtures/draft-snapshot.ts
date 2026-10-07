@@ -1,0 +1,171 @@
+// Captured from the demo API (M1 build) for the draft editing screens. Regenerate by hand when the seed changes.
+import type { HistoryEntry, RequestDetail } from "@/entities/request";
+import type { Variable } from "@/entities/variable";
+
+export const request105U1: RequestDetail = {
+  "id": "REQ-2609-105",
+  "projectId": 1,
+  "type": "ALIMTALK",
+  "title": "연말 캐시백 알림톡",
+  "status": "DRAFT",
+  "round": 1,
+  "requesterId": 1,
+  "reviewerIds": [],
+  "primaryReviewerId": null,
+  "leadUserId": 3,
+  "hopeDueDate": "2026-10-15",
+  "dueDate": "2026-10-15",
+  "urgency": "NORMAL",
+  "submittedAt": null,
+  "createdAt": "2026-10-07T02:00:00Z",
+  "completedAt": null,
+  "recallRequested": false,
+  "parentRequestId": null,
+  "campaign": "2026 Q4 적립",
+  "dueSoon": false,
+  "overdue": false,
+  "contentCount": 1,
+  "contentVersions": [
+    1
+  ],
+  "volume": {
+    "chars": 79,
+    "files": []
+  },
+  "purpose": "연말 캐시백 이벤트 사전 안내",
+  "target": null,
+  "background": null,
+  "recall": null,
+  "parent": null,
+  "contents": [
+    {
+      "key": "C1",
+      "title": "캐시백 사전 안내",
+      "version": 1,
+      "payload": {
+        "body": "#{customer_name}님, 12월 한 달 동안 결제 금액의 최대 3%를 캐시백해 드려요. 참여 신청은 11월 25일부터 할수 있습니다.",
+        "buttons": [],
+        "templateCode": ""
+      },
+      "files": [],
+      "lock": null,
+      "savedAt": null,
+      "versions": []
+    }
+  ],
+  "opinions": [],
+  "asks": [],
+  "eligibleApproverIds": [
+    4
+  ],
+  "historyCount": 1,
+  "stageTimes": {
+    "DRAFT": "2026-10-07T02:00:00Z",
+    "WAITING": null,
+    "IN_REVIEW": null,
+    "COMPLETED": null,
+    "APPROVED": null
+  },
+  "bundle": null,
+  "allowedActions": [
+    "EDIT_REQUEST",
+    "EDIT_CONTENT",
+    "SUBMIT",
+    "CLONE"
+  ],
+  "rowVersion": 0
+};
+
+export const history105: HistoryEntry[] = [
+  {
+    "id": 12,
+    "at": "2026-10-07T02:00:00Z",
+    "actorId": 1,
+    "action": "요청 작성",
+    "detail": null,
+    "contentKey": null,
+    "contentTitle": null,
+    "round": 1
+  }
+];
+
+export const variablesP1: Variable[] = [
+  {
+    "id": 1,
+    "projectId": 1,
+    "key": "customer_name",
+    "description": "수신 고객 이름",
+    "type": "TEXT",
+    "value": "홍길동",
+    "active": true,
+    "inUse": true,
+    "createdBy": 5,
+    "createdAt": "2026-08-28T01:00:00Z",
+    "updatedAt": "2026-08-28T01:00:00Z"
+  },
+  {
+    "id": 2,
+    "projectId": 1,
+    "key": "points",
+    "description": "이벤트 적립 예정 포인트",
+    "type": "TEXT",
+    "value": "5,000",
+    "active": true,
+    "inUse": true,
+    "createdBy": 1,
+    "createdAt": "2026-09-07T01:00:00Z",
+    "updatedAt": "2026-09-07T01:00:00Z"
+  },
+  {
+    "id": 3,
+    "projectId": 1,
+    "key": "event_period",
+    "description": "이벤트 진행 기간",
+    "type": "TEXT",
+    "value": "10/1~10/31",
+    "active": true,
+    "inUse": true,
+    "createdBy": 1,
+    "createdAt": "2026-09-07T01:00:00Z",
+    "updatedAt": "2026-09-07T01:00:00Z"
+  },
+  {
+    "id": 4,
+    "projectId": 1,
+    "key": "billing_amount",
+    "description": "당월 청구 금액",
+    "type": "TEXT",
+    "value": "152,300원",
+    "active": true,
+    "inUse": true,
+    "createdBy": 5,
+    "createdAt": "2026-08-28T01:00:00Z",
+    "updatedAt": "2026-08-28T01:00:00Z"
+  },
+  {
+    "id": 5,
+    "projectId": 1,
+    "key": "payment_day",
+    "description": "카드 결제일",
+    "type": "TEXT",
+    "value": "25일",
+    "active": true,
+    "inUse": true,
+    "createdBy": 5,
+    "createdAt": "2026-08-28T01:00:00Z",
+    "updatedAt": "2026-08-28T01:00:00Z"
+  },
+  {
+    "id": 6,
+    "projectId": 1,
+    "key": "card_name",
+    "description": "보유 카드 상품명",
+    "type": "TEXT",
+    "value": "한빛 프리미엄",
+    "active": true,
+    "inUse": false,
+    "createdBy": 2,
+    "createdAt": "2026-09-25T01:00:00Z",
+    "updatedAt": "2026-09-25T01:00:00Z"
+  }
+];

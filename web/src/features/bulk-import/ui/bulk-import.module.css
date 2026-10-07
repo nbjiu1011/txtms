@@ -1,0 +1,31 @@
+/* `p.small.muted{margin-top:0}` */
+.intro {
+  margin-top: 0;
+  font-size: 12px;
+  color: var(--sub);
+}
+/* `.row{margin-bottom:14px}` */
+.buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.summary {
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.cell {
+  font-size: 12px;
+  max-width: 220px;
+}
+.result {
+  font-size: 12px;
+}
+.error {
+  color: var(--danger);
+}
+.hidden {
+  display: none;
+}

@@ -62,6 +62,12 @@ export interface RequestVolume {
   files: FileAmount[];
 }
 
+/** Content key and title as listed in summaries (`contents` of RequestSummary). */
+export interface ContentRef {
+  key: string;
+  title: string;
+}
+
 export interface RequestSummary {
   id: string;
   projectId: number;
@@ -86,6 +92,8 @@ export interface RequestSummary {
   overdue: boolean;
   contentCount: number;
   contentVersions: number[];
+  /** Keys and titles of the current contents (detail narrows this to full `Content`). */
+  contents: ContentRef[];
   volume: RequestVolume;
 }
 
@@ -153,9 +161,10 @@ export interface FileMeta {
   ext: string;
   unit: FileUnit;
   sizeBytes: number;
-  totalAmount: number;
-  reviewAmount: number;
-  rangeNote: string;
+  /** null until entered (the range rule is checked on submit). */
+  totalAmount: number | null;
+  reviewAmount: number | null;
+  rangeNote: string | null;
   version: number;
   scanStatus: FileScanStatus;
   versions: FileVersionMeta[];
@@ -262,9 +271,10 @@ export interface StageTimes {
 }
 
 export interface RequestDetail extends RequestSummary {
-  purpose: string;
-  target: string;
-  background: string;
+  /** null until entered (PATCH with null clears a value). */
+  purpose: string | null;
+  target: string | null;
+  background: string | null;
   recall: RecallInfo | null;
   parent: ParentRef | null;
   contents: Content[];
@@ -282,6 +292,29 @@ export interface RequestDetail extends RequestSummary {
 export type RequestInfoPatch = Partial<
   Pick<RequestDetail, "title" | "hopeDueDate" | "purpose" | "target" | "background" | "campaign" | "urgency">
 >;
+
+/* ---------- write bodies (§3.7, §4, §5) ---------- */
+
+/** `POST /api/requests`. */
+export interface RequestCreate {
+  projectId: number;
+  /** Omitted: the first active type. */
+  type?: ContentType;
+}
+
+/** `PUT /api/requests/{id}/contents/{key}` — draft autosave. */
+export interface ContentSave {
+  title: string;
+  payload: ContentPayload;
+  /** `savedAt` the client last loaded; a newer server save is a `VERSION_CONFLICT`. */
+  expectedSavedAt?: string | null;
+}
+
+/** `PATCH .../files/{fileId}` — review range of an attachment. */
+export type FileRangePatch = Pick<FileMeta, "totalAmount" | "reviewAmount" | "rangeNote">;
+
+/** Row of `POST /api/requests/{id}/bulk-import/commit`. */
+export type BulkCommitRow = Pick<BulkImportRow, "title" | "payload">;
 
 /* ---------- history (§3.7) ---------- */
 

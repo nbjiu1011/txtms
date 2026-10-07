@@ -1,0 +1,61 @@
+/* search row: `padding:10px 12px;border-bottom:1px solid var(--line)` */
+.search {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.list {
+  max-height: 220px;
+}
+.var {
+  background: var(--var-bg);
+  color: var(--var-ink);
+  border-radius: 3px;
+  padding: 0 3px;
+  font-size: 0.95em;
+}
+.desc {
+  flex: 1;
+  font-size: 12px;
+  color: var(--sub);
+}
+.value {
+  font-size: 12px;
+  color: var(--faint);
+}
+.project {
+  font-size: 12px;
+  color: var(--faint);
+}
+.empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--sub);
+}
+/* "새 변수 등록" footer: `padding:12px;border-top:1px solid var(--line)` */
+.register {
+  padding: 12px;
+  border-top: 1px solid var(--line);
+}
+.registerTitle {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sub);
+  margin-bottom: 6px;
+}
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 6px;
+  margin-bottom: 6px;
+  align-items: start;
+}
+.cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}

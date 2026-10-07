@@ -11,7 +11,8 @@ import { useProjectVariables } from "@/entities/variable";
 export type RequestPageState =
   | { kind: "loading" }
   | { kind: "notFound" }
-  | { kind: "forbidden" }
+  /** 403: `draftPrivate` when it is someone else's draft (`DRAFT_PRIVATE`). */
+  | { kind: "forbidden"; draftPrivate: boolean }
   | { kind: "error"; message: string; retry: () => void }
   | { kind: "ready"; page: RequestPage };
 
@@ -46,7 +47,7 @@ export function useRequestPage(id: string): RequestPageState {
   if (detail.isError) {
     const error = detail.error;
     if (isApiError(error) && error.status === 404) return { kind: "notFound" };
-    if (isApiError(error) && error.status === 403) return { kind: "forbidden" };
+    if (isApiError(error) && error.status === 403) return { kind: "forbidden", draftPrivate: error.code === "DRAFT_PRIVATE" };
     return { kind: "error", message: error.message, retry: () => void detail.refetch() };
   }
   if (!request) return { kind: "loading" };

@@ -2,6 +2,7 @@ import { ReadOnlyBox } from "@/shared/ui";
 import { normalizePayload } from "../model/payload";
 import { isShortSms, smsBytes, smsFullText } from "../model/sms";
 import type { AlimtalkPayload, ContentPayload, ContentType, RcsPayload, SmsPayload } from "../model/types";
+import { RequestImage } from "./request-image";
 import { VariableText } from "./variable-text";
 import styles from "./content-mockup.module.css";
 
@@ -15,8 +16,8 @@ export interface ContentMockupProps {
   templateName?: string | null;
   /** Variable values for substitution; unknown tokens stay chips. */
   values?: ReadonlyMap<string, string>;
-  /** Image URL of an RCS card image key (null: not available). */
-  imageUrl?: (imageKey: string) => string | null;
+  /** Request of the contents: RCS card images are loaded from it (omit to show only the alt text). */
+  requestId?: string;
 }
 
 const NOTE = "표시 형태 확인용 화면입니다. 채널 등록, 심사 통과, 발송 성공을 확인하지 않습니다.";
@@ -77,18 +78,21 @@ function Sms({ payload, values }: ContentMockupProps & { payload: SmsPayload }) 
   );
 }
 
-function Rcs({ payload, values, imageUrl }: ContentMockupProps & { payload: RcsPayload }) {
+function Rcs({ payload, values, requestId }: ContentMockupProps & { payload: RcsPayload }) {
   return (
     <div className={styles.phoneIn}>
       <div className={styles.topT}>RCS 카드 {payload.cards.length}장</div>
       <div className={styles.rcsRow}>
         {payload.cards.map((card, i) => {
-          const src = card.imageKey ? (imageUrl?.(card.imageKey) ?? null) : null;
+          const label = card.imageKey ? card.imageAlt || "이미지" : "이미지 없음";
           return (
             <div key={i} className={styles.rcsCard}>
               <div className={styles.rcsImg}>
-                {/* eslint-disable-next-line @next/next/no-img-element -- authenticated blob URL, not optimisable */}
-                {src ? <img src={src} alt={card.imageAlt} /> : card.imageKey ? card.imageAlt || "이미지" : "이미지 없음"}
+                {card.imageKey && requestId ? (
+                  <RequestImage requestId={requestId} imageKey={card.imageKey} alt={card.imageAlt} fallback={label} />
+                ) : (
+                  label
+                )}
               </div>
               <b>{card.title || "제목"}</b>
               <p>

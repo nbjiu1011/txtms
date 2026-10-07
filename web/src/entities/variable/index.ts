@@ -1,4 +1,4 @@
-export { VARIABLE_TYPES, VARIABLE_TYPE_LABEL } from "./model/types";
+export { VARIABLE_TYPES, VARIABLE_TYPE_LABEL, VARIABLE_TYPE_OPTION_LABEL } from "./model/types";
 export type {
   Variable,
   VariableCreate,
@@ -7,4 +7,4 @@ export type {
   VariableSnapshot,
   VariableType,
 } from "./model/types";
-export { useProjectVariables, variableKeys } from "./api/variable-queries";
+export { createVariable, useProjectVariables, variableKeys } from "./api/variable-queries";

@@ -158,3 +158,28 @@ div.resultHead h1 {
     grid-template-columns: 1fr;
   }
 }
+
+/* save indicator at the right of the 요청 정보 panel header (`margin-left:auto`) */
+.saveRight {
+  margin-left: auto;
+  display: inline-flex;
+}
+.saveBanner {
+  margin-bottom: 12px;
+}
+.modalNote {
+  font-size: 12px;
+  color: var(--faint);
+}
+/* demo-only scan control (`.panel{margin:16px}` at the end of the request view) */
+.demoPanel {
+  margin: 16px 0 0;
+}
+.demoNote {
+  font-size: 12px;
+  margin: 6px 0;
+}
+.demoSelect {
+  width: auto;
+  min-width: 160px;
+}

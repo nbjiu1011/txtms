@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { Button, Empty, Icon, Page, PageHeader, Panel } from "@/shared/ui";
+import { Button, Empty, Page, PageHeader, Panel } from "@/shared/ui";
 import { isCustomerAdmin, projectRoles } from "@/entities/me";
 import {
   EMPTY_REQUEST_FILTERS,
@@ -11,6 +11,7 @@ import {
   type RequestFilters,
 } from "@/entities/request";
 import { useUserDirectory, type UserSummary } from "@/entities/user";
+import { NewRequestButton } from "@/features/request-create";
 import type { WorkViewProps } from "@/widgets/app-shell";
 import { RequestFilterBar } from "./request-filters";
 import { RequestTable } from "./request-table";
@@ -60,10 +61,8 @@ export function RequestListView({ me, context, openTab }: WorkViewProps) {
         title="요청"
         description={`${project?.name ?? ""} 프로젝트의 모든 요청입니다. 프로젝트 구성원은 담당 여부와 관계없이 조회할 수 있습니다.`}
         actions={
-          REQUEST_CREATE_IMPLEMENTED && roles.includes("REQUESTER") ? (
-            <Button variant="pri">
-              <Icon name="plus" />새 요청
-            </Button>
+          REQUEST_CREATE_IMPLEMENTED && projectId !== null && roles.includes("REQUESTER") ? (
+            <NewRequestButton projectId={projectId} onOpenRequest={openRequest} />
           ) : undefined
         }
       />

@@ -129,6 +129,15 @@ export function refreshSession(): Promise<SessionPayload | null> {
   return refreshInFlight;
 }
 
+/**
+ * Ends the session after an authenticated call failed with 401 and the refresh also failed
+ * (shared by the fetch client and the XHR upload client).
+ */
+export function endSession(error: ApiError): void {
+  setAccessToken(null);
+  handlers.onUnauthenticated?.(lastRefreshError?.code === "SESSION_EXPIRED" ? lastRefreshError : error);
+}
+
 /** Sends a call with the bearer token; on 401 refreshes once (shared) and retries. */
 async function sendWithAuth(path: string, options: RequestOptions): Promise<Response> {
   const withAuth = options.auth !== false;
@@ -142,8 +151,7 @@ async function sendWithAuth(path: string, options: RequestOptions): Promise<Resp
     if (response.status === 401) {
       const payload = await readBody(response);
       const error = new ApiError(401, toApiErrorBody(401, payload));
-      setAccessToken(null);
-      handlers.onUnauthenticated?.(lastRefreshError?.code === "SESSION_EXPIRED" ? lastRefreshError : error);
+      endSession(error);
       throw error;
     }
   }
@@ -193,6 +201,16 @@ export async function downloadFile(path: string, fallbackName: string): Promise<
   anchor.click();
   anchor.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** Binary GET with the bearer token (e.g. an image shown through an object URL). */
+export async function getBlob(path: string, options?: Pick<RequestOptions, "signal">): Promise<Blob> {
+  const response = await sendWithAuth(path, { headers: { Accept: "*/*" }, signal: options?.signal });
+  if (!response.ok) {
+    const payload = await readBody(response);
+    throw new ApiError(response.status, toApiErrorBody(response.status, payload));
+  }
+  return response.blob();
 }
 
 export const http = {

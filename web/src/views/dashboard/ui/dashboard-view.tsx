@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { formatKstToday } from "@/shared/lib";
 import { ROUTES } from "@/shared/config/routes";
-import { Banner, Button, Empty, Icon, Kpi, KpiGrid, Page, PageHeader, Panel } from "@/shared/ui";
+import { Banner, Button, Empty, Kpi, KpiGrid, Page, PageHeader, Panel } from "@/shared/ui";
 import { useDashboard } from "@/entities/dashboard";
 import { projectRoles } from "@/entities/me";
 import {
@@ -15,6 +15,7 @@ import {
   type RequestListParams,
 } from "@/entities/request";
 import { useUserDirectory } from "@/entities/user";
+import { NewRequestButton } from "@/features/request-create";
 import type { WorkViewProps } from "@/widgets/app-shell";
 import { NoticePanel, RecentPanel, TodoPanel, WorkloadPanel } from "./dashboard-panels";
 import { PipelineBar } from "./pipeline-bar";
@@ -55,10 +56,8 @@ export function DashboardView({ me, context, openTab }: WorkViewProps) {
       title={`${me.name}님, 오늘 처리할 업무입니다`}
       description={project ? `${project.name} 프로젝트 기준입니다.` : undefined}
       actions={
-        REQUEST_CREATE_IMPLEMENTED && roles.includes("REQUESTER") ? (
-          <Button variant="pri">
-            <Icon name="plus" />새 요청
-          </Button>
+        REQUEST_CREATE_IMPLEMENTED && projectId !== null && roles.includes("REQUESTER") ? (
+          <NewRequestButton projectId={projectId} onOpenRequest={openRequest} />
         ) : undefined
       }
     />

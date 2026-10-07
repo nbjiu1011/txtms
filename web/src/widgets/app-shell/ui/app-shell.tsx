@@ -22,7 +22,7 @@ import {
 import { ESCAPE_PRIORITY, toast, useEscapeLayer } from "@/shared/ui";
 import { canAccessRoute, useSessionStore, type AccessContext, type Me } from "@/entities/me";
 import { MAX_TABS, TAB_LIMIT_MESSAGE, findTab, type WorkTab } from "../model/tab-model";
-import { getActiveTab, useTabStore } from "../model/tab-store";
+import { getActiveTab, hasDirtyTab, useTabStore } from "../model/tab-store";
 import { useMenuCounts } from "../model/use-menu-counts";
 import { useOpenNotifiedRequest } from "../model/use-open-notified-request";
 import { useWorkContext } from "../model/use-work-context";
@@ -107,6 +107,17 @@ function Workspace({ me, views }: { me: Me; views: WorkViewRegistry }) {
       }
     }
   }, [pathname, me.id, router]);
+
+  // Leaving the page with unsaved changes asks the browser's confirmation.
+  useEffect(() => {
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!hasDirtyTab()) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, []);
 
   // Per-tab scroll position of the shared scroll container.
   useLayoutEffect(() => {

@@ -1,0 +1,11 @@
+/* reference `p.small.faint` under modal bodies */
+.note {
+  font-size: 12px;
+  color: var(--faint);
+}
+/* reference missing-items list `ul{margin:0;padding-left:18px;line-height:1.9}` */
+.missing {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.9;
+}

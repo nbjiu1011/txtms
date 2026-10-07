@@ -60,3 +60,13 @@ export function getActiveTab(): WorkTab | undefined {
   const { tabs, activeId } = useTabStore.getState();
   return tabs.find((tab) => tab.id === activeId);
 }
+
+/** The work tab is still open (background work of a closed tab stops). */
+export function isTabOpen(tabId: string): boolean {
+  return useTabStore.getState().tabs.some((tab) => tab.id === tabId);
+}
+
+/** Some open tab holds unsaved changes (page leave warning). */
+export function hasDirtyTab(): boolean {
+  return useTabStore.getState().tabs.some((tab) => tab.dirty);
+}

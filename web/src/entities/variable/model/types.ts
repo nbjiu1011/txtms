@@ -9,6 +9,14 @@ export const VARIABLE_TYPE_LABEL: Record<VariableType, string> = {
   LINK: "링크",
 };
 
+/** Type options of the registration form (value format hint per type). */
+export const VARIABLE_TYPE_OPTION_LABEL: Record<VariableType, string> = {
+  TEXT: "텍스트",
+  NUMBER: "정수/소수",
+  DATE: "날짜 YYYY-MM-DD",
+  LINK: "HTTP/HTTPS 링크",
+};
+
 export interface Variable {
   id: number;
   projectId: number;

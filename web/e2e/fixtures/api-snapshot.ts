@@ -173,6 +173,12 @@ export const dashboardU1: Dashboard = {
       "contentVersions": [
         1
       ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "캐시백 사전 안내"
+        }
+      ],
       "volume": {
         "chars": 79,
         "files": []
@@ -203,6 +209,12 @@ export const dashboardU1: Dashboard = {
       "contentCount": 1,
       "contentVersions": [
         1
+      ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "운영 시간 안내"
+        }
       ],
       "volume": {
         "chars": 71,
@@ -237,6 +249,12 @@ export const dashboardU1: Dashboard = {
       "contentCount": 1,
       "contentVersions": [
         1
+      ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "약관 개정 고지문"
+        }
       ],
       "volume": {
         "chars": 0,
@@ -279,6 +297,20 @@ export const dashboardU1: Dashboard = {
         1,
         1
       ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "이벤트 참여 안내"
+        },
+        {
+          "key": "C2",
+          "title": "적립 예정 안내"
+        },
+        {
+          "key": "C3",
+          "title": "미참여 고객 리마인드"
+        }
+      ],
       "volume": {
         "chars": 247,
         "files": []
@@ -313,6 +345,16 @@ export const dashboardU1: Dashboard = {
         1,
         1
       ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "면제 안내 본문"
+        },
+        {
+          "key": "C2",
+          "title": "카드사 앱 유도"
+        }
+      ],
       "volume": {
         "chars": 121,
         "files": []
@@ -345,6 +387,12 @@ export const dashboardU1: Dashboard = {
       "contentCount": 1,
       "contentVersions": [
         1
+      ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "분실 신고 절차"
+        }
       ],
       "volume": {
         "chars": 53,
@@ -402,6 +450,12 @@ export const requestListU1: Page<RequestSummary> = {
       "contentVersions": [
         1
       ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "캐시백 사전 안내"
+        }
+      ],
       "volume": {
         "chars": 79,
         "files": []
@@ -432,6 +486,12 @@ export const requestListU1: Page<RequestSummary> = {
       "contentCount": 1,
       "contentVersions": [
         1
+      ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "운영 시간 안내"
+        }
       ],
       "volume": {
         "chars": 71,
@@ -466,6 +526,12 @@ export const requestListU1: Page<RequestSummary> = {
       "contentCount": 1,
       "contentVersions": [
         1
+      ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "약관 개정 고지문"
+        }
       ],
       "volume": {
         "chars": 0,
@@ -508,6 +574,20 @@ export const requestListU1: Page<RequestSummary> = {
         1,
         1
       ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "이벤트 참여 안내"
+        },
+        {
+          "key": "C2",
+          "title": "적립 예정 안내"
+        },
+        {
+          "key": "C3",
+          "title": "미참여 고객 리마인드"
+        }
+      ],
       "volume": {
         "chars": 247,
         "files": []
@@ -542,6 +622,16 @@ export const requestListU1: Page<RequestSummary> = {
         1,
         1
       ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "면제 안내 본문"
+        },
+        {
+          "key": "C2",
+          "title": "카드사 앱 유도"
+        }
+      ],
       "volume": {
         "chars": 121,
         "files": []
@@ -574,6 +664,12 @@ export const requestListU1: Page<RequestSummary> = {
       "contentCount": 1,
       "contentVersions": [
         1
+      ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "분실 신고 절차"
+        }
       ],
       "volume": {
         "chars": 53,
@@ -609,6 +705,12 @@ export const requestListU1: Page<RequestSummary> = {
       "contentVersions": [
         1
       ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "청구 금액 안내"
+        }
+      ],
       "volume": {
         "chars": 95,
         "files": []
@@ -643,6 +745,12 @@ export const requestListU1: Page<RequestSummary> = {
       "contentVersions": [
         2
       ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "리뉴얼 소개 캐러셀"
+        }
+      ],
       "volume": {
         "chars": 72,
         "files": []
@@ -675,6 +783,12 @@ export const requestListU1: Page<RequestSummary> = {
       "contentCount": 1,
       "contentVersions": [
         1
+      ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "청구 금액 안내"
+        }
       ],
       "volume": {
         "chars": 70,
@@ -1350,6 +1464,12 @@ export const dashboardU3: Dashboard = {
       "contentVersions": [
         1
       ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "운영 시간 안내"
+        }
+      ],
       "volume": {
         "chars": 71,
         "files": []
@@ -1383,6 +1503,12 @@ export const dashboardU3: Dashboard = {
       "contentCount": 1,
       "contentVersions": [
         1
+      ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "약관 개정 고지문"
+        }
       ],
       "volume": {
         "chars": 0,
@@ -1425,6 +1551,20 @@ export const dashboardU3: Dashboard = {
         1,
         1
       ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "이벤트 참여 안내"
+        },
+        {
+          "key": "C2",
+          "title": "적립 예정 안내"
+        },
+        {
+          "key": "C3",
+          "title": "미참여 고객 리마인드"
+        }
+      ],
       "volume": {
         "chars": 247,
         "files": []
@@ -1459,6 +1599,16 @@ export const dashboardU3: Dashboard = {
         1,
         1
       ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "면제 안내 본문"
+        },
+        {
+          "key": "C2",
+          "title": "카드사 앱 유도"
+        }
+      ],
       "volume": {
         "chars": 121,
         "files": []
@@ -1491,6 +1641,12 @@ export const dashboardU3: Dashboard = {
       "contentCount": 1,
       "contentVersions": [
         1
+      ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "분실 신고 절차"
+        }
       ],
       "volume": {
         "chars": 53,
@@ -1525,6 +1681,12 @@ export const dashboardU3: Dashboard = {
       "contentCount": 1,
       "contentVersions": [
         1
+      ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "청구 금액 안내"
+        }
       ],
       "volume": {
         "chars": 95,
@@ -1844,6 +2006,12 @@ export const dashboardU11: Dashboard = {
       "contentVersions": [
         1
       ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "운영 시간 안내"
+        }
+      ],
       "volume": {
         "chars": 71,
         "files": []
@@ -1877,6 +2045,12 @@ export const dashboardU11: Dashboard = {
       "contentCount": 1,
       "contentVersions": [
         1
+      ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "약관 개정 고지문"
+        }
       ],
       "volume": {
         "chars": 0,
@@ -1919,6 +2093,20 @@ export const dashboardU11: Dashboard = {
         1,
         1
       ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "이벤트 참여 안내"
+        },
+        {
+          "key": "C2",
+          "title": "적립 예정 안내"
+        },
+        {
+          "key": "C3",
+          "title": "미참여 고객 리마인드"
+        }
+      ],
       "volume": {
         "chars": 247,
         "files": []
@@ -1953,6 +2141,16 @@ export const dashboardU11: Dashboard = {
         1,
         1
       ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "면제 안내 본문"
+        },
+        {
+          "key": "C2",
+          "title": "카드사 앱 유도"
+        }
+      ],
       "volume": {
         "chars": 121,
         "files": []
@@ -1985,6 +2183,12 @@ export const dashboardU11: Dashboard = {
       "contentCount": 1,
       "contentVersions": [
         1
+      ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "분실 신고 절차"
+        }
       ],
       "volume": {
         "chars": 53,
@@ -2019,6 +2223,12 @@ export const dashboardU11: Dashboard = {
       "contentCount": 1,
       "contentVersions": [
         1
+      ],
+      "contents": [
+        {
+          "key": "C1",
+          "title": "청구 금액 안내"
+        }
       ],
       "volume": {
         "chars": 95,
@@ -2117,6 +2327,12 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "contentVersions": [
             1
           ],
+          "contents": [
+            {
+              "key": "C1",
+              "title": "캐시백 사전 안내"
+            }
+          ],
           "volume": {
             "chars": 79,
             "files": []
@@ -2160,6 +2376,16 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "contentVersions": [
             1,
             1
+          ],
+          "contents": [
+            {
+              "key": "C1",
+              "title": "면제 안내 본문"
+            },
+            {
+              "key": "C2",
+              "title": "카드사 앱 유도"
+            }
           ],
           "volume": {
             "chars": 121,
@@ -2597,6 +2823,12 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "contentVersions": [
             1
           ],
+          "contents": [
+            {
+              "key": "C1",
+              "title": "약관 개정 고지문"
+            }
+          ],
           "volume": {
             "chars": 0,
             "files": [
@@ -2985,6 +3217,12 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "contentVersions": [
             1
           ],
+          "contents": [
+            {
+              "key": "C1",
+              "title": "운영 시간 안내"
+            }
+          ],
           "volume": {
             "chars": 71,
             "files": []
@@ -3018,6 +3256,12 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "contentCount": 1,
           "contentVersions": [
             1
+          ],
+          "contents": [
+            {
+              "key": "C1",
+              "title": "약관 개정 고지문"
+            }
           ],
           "volume": {
             "chars": 0,
@@ -3060,6 +3304,20 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
             1,
             1
           ],
+          "contents": [
+            {
+              "key": "C1",
+              "title": "이벤트 참여 안내"
+            },
+            {
+              "key": "C2",
+              "title": "적립 예정 안내"
+            },
+            {
+              "key": "C3",
+              "title": "미참여 고객 리마인드"
+            }
+          ],
           "volume": {
             "chars": 247,
             "files": []
@@ -3094,6 +3352,16 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
             1,
             1
           ],
+          "contents": [
+            {
+              "key": "C1",
+              "title": "면제 안내 본문"
+            },
+            {
+              "key": "C2",
+              "title": "카드사 앱 유도"
+            }
+          ],
           "volume": {
             "chars": 121,
             "files": []
@@ -3126,6 +3394,12 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "contentCount": 1,
           "contentVersions": [
             1
+          ],
+          "contents": [
+            {
+              "key": "C1",
+              "title": "분실 신고 절차"
+            }
           ],
           "volume": {
             "chars": 53,
@@ -3160,6 +3434,12 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "contentCount": 1,
           "contentVersions": [
             1
+          ],
+          "contents": [
+            {
+              "key": "C1",
+              "title": "청구 금액 안내"
+            }
           ],
           "volume": {
             "chars": 95,
@@ -3308,6 +3588,12 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "contentVersions": [
             1
           ],
+          "contents": [
+            {
+              "key": "C1",
+              "title": "약관 개정 고지문"
+            }
+          ],
           "volume": {
             "chars": 0,
             "files": [
@@ -3353,6 +3639,12 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "contentCount": 1,
           "contentVersions": [
             1
+          ],
+          "contents": [
+            {
+              "key": "C1",
+              "title": "운영 시간 안내"
+            }
           ],
           "volume": {
             "chars": 71,
@@ -3721,6 +4013,12 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "contentVersions": [
             2
           ],
+          "contents": [
+            {
+              "key": "C1",
+              "title": "리뉴얼 소개 캐러셀"
+            }
+          ],
           "volume": {
             "chars": 72,
             "files": []
@@ -4062,6 +4360,12 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "contentVersions": [
             1
           ],
+          "contents": [
+            {
+              "key": "C1",
+              "title": "운영 시간 안내"
+            }
+          ],
           "volume": {
             "chars": 71,
             "files": []
@@ -4095,6 +4399,12 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "contentCount": 1,
           "contentVersions": [
             1
+          ],
+          "contents": [
+            {
+              "key": "C1",
+              "title": "약관 개정 고지문"
+            }
           ],
           "volume": {
             "chars": 0,
@@ -4137,6 +4447,20 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
             1,
             1
           ],
+          "contents": [
+            {
+              "key": "C1",
+              "title": "이벤트 참여 안내"
+            },
+            {
+              "key": "C2",
+              "title": "적립 예정 안내"
+            },
+            {
+              "key": "C3",
+              "title": "미참여 고객 리마인드"
+            }
+          ],
           "volume": {
             "chars": 247,
             "files": []
@@ -4171,6 +4495,16 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
             1,
             1
           ],
+          "contents": [
+            {
+              "key": "C1",
+              "title": "면제 안내 본문"
+            },
+            {
+              "key": "C2",
+              "title": "카드사 앱 유도"
+            }
+          ],
           "volume": {
             "chars": 121,
             "files": []
@@ -4203,6 +4537,12 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "contentCount": 1,
           "contentVersions": [
             1
+          ],
+          "contents": [
+            {
+              "key": "C1",
+              "title": "분실 신고 절차"
+            }
           ],
           "volume": {
             "chars": 53,
@@ -4237,6 +4577,12 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "contentCount": 1,
           "contentVersions": [
             1
+          ],
+          "contents": [
+            {
+              "key": "C1",
+              "title": "청구 금액 안내"
+            }
           ],
           "volume": {
             "chars": 95,

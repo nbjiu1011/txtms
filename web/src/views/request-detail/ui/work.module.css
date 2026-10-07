@@ -321,3 +321,50 @@
 .small {
   font-size: 12px;
 }
+
+/* draft editing (M1) */
+.clistF {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: auto;
+}
+/* `.ed-top input.in{max-width:280px;font-weight:600}` */
+.titleIn {
+  max-width: 280px;
+  font-weight: 600;
+}
+.drop {
+  border: 1.5px dashed var(--line2);
+  border-radius: var(--r-md);
+  padding: 18px;
+  text-align: center;
+  color: var(--sub);
+  font-size: 13px;
+  cursor: pointer;
+  display: block;
+}
+.drop:hover {
+  border-color: var(--sub);
+}
+.drop[aria-disabled="true"],
+.drop[aria-busy="true"] {
+  cursor: progress;
+  opacity: 0.6;
+}
+.dropSm {
+  padding: 10px;
+}
+.uploads p {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--sub);
+}
+.uploads p[data-state="blocked"],
+.uploads p[data-state="failed"] {
+  color: var(--danger);
+}
+.uploads p[data-state="done"] {
+  color: var(--s-done);
+}

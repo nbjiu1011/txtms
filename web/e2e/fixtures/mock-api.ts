@@ -15,15 +15,32 @@ const json = (status: number, body: unknown) => ({
   body: body === undefined ? "" : JSON.stringify(body),
 });
 
+export interface MockWrite {
+  method: string;
+  /** Path after `/api`, with query. */
+  path: string;
+  /** Parsed JSON body (undefined for multipart or empty bodies). */
+  body: unknown;
+}
+
+export interface MockApiOptions {
+  /** Extra GET responses (`/path?query` → body), e.g. from `draft-snapshot.ts`. */
+  extra?: Record<string, unknown>;
+  /** Answers a write call; undefined falls back to 405. */
+  onWrite?: (write: MockWrite) => { status: number; body?: unknown } | undefined;
+}
+
 /**
  * Serves the captured demo API (`api-snapshot.ts`) to the app as persona `userId`: the session
- * refresh returns that persona, GETs answer from the snapshot, everything else is 404/405 —
- * mutations are not part of this milestone.
+ * refresh returns that persona, GETs answer from the snapshot (plus `extra`), writes go to
+ * `onWrite` (default 405).
  */
-export async function mockApiAs(page: Page, userId: number): Promise<void> {
+export async function mockApiAs(page: Page, userId: number, options: MockApiOptions = {}): Promise<void> {
   const responses = API_SNAPSHOT[userId];
   if (!responses) throw new Error(`no snapshot for user ${userId}`);
-  const index = new Map(Object.entries(responses).map(([k, v]) => [keyOf(k), v]));
+  const index = new Map(
+    Object.entries({ ...responses, ...options.extra }).map(([k, v]) => [keyOf(k), v]),
+  );
   const me = responses["/me"];
 
   await page.route("**/api/**", async (route: Route) => {
@@ -32,7 +49,17 @@ export async function mockApiAs(page: Page, userId: number): Promise<void> {
     const method = route.request().method();
     if (path.startsWith("/auth/refresh")) return route.fulfill(json(200, { accessToken: "fixture", me }));
     if (path.startsWith("/auth/demo-personas")) return route.fulfill(json(200, demoPersonas));
-    if (method !== "GET") return route.fulfill(json(405, { code: "INTERNAL", message: "fixture: read-only" }));
+    if (method !== "GET") {
+      let body: unknown;
+      try {
+        body = route.request().postDataJSON();
+      } catch {
+        body = undefined;
+      }
+      const answer = options.onWrite?.({ method, path, body });
+      if (answer) return route.fulfill(json(answer.status, answer.body));
+      return route.fulfill(json(405, { code: "INTERNAL", message: "fixture: read-only" }));
+    }
     const body = index.get(keyOf(path));
     if (body === undefined) return route.fulfill(json(404, { code: "NOT_FOUND", message: "대상을 찾을 수 없습니다" }));
     const status = (body as { __status?: number }).__status;

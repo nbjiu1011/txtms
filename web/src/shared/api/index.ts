@@ -1,7 +1,9 @@
 export { ApiError, isApiError, toApiErrorBody } from "./api-error";
 export type { ApiErrorBody, ApiErrorCode, FieldError } from "./api-error";
 export { accessTokenStore, getAccessToken, setAccessToken } from "./access-token";
-export { buildUrl, configureHttpClient, downloadFile, http, refreshSession, request } from "./http-client";
+export { buildUrl, configureHttpClient, downloadFile, getBlob, http, refreshSession, request } from "./http-client";
+export { uploadFile } from "./upload";
+export type { UploadOptions } from "./upload";
 export type { HttpHandlers, QueryParams, RequestOptions, SessionPayload } from "./http-client";
 export { createQueryClient, queryKeys } from "./query";
 

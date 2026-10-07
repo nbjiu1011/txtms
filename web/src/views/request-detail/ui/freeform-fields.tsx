@@ -1,17 +1,41 @@
 "use client";
 
+import { useId } from "react";
 import { downloadFile } from "@/shared/api";
 import { Button, Field, Icon, Input, Label, Tag, Textarea, toast } from "@/shared/ui";
 import { FILE_UNIT_LABEL, requestFilePaths, type Content, type FileMeta, type FreeformPayload } from "@/entities/request";
-import type { FieldsProps } from "./content-editor";
+import { parseFileRange, type FileRangeDraft } from "../model/file-range";
+import { UPLOAD_STATE_LABEL, type UploadItem } from "../model/upload-queue";
+import { bindText, type FieldsProps } from "./editor-binding";
 import styles from "./work.module.css";
 
 /** Policy note next to the attachment label. */
 const ATTACHMENT_LIMIT_NOTE = "요청당 10개 · 파일당 20MB · 총 100MB";
 
-/** 자유입력형 fields: title, text and attachment rows with download and review range (read-only). */
-export function FreeformFields(props: FieldsProps<FreeformPayload> & { requestId: string; content: Content }) {
-  const { requestId, content, payload, disabled } = props;
+/** Attachment actions of a draft (upload, range autosave, delete). */
+export interface AttachmentEditing {
+  range: (file: FileMeta) => FileRangeDraft;
+  onRange: (file: FileMeta, next: FileRangeDraft) => void;
+  onUpload: (files: File[]) => void;
+  onDelete: (file: FileMeta) => void;
+  uploads: UploadItem[];
+  busy: boolean;
+}
+
+function readRange(file: FileMeta): FileRangeDraft {
+  return {
+    totalAmount: file.totalAmount === null ? "" : String(file.totalAmount),
+    reviewAmount: file.reviewAmount === null ? "" : String(file.reviewAmount),
+    rangeNote: file.rangeNote ?? "",
+  };
+}
+
+/** 자유입력형 fields: title, text and attachment rows with download, review range and upload. */
+export function FreeformFields(
+  props: FieldsProps<FreeformPayload> & { requestId: string; content: Content; attachments?: AttachmentEditing },
+) {
+  const { requestId, content, payload, disabled, onPayload, attachments } = props;
+  const id = useId();
   const download = async (file: FileMeta) => {
     try {
       await downloadFile(requestFilePaths.fileVersion(requestId, content.key, file.id, file.version), file.name);
@@ -21,17 +45,23 @@ export function FreeformFields(props: FieldsProps<FreeformPayload> & { requestId
   };
   return (
     <>
-      <Field label="제목 (선택)" htmlFor="ed-ftitle">
-        <Input id="ed-ftitle" value={payload.title} disabled={disabled} readOnly />
+      <Field label="제목 (선택)" htmlFor={`${id}-title`}>
+        <Input id={`${id}-title`} value={payload.title} disabled={disabled} {...bindText(payload, "title", onPayload)} />
       </Field>
-      <Field label="직접 입력 텍스트" htmlFor="ed-text">
-        <Textarea id="ed-text" rows={6} value={payload.text} disabled={disabled} readOnly />
+      <Field label="직접 입력 텍스트" htmlFor={`${id}-text`}>
+        <Textarea id={`${id}-text`} rows={6} value={payload.text} disabled={disabled} {...bindText(payload, "text", onPayload)} />
       </Field>
       <Label className={styles.lbl}>
         첨부파일 <Tag>{ATTACHMENT_LIMIT_NOTE}</Tag>
       </Label>
       {content.files.map((file) => {
         const unit = FILE_UNIT_LABEL[file.unit];
+        const range = attachments ? attachments.range(file) : readRange(file);
+        const errors = attachments ? parseFileRange(range).errors : {};
+        const set = (key: keyof FileRangeDraft) => ({
+          readOnly: !attachments,
+          onChange: (e: { target: { value: string } }) => attachments?.onRange(file, { ...range, [key]: e.target.value }),
+        });
         return (
           <div key={file.id} className={styles.file}>
             <span className={styles.ext}>{file.ext}</span>
@@ -52,39 +82,83 @@ export function FreeformFields(props: FieldsProps<FreeformPayload> & { requestId
               >
                 <Icon name="down" />
               </Button>
+              {attachments ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className={styles.btnIcon}
+                  aria-label={`${file.name} 삭제`}
+                  title="삭제"
+                  disabled={attachments.busy}
+                  onClick={() => attachments.onDelete(file)}
+                >
+                  <Icon name="x" />
+                </Button>
+              ) : null}
             </div>
             <div className={styles.fr}>
-              <Field label={`전체 분량 (${unit})`} required>
+              <Field label={`전체 분량 (${unit})`} required error={errors.totalAmount}>
                 <Input
                   type="number"
-                  value={file.totalAmount || ""}
+                  min={1}
+                  value={range.totalAmount}
                   disabled={disabled}
-                  readOnly
                   aria-label={`${file.name} 전체 분량`}
+                  aria-invalid={errors.totalAmount ? true : undefined}
+                  {...set("totalAmount")}
                 />
               </Field>
-              <Field label={`실제 검수 범위 (${unit})`} required>
+              <Field label={`실제 검수 범위 (${unit})`} required error={errors.reviewAmount}>
                 <Input
                   type="number"
-                  value={file.reviewAmount || ""}
+                  min={1}
+                  value={range.reviewAmount}
                   disabled={disabled}
-                  readOnly
                   aria-label={`${file.name} 실제 검수 범위`}
+                  aria-invalid={errors.reviewAmount ? true : undefined}
+                  {...set("reviewAmount")}
                 />
               </Field>
-              <Field label="범위 설명">
+              <Field label="범위 설명" error={errors.rangeNote}>
                 <Input
                   placeholder="예: 1~6쪽"
-                  value={file.rangeNote ?? ""}
+                  value={range.rangeNote}
                   disabled={disabled}
-                  readOnly
                   aria-label={`${file.name} 범위 설명`}
+                  {...set("rangeNote")}
                 />
               </Field>
             </div>
           </div>
         );
       })}
+      {attachments ? (
+        <>
+          <label className={styles.drop} aria-disabled={attachments.busy || undefined}>
+            파일을 선택해 올립니다. PDF, Word, 한글, Excel, PPT, 텍스트, 이미지
+            <input
+              type="file"
+              multiple
+              hidden
+              aria-label="첨부파일 선택"
+              disabled={attachments.busy}
+              onChange={(e) => {
+                const files = Array.from(e.target.files ?? []);
+                e.target.value = "";
+                if (files.length) attachments.onUpload(files);
+              }}
+            />
+          </label>
+          <div role="status" aria-live="polite" className={styles.uploads}>
+            {attachments.uploads.map((u) => (
+              <p key={u.id} data-state={u.state}>
+                {u.name} · {UPLOAD_STATE_LABEL[u.state]}
+                {u.error ? ` · ${u.error}` : ""}
+              </p>
+            ))}
+          </div>
+        </>
+      ) : null}
     </>
   );
 }

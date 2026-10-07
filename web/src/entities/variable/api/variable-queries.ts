@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { http, queryKeys } from "@/shared/api";
-import type { Variable } from "../model/types";
+import type { Variable, VariableCreate } from "../model/types";
 
 export const variableKeys = {
   byProject: (projectId: number) => queryKeys.list("variables", { projectId }),
@@ -18,4 +18,9 @@ export function useProjectVariables(projectId: number | null, enabled = true) {
     retry: false,
     staleTime: 60_000,
   });
+}
+
+/** Registers a project variable (any project member, contract §7). */
+export function createVariable(projectId: number, body: VariableCreate): Promise<Variable> {
+  return http.post<Variable>(`/projects/${projectId}/variables`, body);
 }

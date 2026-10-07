@@ -9,9 +9,12 @@ export type {
   BulkImportPreview,
   BulkImportRow,
   BundleItem,
+  BulkCommitRow,
   BundleVariable,
   CompletionBundle,
   Content,
+  ContentRef,
+  ContentSave,
   ContentLock,
   ContentPayload,
   ContentPayloadByType,
@@ -21,6 +24,7 @@ export type {
   ContentVersionRef,
   FileAmount,
   FileMeta,
+  FileRangePatch,
   FileScanStatus,
   FileUnit,
   FileVersionMeta,
@@ -32,6 +36,7 @@ export type {
   RcsPayload,
   RecallInfo,
   RequestAction,
+  RequestCreate,
   RequestDetail,
   RequestInfoPatch,
   RequestListParams,
@@ -107,5 +112,31 @@ export type { TrackStage, TrackStepModel } from "./model/track";
 export { buildHistoryTimeline, historyTargetLabel } from "./model/history";
 export type { HistoryFilter, HistoryRow } from "./model/history";
 export { ContentMockup } from "./ui/content-mockup";
+export { RequestImage } from "./ui/request-image";
+export type { RequestImageProps } from "./ui/request-image";
+export {
+  DEMO_SCAN_HEADER,
+  invalidateRequestViews,
+  removeContent,
+  requestApi,
+  requestBinaryPaths,
+  storeContent,
+  storeRequestDetail,
+  updateContentFiles,
+} from "./api/request-mutations";
+export {
+  BLANK_CARD,
+  MAX_ALIMTALK_BUTTONS,
+  MAX_RCS_CARDS,
+  MIN_RCS_CARDS,
+  addAlimtalkButton,
+  blankPayload,
+  defaultTextPath,
+  getPayloadField,
+  isBlankContent,
+  removeAlimtalkButton,
+  setPayloadField,
+  setRcsCardCount,
+} from "./model/payload-edit";
 export type { ContentMockupProps } from "./ui/content-mockup";
 export { VariableText } from "./ui/variable-text";

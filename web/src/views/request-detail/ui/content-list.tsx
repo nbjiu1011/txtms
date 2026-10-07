@@ -1,0 +1,118 @@
+"use client";
+
+import { cn } from "@/shared/lib";
+import { Button, Icon } from "@/shared/ui";
+import { ContentTypeChip, type Content, type RequestDetail } from "@/entities/request";
+import type { UserDirectory } from "@/entities/user";
+import styles from "./work.module.css";
+
+/** Footer actions of a draft's content list (reference `.clist-f`). */
+export interface ContentListActions {
+  onAdd: () => void;
+  /** Present for 알림톡·문자 only. */
+  onBulk?: () => void;
+  /** Present when 2+ contents (deletes the selected one). */
+  onDeleteSelected?: () => void;
+}
+
+export interface ContentListProps {
+  request: Pick<RequestDetail, "type" | "status" | "contents">;
+  /** Titles as edited locally. */
+  titleOf: (content: Content) => string;
+  users: UserDirectory;
+  meId: number;
+  selected: string;
+  onSelect: (key: string) => void;
+  onOpen: (key: string) => void;
+  actions?: ContentListActions;
+}
+
+/** `aside.clist` — content items (version, files, edit lock) and the draft footer actions. */
+export function ContentList({ request: r, titleOf, users, meId, selected, onSelect, onOpen, actions }: ContentListProps) {
+  return (
+    <aside className={styles.clist} aria-label="콘텐츠 목록">
+      <div className={styles.clistH}>
+        <ContentTypeChip type={r.type} size="sm" />
+        콘텐츠 {r.contents.length}건
+      </div>
+      {r.contents.map((c) => (
+        <ContentItem
+          key={c.key}
+          content={c}
+          title={titleOf(c)}
+          on={c.key === selected}
+          lockedBy={r.status !== "DRAFT" && c.lock && c.lock.userId !== meId ? users.name(c.lock.userId) : null}
+          onSelect={() => onSelect(c.key)}
+          onOpen={() => onOpen(c.key)}
+        />
+      ))}
+      {actions ? (
+        <div className={styles.clistF}>
+          <Button size="sm" onClick={actions.onAdd}>
+            <Icon name="plus" />
+            콘텐츠 추가
+          </Button>
+          {actions.onBulk ? (
+            <Button size="sm" onClick={actions.onBulk}>
+              XLSX 대량 등록
+            </Button>
+          ) : null}
+          {actions.onDeleteSelected ? (
+            <Button size="sm" variant="ghost" onClick={actions.onDeleteSelected}>
+              선택 콘텐츠 삭제
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+    </aside>
+  );
+}
+
+function ContentItem(props: {
+  content: Content;
+  title: string;
+  on: boolean;
+  lockedBy: string | null;
+  onSelect: () => void;
+  onOpen: () => void;
+}) {
+  const { content: c, title, on, lockedBy, onSelect, onOpen } = props;
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-pressed={on}
+      className={cn(styles.citem, on && styles.on)}
+      onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
+    >
+      <span className={styles.no}>{c.key}</span>
+      <span className={styles.ct}>
+        <b>{title}</b>
+        <span>
+          v{c.version}
+          {c.files.length ? `  파일 ${c.files.length}` : ""}
+        </span>
+        {lockedBy ? <span className={styles.lk}>{lockedBy} 편집 중</span> : null}
+      </span>
+      <Button
+        size="sm"
+        variant="ghost"
+        className={styles.openC}
+        title="새 탭으로 열기"
+        aria-label={`${c.key} 새 탭으로 열기`}
+        onClick={(e) => {
+          e.stopPropagation();
+          onOpen();
+        }}
+      >
+        <Icon name="ext" />
+      </Button>
+    </div>
+  );
+}
