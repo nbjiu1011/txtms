@@ -1,0 +1,18 @@
+# Local AI assistant settings and working notes
+CLAUDE.md
+AGENTS.md
+HARNESS.md
+kickoff.md
+kickoff-prompt.md
+.claude/
+docs/intake.md
+docs/spec.md
+docs/IMPROVEMENTS.md
+docs/architecture/
+
+# Editor and OS
+.vscode/
+.idea/
+Microsoft/
+Thumbs.db
+.DS_Store
