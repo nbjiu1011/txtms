@@ -1,0 +1,117 @@
+/* channel mockups (.phone …) — colors are fixed mock tokens (device chrome, not theme) */
+.small {
+  font-size: 12px;
+}
+.phone {
+  width: 280px;
+  border: 1px solid var(--line2);
+  border-radius: 28px;
+  padding: 10px;
+  background: var(--sunk);
+  margin: 0 auto;
+}
+.phoneIn {
+  background: var(--mock-kakao-bg);
+  border-radius: 20px;
+  min-height: 420px;
+  padding: 14px 12px;
+  font-size: 13px;
+  color: var(--mock-ink);
+  overflow: hidden;
+}
+.phoneIn.sms {
+  background: var(--mock-sms-bg);
+}
+.topT {
+  font-size: 11px;
+  text-align: center;
+  color: var(--mock-sub);
+  margin-bottom: 10px;
+}
+.kk {
+  background: var(--mock-card);
+  border-radius: 12px;
+  overflow: hidden;
+  max-width: 236px;
+}
+.kkH {
+  background: var(--mock-kakao-head);
+  padding: 8px 12px;
+  font-weight: 600;
+  font-size: 12px;
+}
+.kkB {
+  padding: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.55;
+}
+.kkBtn {
+  padding: 9px;
+  text-align: center;
+  font-size: 12px;
+  background: var(--mock-btn-bg);
+  margin: 0 10px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--mock-btn-line);
+}
+.var {
+  background: var(--var-bg);
+  color: var(--var-ink);
+  border-radius: 3px;
+  padding: 0 3px;
+  font-size: 0.95em;
+}
+.bubble {
+  background: var(--mock-bubble);
+  border-radius: 16px;
+  padding: 10px 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.5;
+  max-width: 230px;
+}
+.rcsRow {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 6px;
+}
+.rcsCard {
+  flex: none;
+  width: 200px;
+  background: var(--mock-card);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.rcsImg {
+  height: 110px;
+  background: repeating-linear-gradient(45deg, var(--mock-img-a) 0 8px, var(--mock-img-b) 8px 16px);
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  color: var(--mock-img-ink);
+}
+.rcsImg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.rcsCard b {
+  display: block;
+  padding: 10px 10px 2px;
+}
+.rcsCard p {
+  margin: 0;
+  padding: 0 10px 10px;
+  white-space: pre-wrap;
+  font-size: 12px;
+}
+.note {
+  font-size: 11px;
+  color: var(--faint);
+  text-align: center;
+  margin-top: 10px;
+  line-height: 1.5;
+}

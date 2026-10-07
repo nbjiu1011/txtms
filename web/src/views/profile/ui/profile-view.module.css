@@ -1,0 +1,31 @@
+.stack {
+  max-width: 640px;
+}
+.stack > * + * {
+  margin-top: 18px;
+}
+.who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.email {
+  font-size: 12px;
+  color: var(--sub);
+}
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+}
+.note {
+  font-size: 12px;
+  margin: 0;
+}
+@media (max-width: 860px) {
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+}

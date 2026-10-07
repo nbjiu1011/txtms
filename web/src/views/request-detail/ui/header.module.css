@@ -1,0 +1,93 @@
+/* request header (.req-head) — --c is the status color */
+.reqHead {
+  position: relative;
+  border-bottom: 1px solid var(--line);
+  padding: 22px 32px 0;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c) 6%, var(--surface)) 0, var(--surface) 120px);
+}
+.reqHead::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 3px;
+  background: var(--c);
+}
+.contentHead {
+  padding-bottom: 16px;
+}
+.crumb {
+  font-size: 13px;
+  color: var(--faint);
+  margin-bottom: 6px;
+}
+.crumb a {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+.crumb a:hover {
+  text-decoration: underline;
+}
+.reqTitle {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.reqTitle h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+.contentHead .reqTitle h1 {
+  font-size: 19px;
+}
+.sp {
+  flex: 1;
+}
+.acts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.reqMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  margin: 12px 0 18px;
+  font-size: 13px;
+  color: var(--sub);
+}
+.reqMeta b {
+  color: var(--ink);
+  font-weight: 500;
+  margin-left: 6px;
+}
+.metaPerson {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.reqHead .subtabs {
+  margin-bottom: 0;
+}
+.reqBody {
+  padding: 22px 32px 64px;
+  background: var(--bg);
+}
+@media (max-width: 860px) {
+  .reqHead {
+    padding: 18px 16px 0;
+  }
+  .contentHead {
+    padding-bottom: 16px;
+  }
+  .reqBody {
+    padding: 18px 16px 48px;
+  }
+}

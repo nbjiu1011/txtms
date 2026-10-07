@@ -1,0 +1,108 @@
+.app {
+  height: 100%;
+  display: grid;
+  grid-template-columns: var(--side-w) 1fr;
+  grid-template-rows: var(--top-h) var(--tabs-h) 1fr;
+}
+.main {
+  grid-column: 2;
+  overflow: auto;
+  min-height: 0;
+  background: var(--bg);
+}
+
+/* access denied / unavailable */
+.denied {
+  max-width: 520px;
+  margin: 60px auto;
+  text-align: center;
+}
+.deniedIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--line2);
+  display: grid;
+  place-items: center;
+  margin: 0 auto 16px;
+  color: var(--sub);
+}
+.deniedIcon svg {
+  width: 20px;
+  height: 20px;
+}
+.denied h1 {
+  font-size: 20px;
+  margin: 0 0 8px;
+}
+.denied .desc {
+  color: var(--sub);
+}
+.denied .note {
+  font-size: 12px;
+  color: var(--faint);
+}
+
+/* notifications popover rows (.nt) */
+.nt {
+  display: flex;
+  gap: 10px;
+  padding: 11px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  font-size: 13px;
+  width: 100%;
+  background: none;
+  text-align: left;
+}
+.nt:hover {
+  background: var(--sunk);
+}
+.ud {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--focus);
+  flex: none;
+  margin-top: 7px;
+}
+.nt.read .ud {
+  background: transparent;
+}
+.nm {
+  flex: 1;
+}
+.nm > span {
+  display: block;
+  font-size: 12px;
+  color: var(--faint);
+  margin-top: 2px;
+}
+.popNote {
+  font-size: 12px;
+  color: var(--faint);
+}
+.popEmpty {
+  padding: 36px 20px;
+  text-align: center;
+  color: var(--sub);
+}
+
+/* persona rows */
+.personaText {
+  flex: 1;
+}
+.personaMeta {
+  font-size: 12px;
+  color: var(--faint);
+}
+
+@media (max-width: 860px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+  .main {
+    grid-column: 1;
+  }
+}

@@ -1,0 +1,262 @@
+/*
+ * TX TMS design tokens + base layer.
+ * Values are the final effective values of the reference prototype (base layer + "design layer v2").
+ * Every color/radius/shadow/font used by the app is defined here exactly once.
+ * Tailwind preflight is intentionally NOT imported: the reference relies on browser defaults
+ * (heading margins, inline SVG, button chrome) and pixel parity is required.
+ */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+:root {
+  /* surface / ink / line */
+  --bg: #f2f3f7;
+  --surface: #ffffff;
+  --sunk: #eef0f3;
+  --side: #fbfbfd;
+  --ink: #1b2433;
+  --sub: #5a6475;
+  --faint: #8c95a4;
+  --line: #e1e4ea;
+  --line2: #cbd0d8;
+  --focus: #2e62c9;
+  --indigo-soft: #eef1f9;
+
+  /* brand / navy */
+  --navy: #1f2b4d;
+  --navy-h: #2c3c66;
+  --brand: #ffd84d;
+  --brand-d: #e8be1f;
+  --mark: #ffe27a;
+  --mark-soft: #fff6cc;
+  --danger: #c0392b;
+  --danger-soft: #fbedeb;
+
+  /* request status tones */
+  --s-draft: #7d8594;
+  --s-wait: #a86a12;
+  --s-review: #2e62c9;
+  --s-ask: #c2410c;
+  --s-appr: #6a47b5;
+  --s-done: #1b7f5a;
+
+  /* status tones on navy (pipeline) */
+  --s-draft-on-dark: #8e97aa;
+  --s-wait-on-dark: #e7a93c;
+  --s-review-on-dark: #6e9bff;
+  --s-ask-on-dark: #ff8a4c;
+  --s-appr-on-dark: #b59cff;
+
+  /* content type tones */
+  --ty-a: #b07a00;
+  --ty-s: #0f7a6e;
+  --ty-r: #6a47b5;
+  --ty-f: #4f5b6e;
+
+  /* foreground on filled backgrounds */
+  --on-navy: #ffffff;
+  --on-navy-sub: rgb(255 255 255 / 0.6);
+  --on-navy-sub2: rgb(255 255 255 / 0.7);
+  --on-navy-track: rgb(255 255 255 / 0.08);
+  --on-navy-line: rgb(255 255 255 / 0.2);
+  --on-navy-deco: rgb(255 255 255 / 0.1);
+  --on-navy-deco2: rgb(255 255 255 / 0.25);
+  --on-danger: #ffffff;
+  --on-done: #ffffff;
+  --on-avatar: #ffffff;
+  --brand-ring-8: rgb(255 216 77 / 0.08);
+  --brand-ring-7: rgb(255 216 77 / 0.07);
+
+  /* always-light card (login hero) */
+  --fixed-surface: #ffffff;
+  --fixed-ink: #1b2433;
+  --fixed-sub: #5a6475;
+  --fixed-faint: #8c95a4;
+  --fixed-line: #e1e4ea;
+  --fixed-danger: #c0392b;
+  --fixed-done: #1b7f5a;
+
+  /* channel preview mockups */
+  --mock-kakao-bg: #b9c6d6;
+  --mock-sms-bg: #f2f3f5;
+  --mock-ink: #1b2433;
+  --mock-sub: #4a5566;
+  --mock-card: #ffffff;
+  --mock-kakao-head: #f5d94a;
+  --mock-btn-bg: #f6f7f9;
+  --mock-btn-line: #e1e4ea;
+  --mock-bubble: #e4e6ea;
+  --mock-img-a: #e7eaef;
+  --mock-img-b: #dfe3e9;
+  --mock-img-ink: #6b7482;
+  --var-bg: #dde7fb;
+  --var-ink: #1e3f8a;
+
+  /* avatar (per-user colors come from the API; this palette is for static illustrations) */
+  --avatar-fallback: #999999;
+  --avatar-1: #3c6e71;
+  --avatar-2: #8c5e3c;
+  --avatar-3: #4b5d9a;
+  --avatar-4: #7a4a8c;
+  --avatar-5: #2f3b52;
+  --avatar-6: #a0473f;
+  --avatar-7: #5e7f3a;
+  --avatar-8: #3a6e8f;
+  --avatar-9: #9a6b2f;
+  --avatar-10: #6a6f7a;
+  --avatar-11: #45606b;
+  --avatar-12: #8a5f7a;
+
+  /* overlay */
+  --scrim: rgb(15 22 35 / 0.36);
+
+  /* radius */
+  --r-2: 2px;
+  --r-3: 3px;
+  --r-xs: 4px;
+  --r-sm: 5px;
+  --r-6: 6px;
+  --r-btn: 7px;
+  --r-md: 8px;
+  --r-9: 9px;
+  --r-banner: 10px;
+  --r-lg: 12px;
+  --r-hero: 14px;
+  --r-pill: 999px;
+
+  /* shadow */
+  --pop: 0 8px 28px rgb(20 30 50 / 0.14), 0 1px 3px rgb(20 30 50 / 0.08);
+  --lift: 0 1px 2px rgb(22 32 58 / 0.05), 0 4px 14px rgb(22 32 58 / 0.05);
+  --shadow-btn-pri: 0 1px 0 rgb(0 0 0 / 0.1), inset 0 -2px 0 rgb(0 0 0 / 0.18);
+  --shadow-btn-ok: inset 0 -2px 0 rgb(0 0 0 / 0.15);
+  --shadow-hero: 0 20px 50px rgb(0 0 0 / 0.28);
+
+  /* typography */
+  --font-sans: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+
+  /* layout */
+  --side-w: 232px;
+  --side-w-mobile: 260px;
+  --top-h: 56px;
+  --tabs-h: 40px;
+
+  color-scheme: light;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@theme inline {
+  --color-*: initial;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-sunk: var(--sunk);
+  --color-side: var(--side);
+  --color-ink: var(--ink);
+  --color-sub: var(--sub);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-line2: var(--line2);
+  --color-focus: var(--focus);
+  --color-indigo-soft: var(--indigo-soft);
+  --color-navy: var(--navy);
+  --color-navy-h: var(--navy-h);
+  --color-brand: var(--brand);
+  --color-mark: var(--mark);
+  --color-mark-soft: var(--mark-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-s-draft: var(--s-draft);
+  --color-s-wait: var(--s-wait);
+  --color-s-review: var(--s-review);
+  --color-s-ask: var(--s-ask);
+  --color-s-appr: var(--s-appr);
+  --color-s-done: var(--s-done);
+  --color-ty-a: var(--ty-a);
+  --color-ty-s: var(--ty-s);
+  --color-ty-r: var(--ty-r);
+  --color-ty-f: var(--ty-f);
+  --radius-*: initial;
+  --radius-sm: var(--r-sm);
+  --radius-btn: var(--r-btn);
+  --radius-md: var(--r-md);
+  --radius-banner: var(--r-banner);
+  --radius-lg: var(--r-lg);
+  --radius-pill: var(--r-pill);
+  --shadow-*: initial;
+  --shadow-pop: var(--pop);
+  --shadow-lift: var(--lift);
+  --font-sans: var(--font-sans);
+  --breakpoint-*: initial;
+}
+
+/* desktop-first breakpoints of the reference (max-width, inclusive): upto-work: / upto-nav: */
+@custom-variant upto-work (@media (max-width: 1180px));
+@custom-variant upto-nav (@media (max-width: 860px));
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+  html {
+    height: 100%;
+    scroll-padding-top: env(safe-area-inset-top, 0px);
+  }
+  body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 14px/1.55 var(--font-sans);
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.005em;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+  a {
+    color: inherit;
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+}
+
+/* text helpers shared by every screen */
+@layer components {
+  .muted {
+    color: var(--sub);
+  }
+  .faint {
+    color: var(--faint);
+  }
+  .small {
+    font-size: 12px;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}

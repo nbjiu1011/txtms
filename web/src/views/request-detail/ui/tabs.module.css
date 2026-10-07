@@ -1,0 +1,160 @@
+/* info tab */
+.infoGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+}
+.infoGrid .bgArea {
+  min-height: 80px;
+}
+.faintSmall {
+  color: var(--faint);
+  font-size: 12px;
+}
+.link {
+  color: inherit;
+  cursor: pointer;
+}
+
+/* history tab */
+.histTop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.hist {
+  position: relative;
+  padding-left: 22px;
+  max-width: 760px;
+}
+.hist::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 4px;
+  bottom: 4px;
+  width: 1px;
+  background: var(--line2);
+}
+.hi {
+  position: relative;
+  padding: 0 0 16px;
+}
+.hi::before {
+  content: "";
+  position: absolute;
+  left: -20px;
+  top: 6px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--sub);
+}
+.hi.c::before {
+  border-color: var(--s-review);
+  border-radius: 2px;
+}
+.hl {
+  font-size: 13px;
+}
+.hl b {
+  font-weight: 600;
+}
+.hm {
+  font-size: 12px;
+  color: var(--faint);
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 1px;
+}
+.hd {
+  font-size: 13px;
+  color: var(--sub);
+  margin-top: 5px;
+  padding: 8px 10px;
+  background: var(--sunk);
+  border-radius: var(--r-sm);
+  white-space: pre-wrap;
+}
+.rd {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0 18px -22px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.rd::before,
+.rd::after {
+  content: "";
+  height: 1.5px;
+  background: var(--ink);
+  flex: 1;
+}
+.rd::before {
+  max-width: 14px;
+}
+.muted {
+  color: var(--sub);
+}
+
+/* result tab */
+div.resultHead {
+  margin-bottom: 14px;
+}
+div.resultHead h1 {
+  font-size: 18px;
+}
+.body {
+  max-width: 520px;
+  white-space: pre-wrap;
+}
+.rowBtns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.btnIcon svg {
+  width: 15px;
+  height: 15px;
+}
+.varsPanel {
+  margin-top: 16px;
+}
+
+/* version compare */
+.cmp {
+  margin-bottom: 12px;
+}
+.changed {
+  color: var(--s-wait);
+}
+.cmp .cmpBox {
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+.cmp .cmpBox.on {
+  border-color: var(--s-wait);
+}
+.small {
+  font-size: 12px;
+}
+
+/* the info columns stay side by side at every width (the reference sets them inline) */
+@media (max-width: 860px) {
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+}

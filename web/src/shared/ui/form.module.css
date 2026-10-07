@@ -1,0 +1,64 @@
+.control {
+  width: 100%;
+  border: 1px solid var(--line2);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  padding: 7px 10px;
+  min-height: 34px;
+}
+.ta {
+  resize: vertical;
+  min-height: 120px;
+  line-height: 1.6;
+}
+.control:focus {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 18%, transparent);
+}
+.control[disabled],
+.ta[readonly] {
+  background: var(--sunk);
+  color: var(--sub);
+}
+.control[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.fld {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+.lbl {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sub);
+}
+.req::after {
+  content: " *";
+  color: var(--danger);
+}
+.hint {
+  font-size: 12px;
+  color: var(--faint);
+}
+.emsg {
+  font-size: 12px;
+  color: var(--danger);
+}
+
+.chk {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.chk input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--navy);
+  margin: 3px 3px 3px 4px;
+}

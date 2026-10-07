@@ -1,0 +1,75 @@
+.top {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 18px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 1px 0 var(--line);
+  min-width: 0;
+}
+.menuBtn {
+  display: none;
+}
+.ctx {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.ctx select {
+  border: 1px solid transparent;
+  background: var(--sunk);
+  border-radius: var(--r-sm);
+  padding: 5px 8px;
+  max-width: 200px;
+  font-weight: 500;
+}
+.ctx select:hover {
+  border-color: var(--line2);
+}
+.slash {
+  color: var(--line2);
+}
+.grow {
+  flex: 1;
+}
+.me {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  padding: 4px 10px 4px 4px;
+  background: var(--sunk);
+  cursor: pointer;
+}
+.meName {
+  font-size: 13px;
+}
+.me em {
+  font-style: normal;
+  color: var(--faint);
+  font-size: 12px;
+}
+
+@media (max-width: 860px) {
+  .top {
+    grid-column: 1;
+  }
+  .menuBtn {
+    display: grid;
+  }
+  .ctx select {
+    max-width: 120px;
+  }
+  .approvalTag,
+  .slash {
+    display: none;
+  }
+  .meName,
+  .me em {
+    display: none;
+  }
+}

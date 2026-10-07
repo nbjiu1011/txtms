@@ -1,0 +1,9 @@
+export { AppShell } from "./ui/app-shell";
+export type { AppShellProps } from "./ui/app-shell";
+export type { WorkViewProps, WorkViewRegistry } from "./model/view-types";
+export type { WorkTab } from "./model/tab-model";
+export { MAX_TABS, TAB_LIMIT_MESSAGE } from "./model/tab-model";
+export { AccessDenied, ACCESS_POLICY_NOTE } from "./ui/access-denied";
+export { tabTitle } from "./ui/work-tabs";
+export type { RecentContent } from "./model/use-recent-contents";
+export type { WorkContext } from "./model/use-work-context";

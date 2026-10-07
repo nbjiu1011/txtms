@@ -1,0 +1,50 @@
+.note {
+  font-size: 12px;
+  color: var(--faint);
+  margin-top: 0;
+}
+.h {
+  margin: 18px 0 6px;
+}
+.principles {
+  white-space: pre-wrap;
+  margin: 0;
+}
+/* recommended expression card (.proof, not clickable) */
+.proof {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--brand);
+  border-radius: var(--r-md);
+  padding: 11px 12px;
+  margin-bottom: 8px;
+  background: var(--surface);
+}
+.pw {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.pw del {
+  text-decoration: line-through;
+  text-decoration-color: var(--danger);
+  text-decoration-thickness: 2px;
+  color: var(--sub);
+}
+.pw ins {
+  text-decoration: none;
+  background: linear-gradient(transparent 50%, var(--brand) 50%);
+  padding: 0 2px;
+  font-weight: 500;
+}
+.chk {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 5px 0;
+}
+.chk input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--navy);
+}

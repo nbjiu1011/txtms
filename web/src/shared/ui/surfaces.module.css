@@ -1,0 +1,141 @@
+/* banner (.banner) — default tone is "ask" (확인 요청) */
+.banner {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 16px;
+  border-radius: var(--r-banner);
+  margin: 0 0 16px;
+  --c: var(--s-ask);
+  border: 1px solid color-mix(in srgb, var(--c) 35%, var(--line));
+  border-left-width: 4px;
+  background: color-mix(in srgb, var(--c) 7%, var(--surface));
+}
+.info {
+  --c: var(--s-review);
+}
+.danger {
+  --c: var(--danger);
+}
+.done {
+  --c: var(--s-done);
+}
+.appr {
+  --c: var(--s-appr);
+}
+.wait {
+  --c: var(--s-wait);
+}
+.bt {
+  flex: 1;
+  font-size: 13px;
+}
+.bt > b {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+/* panel */
+.panel {
+  border: 1px solid transparent;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--lift);
+}
+.panelH {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.panelH h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.note {
+  font-size: 12px;
+  color: var(--faint);
+}
+.panelB {
+  padding: 16px 18px;
+}
+
+/* lock bar */
+.lockbar {
+  font-size: 12px;
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  background: var(--mark-soft);
+  margin-bottom: 12px;
+}
+.lockbar.neutral {
+  background: var(--sunk);
+}
+
+/* read-only box */
+.roBox {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--sunk);
+}
+
+/* key/value list */
+.kv {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 8px 16px;
+  font-size: 13px;
+  margin: 0;
+}
+.kv dt {
+  color: var(--sub);
+}
+.kvRow {
+  display: contents;
+}
+.kv dd {
+  margin: 0;
+}
+@media (max-width: 860px) {
+  .kv {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* progress bar (.bar) */
+.bar {
+  height: 8px;
+  border-radius: var(--r-xs);
+  background: var(--sunk);
+  overflow: hidden;
+  min-width: 60px;
+}
+.bar > i {
+  display: block;
+  height: 100%;
+  background: var(--navy);
+  border-radius: var(--r-xs);
+  width: var(--pct);
+}
+
+/* save indicator */
+.saveInd {
+  font-size: 12px;
+  color: var(--faint);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.saving {
+  color: var(--s-review);
+}
+.fail {
+  color: var(--danger);
+}
+.saved {
+  color: var(--s-done);
+}

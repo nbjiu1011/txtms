@@ -1,0 +1,98 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--r-btn);
+  border: 1px solid var(--line2);
+  background: var(--surface);
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 13px;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.btn:hover {
+  border-color: var(--sub);
+}
+.btn.pri {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: var(--surface);
+  box-shadow: var(--shadow-btn-pri);
+}
+.btn.pri:hover {
+  background: var(--navy-h);
+}
+.btn.ok {
+  background: var(--s-done);
+  border-color: var(--s-done);
+  color: var(--on-done);
+  box-shadow: var(--shadow-btn-ok);
+}
+.btn.warn {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--line));
+}
+.btn.ghost {
+  border-color: transparent;
+  background: none;
+  color: var(--sub);
+}
+.btn.ghost:hover {
+  background: var(--sunk);
+  color: var(--ink);
+}
+.btn.sm {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+.btn[disabled],
+.btn[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.iconbtn {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  background: none;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  color: var(--sub);
+  padding: 0;
+}
+.iconbtn:hover {
+  background: var(--sunk);
+  color: var(--ink);
+}
+.iconbtn svg {
+  width: 18px;
+  height: 18px;
+}
+.badge {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--danger);
+  color: var(--on-danger);
+  font-size: 10px;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+  padding: 0 4px;
+  border: 2px solid var(--surface);
+}

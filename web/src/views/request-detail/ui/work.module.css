@@ -1,0 +1,323 @@
+/* work grid (.work): content list | editor | side panel */
+.work {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr) 340px;
+  border: 1px solid transparent;
+  border-radius: var(--r-lg);
+  min-height: 560px;
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: var(--lift);
+}
+.work > * {
+  min-width: 0;
+}
+/* single-content tab: fixed two columns at every width (the reference sets them inline) */
+.work.single {
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+
+/* content list (.clist) */
+.clist {
+  border-right: 1px solid var(--line);
+  background: var(--sunk);
+  display: flex;
+  flex-direction: column;
+}
+.clistH {
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  font-weight: 600;
+}
+.citem {
+  display: flex;
+  gap: 10px;
+  padding: 11px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  align-items: flex-start;
+  background: none;
+  text-align: left;
+  width: 100%;
+}
+.citem:hover {
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+}
+.citem.on {
+  background: var(--surface);
+  box-shadow: inset 3px 0 0 var(--brand);
+}
+.no {
+  font-size: 12px;
+  color: var(--faint);
+  width: 26px;
+  flex: none;
+  padding-top: 1px;
+}
+.ct {
+  flex: 1;
+  min-width: 0;
+}
+.ct b {
+  font-weight: 500;
+  font-size: 13px;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ct > span {
+  font-size: 12px;
+  color: var(--faint);
+}
+/* reference `.citem .lk` loses to `.citem .ct span` (12px faint) — reproduced as rendered */
+.ct .lk {
+  display: block;
+}
+.openC svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* editor (.editor) */
+.editor {
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.edTop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.edTop h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.sp {
+  flex: 1;
+}
+.btnIcon svg {
+  width: 15px;
+  height: 15px;
+}
+.counter {
+  font-size: 12px;
+  color: var(--faint);
+  text-align: right;
+  margin-top: 4px;
+}
+.lbl {
+  margin-bottom: 6px;
+}
+.btnrow {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 10px;
+  margin-bottom: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1.4fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.faintSmall {
+  color: var(--faint);
+  font-size: 12px;
+}
+.mutedSmall {
+  color: var(--sub);
+  font-size: 12px;
+}
+.chkRow {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.cardsField {
+  max-width: 200px;
+}
+.cardEd {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.cardEd h4 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cardEd .cardBody {
+  min-height: 80px;
+}
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+}
+
+/* attachment rows (.file) */
+.file {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.ext {
+  width: 38px;
+  height: 38px;
+  border-radius: 6px;
+  background: var(--sunk);
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--sub);
+  text-transform: uppercase;
+}
+.fileName {
+  font-weight: 500;
+}
+.fr {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+  align-items: end;
+}
+.fr > div {
+  margin: 0;
+}
+
+/* side panel (.side-panel) */
+.sidePanel {
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface);
+}
+.spTabs {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+}
+.spTabs button {
+  flex: 1;
+  border: 0;
+  background: none;
+  padding: 11px 4px;
+  cursor: pointer;
+  color: var(--sub);
+  font-size: 13px;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.spTabs button.on {
+  color: var(--ink);
+  font-weight: 600;
+  border-color: var(--ink);
+}
+.spBody {
+  padding: 14px;
+  overflow: auto;
+  flex: 1;
+}
+.proofNote {
+  font-size: 12px;
+  color: var(--faint);
+  margin: 0 0 12px;
+}
+.group {
+  margin-bottom: 14px;
+}
+.who {
+  font-size: 12px;
+  color: var(--faint);
+  margin-bottom: 4px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.who > b {
+  color: var(--ink);
+}
+.qa {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.q {
+  font-size: 13px;
+}
+.a {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+  font-size: 13px;
+  color: var(--sub);
+}
+.emptyNote {
+  color: var(--sub);
+  font-size: 12px;
+}
+
+@media (max-width: 1180px) {
+  .work {
+    grid-template-columns: 200px minmax(0, 1fr);
+  }
+  .work .sidePanel {
+    grid-column: 1 / -1;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}
+@media (max-width: 860px) {
+  .work {
+    grid-template-columns: 1fr;
+  }
+  .clist {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fileBtns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* correction frame empty state (.empty without art) */
+.proofEmpty {
+  padding: 36px 20px;
+  text-align: center;
+  color: var(--sub);
+}
+.askNote {
+  margin-top: 12px;
+}
+
+.small {
+  font-size: 12px;
+}

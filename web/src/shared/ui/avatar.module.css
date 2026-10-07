@@ -1,0 +1,32 @@
+.av {
+  width: var(--av-size, 26px);
+  height: var(--av-size, 26px);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--on-avatar);
+  flex: none;
+  background: var(--av-bg, var(--avatar-fallback));
+}
+.av.tiny {
+  font-size: 10px;
+}
+.stack {
+  display: inline-flex;
+  align-items: center;
+}
+.stack .av {
+  box-shadow: 0 0 0 2px var(--surface);
+}
+.stack .av + .av {
+  margin-left: -7px;
+}
+.av.more {
+  background: var(--sunk);
+  color: var(--sub);
+  width: 22px;
+  height: 22px;
+  font-size: 10px;
+}
