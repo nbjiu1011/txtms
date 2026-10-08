@@ -1,33 +1,63 @@
 # TX TMS API
 
-Spring Boot 4.1 · Java 21 · MySQL 8 · Flyway · Spring Security (JWT access token + server session).
+Spring Boot 4.1 · Java 21 · MariaDB 10.11 · Flyway · Spring Security (JWT access token + server session).
 
 ## Requirements
 
 - JDK 21
-- MySQL 8.0 binaries (default `C:\laragon\bin\mysql\mysql-8.0.31-winx64`; override with the `TXTMS_MYSQL_HOME` environment variable)
+- Database: **MariaDB 10.11** (the production engine). The schema and queries stay MySQL 8 compatible, but tests run on
+  MariaDB 10.11 so dialect differences cannot pass unnoticed.
+- The local MariaDB is downloaded by the script below (official Windows x64 ZIP, no installer, no admin rights).
+
+## Database engine notes
+
+- JDBC drivers: `mariadb-java-client` (version managed by Spring Boot) and `mysql-connector-j` are both on the runtime
+  classpath; the URL scheme picks the driver and the Hibernate dialect. Use `jdbc:mariadb://` for MariaDB — the MySQL
+  driver reports MariaDB as "MySQL 5.5.5", drops fractional seconds and makes Hibernate render MySQL-only SQL.
+- Character set: the database must be `utf8mb4` with a case-insensitive collation (production: `utf8mb4_general_ci`).
+  Tables take the database default; unique keys on e-mail addresses, variable keys and template codes rely on `_ci`.
+- `JSON` columns: MariaDB stores them as `LONGTEXT` with a `json_valid()` check (MySQL as native `JSON`). The entities
+  map them as `String`; Hibernate's schema validator treats `VARCHAR`/`LONGTEXT` as equivalent, so `ddl-auto: validate`
+  passes on both engines. MariaDB keeps the JSON text as written (MySQL normalizes it), so code parses stored JSON
+  instead of relying on its text format.
+- Row locks use native `SELECT ... FOR UPDATE` (no JPA pessimistic locks, whose MySQL rendering `FOR UPDATE OF alias`
+  MariaDB rejects).
+- Times are stored as UTC `DATETIME(6)` (`hibernate.jdbc.time_zone: UTC`); the server time zone does not matter (the
+  local MariaDB deliberately runs on `+09:00`).
+- The MariaDB driver returns the JDBC URL with the password from `DatabaseMetaData.getURL()`, so
+  `org.hibernate.orm.connections.pooling` logs at `WARN`.
 
 ## Local database
 
-A project-only MySQL instance runs on `127.0.0.1:3317` with its data in `api/.localdb/` (git-ignored).
+A project-only MariaDB 10.11.13 runs on `127.0.0.1:3318` with binaries and data in `api/.localdb/mariadb-10.11/`
+(git-ignored).
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/dev-db.ps1 start   # start (first run initializes it)
-powershell -ExecutionPolicy Bypass -File scripts/dev-db.ps1 status
-powershell -ExecutionPolicy Bypass -File scripts/dev-db.ps1 stop
-powershell -ExecutionPolicy Bypass -File scripts/dev-db.ps1 reset   # wipe and recreate
+powershell -ExecutionPolicy Bypass -File scripts/dev-mariadb.ps1 start   # first run downloads, verifies (SHA-256) and initializes it
+powershell -ExecutionPolicy Bypass -File scripts/dev-mariadb.ps1 status
+powershell -ExecutionPolicy Bypass -File scripts/dev-mariadb.ps1 stop
+powershell -ExecutionPolicy Bypass -File scripts/dev-mariadb.ps1 reset   # wipe the data and recreate (binaries are kept)
 ```
 
-The first start creates the databases `txtms` (development) and `txtms_test` (integration tests), an application
-account, and `api/.env` with random secrets:
+`TXTMS_MARIADB_HOME` points the script at an existing MariaDB 10.11 directory instead of the download, and
+`TXTMS_MARIADB_PORT` changes the port. The first start creates the databases `txtms` (local development) and
+`txtms_test` (integration tests) with `utf8mb4` / `utf8mb4_general_ci` like production, the account `txtms` for
+`127.0.0.1`/`localhost`, and writes the test connection to `api/.env` (other keys are kept; when `.env` does not exist
+yet, `DB_*` pointing at the local `txtms` database and a random `JWT_SECRET` are written too).
+
+`api/.env` keys:
 
 | Variable | Meaning |
 |---|---|
-| `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | Development database |
-| `TEST_DB_URL` | Integration test database |
+| `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | Development database (`bootRun`, `java -jar`). May point at the shared MariaDB server, e.g. `jdbc:mariadb://<host>:3306/txtms` |
+| `TEST_DB_URL`, `TEST_DB_USERNAME`, `TEST_DB_PASSWORD` | Integration test database (local MariaDB `txtms_test`; wiped by every test run) |
 | `JWT_SECRET` | HS256 signing key (base64, at least 256 bits) |
 
-`application.yml` imports `.env` as properties; real deployments pass the same names as environment variables.
+`application.yml` imports `.env` as properties; real deployments pass the same names as environment variables. To run
+against the local MariaDB instead of the shared server, override `DB_URL` (and the credentials) for that run, e.g.
+`--spring.datasource.url=jdbc:mariadb://127.0.0.1:3318/txtms`.
+
+`scripts/dev-db.ps1` (MySQL 8 on port 3317) is kept for optional MySQL compatibility checks only.
 
 ## Run
 
@@ -51,7 +81,7 @@ java -jar build/libs/api-0.0.1-SNAPSHOT.jar --spring.profiles.active=dev
 With `app.demo.enabled=true` (dev profile) an empty database is seeded with two sample customers (한빛카드 with
 approval, 도담생명 without), three projects, twelve users and twelve requests covering every workflow state. All
 dates are relative to the seeding moment, so "due soon" and "overdue" examples stay current. To reseed, recreate the
-database (`dev-db.ps1 reset`, or drop and recreate `txtms`).
+database (`dev-mariadb.ps1 reset` for the local one, or drop and recreate `txtms`).
 
 Correction datasets (`DemoDatasets`): one dataset per content type = the client sample dataset
 (`src/main/resources/demo/correction-sample-dataset.xlsx`, a copy of `docs/교정엔진 샘플 데이터셋.xlsx`, 48 rules, not
@@ -103,8 +133,10 @@ Write tests (`RequestAuthoringIntegrationTest`, `VariableIntegrationTest`, `Bulk
 customer, project and users with `IntegrationTestBase.newTenant()`, so the demo tenants that read tests count on stay
 unchanged. Uploaded files of integration tests go to `build/it-storage`.
 
-Integration tests wipe `txtms_test` at start. `TEST_DB_URL` can be overridden with an environment variable; the
-task is never considered up to date, so it always runs against the current database.
+Integration tests run on the local MariaDB 10.11 (`scripts/dev-mariadb.ps1 start` first) and wipe `txtms_test` at
+start. `TEST_DB_URL`, `TEST_DB_USERNAME` and `TEST_DB_PASSWORD` can be overridden with environment variables; the task
+declares the test database URL as an input and is never considered up to date, so it always runs against the current
+database.
 
 ## Authentication
 

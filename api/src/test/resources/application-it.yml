@@ -1,7 +1,10 @@
-# Integration tests: local MySQL test database (TEST_DB_URL from the environment or api/.env).
+# Integration tests: local MariaDB 10.11 test database (TEST_DB_* from the environment or api/.env), separate from the
+# development database (DB_*), which may point to a shared server with other credentials.
 spring:
   datasource:
     url: ${TEST_DB_URL}
+    username: ${TEST_DB_USERNAME}
+    password: ${TEST_DB_PASSWORD}
   flyway:
     clean-disabled: false
 

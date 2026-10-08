@@ -1,7 +1,8 @@
-# Project-local MySQL 8 instance for development and integration tests.
+# Optional project-local MySQL 8 instance (MySQL compatibility checks only; the target engine is MariaDB 10.11,
+# see scripts/dev-mariadb.ps1, which the integration tests use).
 # Usage: powershell -ExecutionPolicy Bypass -File scripts/dev-db.ps1 start|stop|status|reset
-# Data lives in api/.localdb (gitignored). Port 3317 avoids clashing with other local servers.
-# Writes api/.env with random secrets on first start.
+# Data lives in api/.localdb/data (gitignored). Port 3317 avoids clashing with other local servers.
+# Writes api/.env with random secrets on first start (only when api/.env does not exist).
 param([Parameter(Mandatory = $true)][ValidateSet('start', 'stop', 'status', 'reset')][string]$Command)
 
 $ErrorActionPreference = 'Stop'
@@ -54,7 +55,7 @@ function Start-Db {
         & $Mysql --host=127.0.0.1 --port=$Port --user=root -e $sql
         if ($LASTEXITCODE -ne 0) { throw 'database bootstrap failed' }
         $jwt = New-Secret 48
-        $envText = "DB_URL=jdbc:mysql://127.0.0.1:$Port/txtms`nDB_USERNAME=txtms`nDB_PASSWORD=$appPw`nTEST_DB_URL=jdbc:mysql://127.0.0.1:$Port/txtms_test`nJWT_SECRET=$jwt`n"
+        $envText = "DB_URL=jdbc:mysql://127.0.0.1:$Port/txtms`nDB_USERNAME=txtms`nDB_PASSWORD=$appPw`nTEST_DB_URL=jdbc:mysql://127.0.0.1:$Port/txtms_test`nTEST_DB_USERNAME=txtms`nTEST_DB_PASSWORD=$appPw`nJWT_SECRET=$jwt`n"
         Write-Utf8NoBom $EnvFile $envText
         Write-Host "Created $EnvFile"
     }
@@ -74,7 +75,9 @@ switch ($Command) {
     'reset' {
         Stop-Db
         Start-Sleep -Seconds 2
-        if (Test-Path $Root) { Remove-Item -Recurse -Force $Root }
+        # Only the MySQL data; api/.localdb also holds the MariaDB instance.
+        if (Test-Path $DataDir) { Remove-Item -Recurse -Force $DataDir }
+        if (Test-Path $Ini) { Remove-Item -Force $Ini }
         if (Test-Path $EnvFile) { Remove-Item -Force $EnvFile }
         Start-Db
     }

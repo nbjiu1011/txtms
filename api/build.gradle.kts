@@ -35,6 +35,8 @@ dependencies {
 	implementation("org.apache.poi:poi-ooxml:$poiVersion")
 	runtimeOnly("io.jsonwebtoken:jjwt-impl:$jjwtVersion")
 	runtimeOnly("io.jsonwebtoken:jjwt-jackson:$jjwtVersion")
+	// The JDBC URL scheme picks the driver and the Hibernate dialect: jdbc:mariadb:// (production) or jdbc:mysql://.
+	runtimeOnly("org.mariadb.jdbc:mariadb-java-client")
 	runtimeOnly("com.mysql:mysql-connector-j")
 	testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
@@ -57,9 +59,16 @@ tasks.test {
 	}
 }
 
-// Integration tests run against the project-local MySQL (TEST_DB_URL, database txtms_test).
+// TEST_DB_URL from the environment, else from api/.env (where scripts/dev-mariadb.ps1 writes it).
+val testDbUrl: Provider<String> = providers.environmentVariable("TEST_DB_URL").orElse(provider {
+	val env = file(".env")
+	if (!env.isFile) "default" else env.readLines().firstOrNull { it.startsWith("TEST_DB_URL=") }
+		?.substringAfter('=')?.trim() ?: "default"
+})
+
+// Integration tests run against the project-local MariaDB 10.11 (TEST_DB_URL, database txtms_test).
 tasks.register<Test>("integrationTest") {
-	description = "Runs integration tests against the local MySQL test database."
+	description = "Runs integration tests against the local MariaDB test database."
 	group = "verification"
 	testClassesDirs = sourceSets.test.get().output.classesDirs
 	classpath = sourceSets.test.get().runtimeClasspath
@@ -67,7 +76,7 @@ tasks.register<Test>("integrationTest") {
 		includeTags("integration")
 	}
 	// Declare the DB location as an input so switching databases never reuses an old result.
-	inputs.property("testDbUrl", providers.environmentVariable("TEST_DB_URL").orElse("default"))
+	inputs.property("testDbUrl", testDbUrl)
 	// The database state is outside Gradle's view; never treat this task as up to date.
 	outputs.upToDateWhen { false }
 	shouldRunAfter(tasks.test)

@@ -71,7 +71,7 @@ public final class ProjectSendingRules {
             if (name.length() > NAME_MAX) {
                 throw BusinessException.validation(field + ".name", "템플릿 이름은 최대 " + NAME_MAX + "자입니다");
             }
-            // the stored key is case-insensitive (utf8mb4_0900_ai_ci)
+            // the stored key is case-insensitive (the database uses a _ci collation)
             if (!seen.add(code.toLowerCase(Locale.ROOT))) {
                 throw BusinessException.validation(field + ".code", "템플릿 코드 " + code + "이(가) 중복됩니다");
             }
