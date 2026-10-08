@@ -1,9 +1,11 @@
 import type { NextConfig } from "next";
 
 /** Origin of the Spring Boot API. Browser calls stay same-origin through the `/api` rewrite. */
-const apiOrigin = (process.env.API_ORIGIN ?? "http://localhost:8080").replace(/\/+$/, "");
+const apiOrigin = (process.env.API_ORIGIN ?? "http://localhost:4245").replace(/\/+$/, "");
 
 const nextConfig: NextConfig = {
+  // The dev server may also be opened through the public domain behind the reverse proxy.
+  allowedDevOrigins: ["txtms.tagoplus.co.kr"],
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

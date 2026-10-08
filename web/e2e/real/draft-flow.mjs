@@ -1,6 +1,6 @@
 /**
  * Request authoring flow against a running API in demo mode (creates real drafts in the dev DB).
- *   node e2e/real/draft-flow.mjs            (BASE=http://localhost:3000, FILES=<dir with sample files>)
+ *   node e2e/real/draft-flow.mjs            (BASE=http://localhost:4246, FILES=<dir with sample files>)
  * Sample files: bulk-alimtalk.xlsx (template + rows), 약관 개정안.pdf, card.png, notes.txt, script.js.
  * Screenshots go to e2e/real/out (gitignored).
  */
@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { chromium, expect } from "@playwright/test";
 import { reportConsole, watchConsole } from "./helpers.mjs";
 
-const BASE = process.env.BASE ?? "http://localhost:3000";
+const BASE = process.env.BASE ?? "http://localhost:4246";
 const FILES = process.env.FILES ?? "e2e/real/files";
 const OUT = "e2e/real/out";
 mkdirSync(OUT, { recursive: true });

@@ -8,8 +8,8 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { chromium, expect } from "@playwright/test";
 
-export const BASE = process.env.BASE ?? "http://localhost:3000";
-export const API = (process.env.API_ORIGIN ?? "http://localhost:8080") + "/api";
+export const BASE = process.env.BASE ?? "http://localhost:4246";
+export const API = (process.env.API_ORIGIN ?? "http://localhost:4245") + "/api";
 export const OUT = "e2e/real/out";
 
 export const log = (m) => console.log(`- ${m}`);

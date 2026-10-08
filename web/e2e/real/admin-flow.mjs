@@ -1,6 +1,6 @@
 /**
  * Customer admin (M6) and work management (M5) screens against a running API in demo mode.
- *   node e2e/real/admin-flow.mjs            (BASE=http://localhost:3000, API_ORIGIN=http://localhost:8080)
+ *   node e2e/real/admin-flow.mjs            (BASE=http://localhost:4246, API_ORIGIN=http://localhost:4245)
  * 강민호 (u11, 한빛카드 admin) creates a project, invites an external-domain user (confirmation step),
  * reads the unmasked outbox of the sample customer, the invitee accepts in a fresh context, roles are
  * edited, a notice is published / edited / withdrawn (김서연 sees it, 문지아 of 도담생명 does not), a

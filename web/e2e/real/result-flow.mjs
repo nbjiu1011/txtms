@@ -1,6 +1,6 @@
 /**
  * Completion results, exports, follow-ups and the content archive against a running API in demo mode.
- *   node e2e/real/result-flow.mjs            (BASE=http://localhost:3000, API_ORIGIN=http://localhost:8080)
+ *   node e2e/real/result-flow.mjs            (BASE=http://localhost:4246, API_ORIGIN=http://localhost:4245)
  * Creates fresh requests in the dev DB on every run (an 알림톡 request with two contents, its
  * follow-ups, a 자유입력형 request with a real upload, a clone of the seed REQ-2609-107 whose seed file
  * has no stored original). Assignment, completion and approval of setup requests go through the API;

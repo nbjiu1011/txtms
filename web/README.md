@@ -8,17 +8,17 @@ API: `../api` (types in `src/entities/*/model` mirror the API response shapes).
 
 ```bash
 npm install
-# API (Spring Boot) on http://localhost:8080 — override with API_ORIGIN
-API_ORIGIN=http://localhost:8080 npm run dev     # http://localhost:3000
+# API (Spring Boot) on http://localhost:4245 — override with API_ORIGIN
+API_ORIGIN=http://localhost:4245 npm run dev     # http://localhost:4246
 ```
 
 The browser only talks to `/api/*` on the web origin; `next.config.ts` rewrites it to `API_ORIGIN`
-(default `http://localhost:8080`). If the API is down the login page still renders (the demo persona
+(default `http://localhost:4245`). If the API is down the login page still renders (the demo persona
 section is hidden) and protected URLs redirect to `/login?next=…`.
 
 | Variable | Where | Default | Purpose |
 |---|---|---|---|
-| `API_ORIGIN` | server (rewrite) | `http://localhost:8080` | API origin behind `/api` |
+| `API_ORIGIN` | server (rewrite) | `http://localhost:4245` | API origin behind `/api` |
 | `NEXT_PUBLIC_API_BASE_PATH` | client | `/api` | API base path (validated in `src/shared/config/env.ts`) |
 
 ## Verify
@@ -49,7 +49,7 @@ the browser console: refused API calls the flow provokes on purpose (4xx "Failed
 as expected; any other console error or uncaught page error fails the run. Warnings are listed.
 
 ```bash
-API_ORIGIN=http://localhost:8080 npm run dev          # app on :3000 (the API trusts this origin)
+API_ORIGIN=http://localhost:4245 npm run dev          # app on :3000 (the API trusts this origin)
 npm run e2e:visual                                    # mocked API, prototype comparison (see below)
 VISUAL_SIZES=1440x900,1180x800,860x900 npm run e2e:visual -- screens review
 npm run e2e:real:admin-visual                          # live API data next to the prototype
@@ -57,8 +57,8 @@ npm run e2e:real && npm run e2e:real:review && npm run e2e:real:result   && npm 
 npm run e2e:real:a11y
 ```
 
-`BASE` (default `http://localhost:3000`) points the flows at another server, `API_ORIGIN` (default
-`http://localhost:8080`) is used for API setup steps. Screenshots go to `e2e/real/out/` (gitignored).
+`BASE` (default `http://localhost:4246`) points the flows at another server, `API_ORIGIN` (default
+`http://localhost:4245`) is used for API setup steps. Screenshots go to `e2e/real/out/` (gitignored).
 
 ### Production smoke
 
@@ -66,13 +66,13 @@ The flows run unchanged against a production build:
 
 ```bash
 npm run build
-API_ORIGIN=http://localhost:8080 npm run start -- -p 3001
-npm run e2e:origin-proxy -- 3002 http://localhost:3001 http://localhost:3000
+API_ORIGIN=http://localhost:4245 npm run start -- -p 3001
+npm run e2e:origin-proxy -- 3002 http://localhost:3001 http://localhost:4246
 BASE=http://localhost:3002 npm run e2e:real            # also :review, :correction, … and e2e:real:a11y
 ```
 
 The API accepts browser calls from one web origin (`app.web-base-url` / `app.cors.allowed-origins`, in the
-dev profile `http://localhost:3000`), and the `/api` rewrite forwards the browser's `Origin`, so a build
+dev profile `http://localhost:4246`), and the `/api` rewrite forwards the browser's `Origin`, so a build
 served on :3001 is refused with 403. `e2e/real/origin-proxy.mjs` streams every request to the production
 server unchanged and only presents the trusted origin. In a deployment, configure the web origin on the API
 instead.
@@ -129,22 +129,22 @@ API mocks for the harness come from `e2e/fixtures/` (captured from a freshly see
 seed's times are relative to the seeding moment, so recapture all of them together):
 - `api-snapshot.ts` — contract-shaped responses captured from the demo API (generated; typed exports such as
   `dashboardU1: Dashboard` are type-checked against `entities`, so contract drift fails `typecheck`).
-  Regenerate with `node e2e/fixtures/capture-api.mjs [http://localhost:8080]` while the API runs in demo mode.
+  Regenerate with `node e2e/fixtures/capture-api.mjs [http://localhost:4245]` while the API runs in demo mode.
 - `draft-snapshot.ts` — REQ-2609-105 (detail + history) and the project 1 variables, regenerated with
-  `node e2e/fixtures/capture-draft.mjs [http://localhost:8080]`.
+  `node e2e/fixtures/capture-draft.mjs [http://localhost:4245]`.
 - `review-snapshot.ts` — list views, workload and request details of the 검수 / 승인 screens (seed requests
-  only), regenerated with `node e2e/fixtures/capture-review.mjs [http://localhost:8080]`.
+  only), regenerated with `node e2e/fixtures/capture-review.mjs [http://localhost:4245]`.
 - `archive-snapshot.ts` — 콘텐츠 archive of project 1 as u1 (seed lineages only) and its campaign list,
-  regenerated with `node e2e/fixtures/capture-archive.mjs [http://localhost:8080]`.
+  regenerated with `node e2e/fixtures/capture-archive.mjs [http://localhost:4245]`.
 - `correction-snapshot.ts` — correction dataset labels of the seed requests the screens open and the check result of
-  REQ-2609-101, regenerated with `node e2e/fixtures/capture-correction.mjs [http://localhost:8080]`.
+  REQ-2609-101, regenerated with `node e2e/fixtures/capture-correction.mjs [http://localhost:4245]`.
 - `mock-api.ts` — `mockApiAs(page, userId, { extra, onWrite })`: refresh returns that persona, GETs answer from
   the snapshot plus `extra` (query order ignored), writes go to `onWrite` (default 405). Unit tests import the
   same fixtures via `@fixtures/*`.
 
 ### Real-API flow (`e2e/real/draft-flow.mjs`)
 
-Drives a dev server (default `BASE=http://localhost:3000`, proxied to the API in demo mode) as 김서연 and creates
+Drives a dev server (default `BASE=http://localhost:4246`, proxied to the API in demo mode) as 김서연 and creates
 real drafts: 새 요청 → 요청 정보 autosave → submit with missing fields (list + field errors) → fix → 알림톡 editing
 with variable insertion and 미리보기 values → variable registration (format, duplicate and type errors) → add /
 delete content → XLSX import (preview with error rows) → submit → cancel → resubmit → clone → 자유입력형 type
@@ -168,7 +168,7 @@ and saves v2, adds an opinion → 박지훈's open copy shows v2 through the pol
 ### Real-API flow (`e2e/real/result-flow.mjs`)
 
 김서연 in the browser; assignment, completion and approval of setup requests go through the API (`API_ORIGIN`, default
-`http://localhost:8080`). New 알림톡 request → 검수 요청 with a missing field (the `submit-check` list appears before the
+`http://localhost:4245`). New 알림톡 request → 검수 요청 with a missing field (the `submit-check` list appears before the
 confirmation) → two contents (C1 uses `#{customer_name}`) → submit → approved → 완료 결과: bundle and completion-time
 variables, C1 복사 (the clipboard holds the substituted text, `copy-events` 204), XLSX export (file downloaded, `PK`
 header) → 후속 요청 작성 (whole: new draft with both contents, `원본 {ID}` breadcrumb back) → C2 후속 요청 from the result
@@ -238,8 +238,8 @@ reference's empty right column, plus a customer filter on 운영 이력; 초기 
 dataset modal takes an XLSX upload or JSON in the contract's 7-column keys instead of the reference's `mode/p/s/r` JSON;
 목업 시드 checkboxes are read-only (Phase 2).
 
-Against the real API: `API_ORIGIN=http://localhost:8080 npm run dev`, then sign in with a demo persona.
-If a dev server already runs, `VISUAL_PORT=3000 npm run e2e:visual` reuses it.
+Against the real API: `API_ORIGIN=http://localhost:4245 npm run dev`, then sign in with a demo persona.
+If a dev server already runs, `VISUAL_PORT=4246 npm run e2e:visual` reuses it.
 
 ## Structure (Feature-Sliced Design)
 

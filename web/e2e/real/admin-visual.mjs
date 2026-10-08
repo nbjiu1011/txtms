@@ -1,7 +1,7 @@
 /**
  * Side-by-side capture of the M5 / M6 / M7 screens and modals: the prototype (persona login + its own
  * actions) next to this app against a running API in demo mode (same persona).
- *   node e2e/real/admin-visual.mjs [name…]    (BASE=http://localhost:3000, VISUAL_SIZES=1440x900,1180x800,860x900)
+ *   node e2e/real/admin-visual.mjs [name…]    (BASE=http://localhost:4246, VISUAL_SIZES=1440x900,1180x800,860x900)
  * Writes `visual-{name}.prototype.png`, `.app.png` and `.side-by-side.png` (prototype | app | diff) to
  * e2e/real/out and prints the share of differing pixels. Data differs on purpose (prototype seed vs
  * the dev DB), so the numbers are a guide; read the images.

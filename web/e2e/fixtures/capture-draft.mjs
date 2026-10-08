@@ -1,12 +1,12 @@
 /**
  * Regenerates `draft-snapshot.ts` (REQ-2609-105 as 김서연 + the project 1 variables) from a running API in
  * demo mode. Run it on a freshly seeded database (the real-API flows edit REQ-2609-105). Usage:
- *   node e2e/fixtures/capture-draft.mjs [http://localhost:8080]
+ *   node e2e/fixtures/capture-draft.mjs [http://localhost:4245]
  */
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-const API = (process.argv[2] ?? "http://localhost:8080") + "/api";
+const API = (process.argv[2] ?? "http://localhost:4245") + "/api";
 
 const login = await fetch(`${API}/auth/demo-login`, {
   method: "POST",

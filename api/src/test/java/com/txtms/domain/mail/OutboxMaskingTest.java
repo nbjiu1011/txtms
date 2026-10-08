@@ -8,14 +8,14 @@ import org.junit.jupiter.api.Test;
 class OutboxMaskingTest {
 
     private static final String INVITE = "김서연님, 한빛카드의 TX TMS에 초대되었습니다. 아래 링크에서 7일 안에 이름과 비밀번호를 설정하세요.\n"
-            + "http://localhost:3000/invite/AbC-12_xYz0123456789abcdefghijklmnopqrstu";
+            + "http://localhost:4246/invite/AbC-12_xYz0123456789abcdefghijklmnopqrstu";
     private static final String RESET = "비밀번호 재설정 링크입니다.\nhttps://tms.example.com/reset/Zz9_-Qq8";
 
     @Test
     void invitationAndResetLinksAreMasked() {
         OutboxMasking.Shown invite = OutboxMasking.show(INVITE, false);
         assertThat(invite.masked()).isTrue();
-        assertThat(invite.body()).endsWith("http://localhost:3000/invite/••••\n링크는 수신자에게만 전달됩니다")
+        assertThat(invite.body()).endsWith("http://localhost:4246/invite/••••\n링크는 수신자에게만 전달됩니다")
                 .doesNotContain("AbC-12_xYz");
         OutboxMasking.Shown reset = OutboxMasking.show(RESET, false);
         assertThat(reset.masked()).isTrue();

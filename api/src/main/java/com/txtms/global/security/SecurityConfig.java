@@ -77,7 +77,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource(AppProperties properties) {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        List<String> origins = properties.cors().allowedOrigins();
+        // CORS_ALLOWED_ORIGINS is a comma-separated environment value; an empty one must not register "" as an origin.
+        List<String> origins = properties.cors().allowedOrigins().stream()
+                .filter(o -> o != null && !o.isBlank())
+                .map(String::trim)
+                .toList();
         if (!origins.isEmpty()) {
             CorsConfiguration config = new CorsConfiguration();
             config.setAllowedOrigins(origins);

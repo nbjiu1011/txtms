@@ -2,12 +2,12 @@
  * Captures correction responses for the visual comparison into `correction-snapshot.ts`: the dataset
  * label of the seed requests the screens open (as 김서연, who can open them all), and the check result
  * of REQ-2609-101 (all contents) as 박지훈.
- *   node e2e/fixtures/capture-correction.mjs [http://localhost:8080]
+ *   node e2e/fixtures/capture-correction.mjs [http://localhost:4245]
  */
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-const API = (process.argv[2] ?? "http://localhost:8080") + "/api";
+const API = (process.argv[2] ?? "http://localhost:4245") + "/api";
 const DATASET_IDS = ["REQ-2609-101", "REQ-2609-103", "REQ-2609-088", "REQ-2609-105", "REQ-2609-104"];
 
 async function call(token, method, path, body) {

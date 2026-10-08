@@ -1,7 +1,7 @@
 /**
  * Assignment → review → approval flow against a running API in demo mode (creates one new request in
  * the dev DB per run; seed requests are not touched).
- *   node e2e/real/review-flow.mjs            (BASE=http://localhost:3000)
+ *   node e2e/real/review-flow.mjs            (BASE=http://localhost:4246)
  * Personas (separate browser contexts): 김서연 u1 requester, 박지훈 u2 reviewer, 이도현 u3 lead,
  * 한가을 u6 reviewer, 최민아 u4 approver. Screenshots go to e2e/real/out (gitignored).
  */

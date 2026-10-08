@@ -2,12 +2,12 @@
  * Captures the 검수 / 승인 screen responses (list views, workload, request details) from a running API
  * in demo mode into `review-snapshot.ts`. Lists keep the demo seed requests only (`REQ-2609-*`) so
  * requests created by flow scripts do not leak into the visual comparison.
- *   node e2e/fixtures/capture-review.mjs [http://localhost:8080]
+ *   node e2e/fixtures/capture-review.mjs [http://localhost:4245]
  */
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-const API = (process.argv[2] ?? "http://localhost:8080") + "/api";
+const API = (process.argv[2] ?? "http://localhost:4245") + "/api";
 const SEED = /^REQ-2609-/;
 
 const list = (view) => `/requests?projectId=1&view=${view}&page=0&size=100`;

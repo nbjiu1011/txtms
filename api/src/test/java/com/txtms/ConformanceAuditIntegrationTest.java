@@ -553,10 +553,10 @@ class ConformanceAuditIntegrationTest extends IntegrationTestBase {
 
         // the web app (same origin through the /api rewrite) and non-browser clients keep working
         assertThat(mvc.perform(post("/api/auth/refresh").cookie(req.refreshCookie())
-                .header("Sec-Fetch-Site", "same-origin").header("Origin", "http://localhost:3000")).andReturn()
+                .header("Sec-Fetch-Site", "same-origin").header("Origin", "http://localhost:4246")).andReturn()
                 .getResponse().getStatus()).isEqualTo(200);
         assertThat(mvc.perform(post("/api/auth/refresh").cookie(req.refreshCookie())
-                .header("Origin", "http://localhost:3000")).andReturn().getResponse().getStatus()).isEqualTo(200);
+                .header("Origin", "http://localhost:4246")).andReturn().getResponse().getStatus()).isEqualTo(200);
         assertThat(mvc.perform(post("/api/auth/refresh").cookie(req.refreshCookie())).andReturn().getResponse()
                 .getStatus()).isEqualTo(200);
         // the cookie itself stays SameSite=Strict, httpOnly and scoped to /api/auth

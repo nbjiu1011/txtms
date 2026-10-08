@@ -25,9 +25,21 @@
    ```bash
    cd web && npm install && npm run dev
    ```
-   브라우저에서 http://localhost:3000 을 엽니다. 웹은 `/api` 요청을 API 서버(기본 http://localhost:8080)로 전달합니다.
+   브라우저에서 http://localhost:4246 을 엽니다. 웹은 `/api` 요청을 API 서버(기본 http://localhost:4245)로 전달합니다.
 
 자세한 내용은 `api/README.md`, `web/README.md`를 참고하세요.
+
+## 포트와 도메인
+
+| 구성 | 포트 | 도메인 (리버스 프록시) |
+|---|---|---|
+| API | 4245 | https://txtms-api.tagoplus.co.kr |
+| 웹 | 4246 | https://txtms.tagoplus.co.kr |
+
+서버 배포 시 환경 변수:
+
+- API: `api/.env.example` 참고. `WEB_BASE_URL=https://txtms.tagoplus.co.kr`, `CORS_ALLOWED_ORIGINS=https://txtms.tagoplus.co.kr`, `REFRESH_COOKIE_SECURE=true`, 데모 모드는 `dev` 프로필에서만 켜집니다.
+- 웹: `API_ORIGIN=http://127.0.0.1:4245` (같은 서버의 API로 `/api` 요청을 전달), `npm run build && npm run start` (포트 4246).
 
 ## 외부 연동 (운영 배포 전 교체 필요)
 

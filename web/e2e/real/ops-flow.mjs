@@ -1,6 +1,6 @@
 /**
  * Solution operator (M7) screens against a running API in demo mode.
- *   node e2e/real/ops-flow.mjs            (BASE=http://localhost:3000, API_ORIGIN=http://localhost:8080)
+ *   node e2e/real/ops-flow.mjs            (BASE=http://localhost:4246, API_ORIGIN=http://localhost:4245)
  * 정우진 (u5) reads the ops dashboard, creates a throwaway customer (domain normalisation, format and
  * duplicate refusals), finds its default project in 초기 설정·시드, invites the first admin with the
  * external-domain confirmation and a business user, sets the project's templates and senders, assigns

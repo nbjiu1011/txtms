@@ -1,7 +1,7 @@
 /**
  * Accessibility check (axe-core, WCAG 2.1 A/AA rules) of the main screens against a running API in demo
  * mode: login, dashboard (김서연), REQ-2609-101 (박지훈), 사용자·권한 관리 (강민호), 고객사 관리 (정우진).
- *   node e2e/real/a11y.mjs            (BASE=http://localhost:3000)
+ *   node e2e/real/a11y.mjs            (BASE=http://localhost:4246)
  * Prints the violations per screen and writes `a11y-report.json` to e2e/real/out. Exits 1 when a
  * serious or critical violation is found that is not a known design exception (`KNOWN`); moderate /
  * minor ones are listed only.

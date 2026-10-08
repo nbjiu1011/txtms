@@ -1,13 +1,13 @@
 /**
  * Regenerates `api-snapshot.ts` from a running API in demo mode (contract-shaped responses of the
  * demo seed, which mirrors the reference prototype seed). Usage:
- *   node e2e/fixtures/capture-api.mjs [http://localhost:8080]
+ *   node e2e/fixtures/capture-api.mjs [http://localhost:4245]
  * Times in the seed are relative to the seeding moment; the snapshot freezes them.
  */
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-const API = (process.argv[2] ?? "http://localhost:8080") + "/api";
+const API = (process.argv[2] ?? "http://localhost:4245") + "/api";
 
 /** persona → endpoints captured for it (path → TS export name and type). */
 const PLAN = {

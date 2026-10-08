@@ -2,12 +2,12 @@
  * Regenerates `archive-snapshot.ts` (콘텐츠 archive of project 1 as 김서연) from a running API in demo
  * mode. Only seed lineages are kept (`REQ-2609-*`): requests created by the real-API flows would make
  * the comparison with the reference prototype depend on the dev DB. Usage:
- *   node e2e/fixtures/capture-archive.mjs [http://localhost:8080]
+ *   node e2e/fixtures/capture-archive.mjs [http://localhost:4245]
  */
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-const API = (process.argv[2] ?? "http://localhost:8080") + "/api";
+const API = (process.argv[2] ?? "http://localhost:4245") + "/api";
 const SEED = /^REQ-2609-/;
 
 const res = await fetch(`${API}/auth/demo-login`, {

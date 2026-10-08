@@ -62,7 +62,7 @@ against the local MariaDB instead of the shared server, override `DB_URL` (and t
 ## Run
 
 ```bash
-./gradlew bootRun            # dev profile: demo data, Swagger UI, CORS for http://localhost:3000
+./gradlew bootRun            # dev profile: demo data, Swagger UI, CORS for http://localhost:4246
 ```
 
 or
@@ -72,8 +72,8 @@ or
 java -jar build/libs/api-0.0.1-SNAPSHOT.jar --spring.profiles.active=dev
 ```
 
-- Health: `GET http://localhost:8080/actuator/health`
-- API docs (dev profile only): `http://localhost:8080/swagger-ui.html`, `http://localhost:8080/v3/api-docs`
+- Health: `GET http://localhost:4245/actuator/health`
+- API docs (dev profile only): `http://localhost:4245/swagger-ui.html`, `http://localhost:4245/v3/api-docs`
 - Flyway migrates the schema on start (`ddl-auto: validate`).
 
 ### Demo data
@@ -113,12 +113,12 @@ For email login tests the dev profile also gives every demo account the password
 ### Smoke test
 
 ```bash
-curl -s http://localhost:8080/actuator/health
-curl -s http://localhost:8080/api/auth/demo-personas
-curl -s -c cookies.txt -H "Content-Type: application/json" -d '{"userId":1}' http://localhost:8080/api/auth/demo-login
+curl -s http://localhost:4245/actuator/health
+curl -s http://localhost:4245/api/auth/demo-personas
+curl -s -c cookies.txt -H "Content-Type: application/json" -d '{"userId":1}' http://localhost:4245/api/auth/demo-login
 # use the returned accessToken:
-curl -s -H "Authorization: Bearer <accessToken>" "http://localhost:8080/api/requests?projectId=1"
-curl -s -b cookies.txt -X POST http://localhost:8080/api/auth/refresh
+curl -s -H "Authorization: Bearer <accessToken>" "http://localhost:4245/api/requests?projectId=1"
+curl -s -b cookies.txt -X POST http://localhost:4245/api/auth/refresh
 ```
 
 ## Tests
@@ -228,12 +228,12 @@ Smoke test (write path):
 ```bash
 TOKEN=$(curl -s -H "Content-Type: application/json" \
   -d '{"email":"seoyeon.kim@hanbitcard.co.kr","password":"Txtms!2026","remember":false}' \
-  http://localhost:8080/api/auth/login | jq -r .accessToken)
+  http://localhost:4245/api/auth/login | jq -r .accessToken)
 curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"projectId":1,"type":"SMS"}' http://localhost:8080/api/requests        # 201, DRAFT with C1
+  -d '{"projectId":1,"type":"SMS"}' http://localhost:4245/api/requests        # 201, DRAFT with C1
 # PATCH the request information and PUT /contents/C1 (send UTF-8 bodies from a file on Windows: --data-binary @body.json)
 curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -H "Idempotency-Key: k1" \
-  -d '{"rowVersion":1}' http://localhost:8080/api/requests/<id>/submit         # 200 WAITING or 400 with details
+  -d '{"rowVersion":1}' http://localhost:4245/api/requests/<id>/submit         # 200 WAITING or 400 with details
 ```
 
 ## Assignment and review (M2)
@@ -302,10 +302,10 @@ Smoke test (completion path, approval not used; send UTF-8 bodies from files on 
 
 ```bash
 curl -s -H "Authorization: Bearer $REVIEWER_TOKEN" -H "Content-Type: application/json" \
-  -d '{"rowVersion":5}' http://localhost:8080/api/requests/<id>/complete          # 200 REVIEW_COMPLETED + bundle
-curl -s -o out.xlsx -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/requests/<id>/bundle/export.xlsx
-curl -s -o out.zip  -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/requests/<id>/bundle/attachments.zip
-curl -s -H "Authorization: Bearer $TOKEN" "http://localhost:8080/api/archive/contents?projectId=1"
+  -d '{"rowVersion":5}' http://localhost:4245/api/requests/<id>/complete          # 200 REVIEW_COMPLETED + bundle
+curl -s -o out.xlsx -H "Authorization: Bearer $TOKEN" http://localhost:4245/api/requests/<id>/bundle/export.xlsx
+curl -s -o out.zip  -H "Authorization: Bearer $TOKEN" http://localhost:4245/api/requests/<id>/bundle/attachments.zip
+curl -s -H "Authorization: Bearer $TOKEN" "http://localhost:4245/api/archive/contents?projectId=1"
 ```
 
 ## Text correction and datasets (M4)
@@ -338,11 +338,11 @@ curl -s -H "Authorization: Bearer $TOKEN" "http://localhost:8080/api/archive/con
 Smoke test (correction path, send UTF-8 bodies from files on Windows):
 
 ```bash
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/requests/REQ-2609-105/corrections/dataset
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:4245/api/requests/REQ-2609-105/corrections/dataset
 # {"assigned":true,"datasetLabel":"알림톡 v4"}
 curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data-binary @check.json \
-  http://localhost:8080/api/requests/REQ-2609-105/corrections/check     # groups: 할수 → 할 수 (P3)
-curl -s -H "Authorization: Bearer $OPERATOR_TOKEN" -F scope=SMS -F file=@rules.xlsx http://localhost:8080/api/ops/datasets
+  http://localhost:4245/api/requests/REQ-2609-105/corrections/check     # groups: 할수 → 할 수 (P3)
+curl -s -H "Authorization: Bearer $OPERATOR_TOKEN" -F scope=SMS -F file=@rules.xlsx http://localhost:4245/api/ops/datasets
 ```
 
 ## Work management (M5)
@@ -422,13 +422,13 @@ Smoke test (customer admin, send UTF-8 bodies from files on Windows):
 ```bash
 ADMIN=$(curl -s -H "Content-Type: application/json" \
   -d '{"email":"minho.kang@hanbitcard.co.kr","password":"Txtms!2026","remember":false}' \
-  http://localhost:8080/api/auth/login | jq -r .accessToken)
-curl -s -H "Authorization: Bearer $ADMIN" http://localhost:8080/api/customers/1/members
-curl -s -H "Authorization: Bearer $ADMIN" "http://localhost:8080/api/performance?customerId=1&from=2026-09-01&to=2026-10-31"
+  http://localhost:4245/api/auth/login | jq -r .accessToken)
+curl -s -H "Authorization: Bearer $ADMIN" http://localhost:4245/api/customers/1/members
+curl -s -H "Authorization: Bearer $ADMIN" "http://localhost:4245/api/performance?customerId=1&from=2026-09-01&to=2026-10-31"
 curl -s -H "Authorization: Bearer $ADMIN" -H "Content-Type: application/json" --data-binary @invite.json \
-  http://localhost:8080/api/customers/1/invitations                  # 201 Member (pending), mail in the outbox
-curl -s -H "Authorization: Bearer $ADMIN" "http://localhost:8080/api/customers/1/outbox?size=1"
-curl -s -H "Authorization: Bearer $ADMIN" "http://localhost:8080/api/customers/1/audit-logs?size=5"
+  http://localhost:4245/api/customers/1/invitations                  # 201 Member (pending), mail in the outbox
+curl -s -H "Authorization: Bearer $ADMIN" "http://localhost:4245/api/customers/1/outbox?size=1"
+curl -s -H "Authorization: Bearer $ADMIN" "http://localhost:4245/api/customers/1/audit-logs?size=5"
 ```
 
 ## Solution operator (M7)
@@ -484,12 +484,12 @@ Smoke test (operator, send UTF-8 bodies from files on Windows):
 ```bash
 OP=$(curl -s -H "Content-Type: application/json" \
   -d '{"email":"woojin.jung@txtms.io","password":"Txtms!2026","remember":false}' \
-  http://localhost:8080/api/auth/login | jq -r .accessToken)
-curl -s -H "Authorization: Bearer $OP" http://localhost:8080/api/ops/dashboard
+  http://localhost:4245/api/auth/login | jq -r .accessToken)
+curl -s -H "Authorization: Bearer $OP" http://localhost:4245/api/ops/dashboard
 curl -s -H "Authorization: Bearer $OP" -H "Content-Type: application/json" --data-binary @customer.json \
-  http://localhost:8080/api/ops/customers                               # 201 OpsCustomer + 기본 프로젝트
+  http://localhost:4245/api/ops/customers                               # 201 OpsCustomer + 기본 프로젝트
 curl -s -H "Authorization: Bearer $OP" -H "Content-Type: application/json" --data-binary @admin-invite.json \
-  http://localhost:8080/api/ops/customers/<id>/invitations             # 201 Member (admin, pending)
+  http://localhost:4245/api/ops/customers/<id>/invitations             # 201 Member (admin, pending)
 curl -s -X PUT -H "Authorization: Bearer $OP" -H "Content-Type: application/json" -d '["1588-0000"]' \
-  http://localhost:8080/api/ops/projects/<projectId>/senders
+  http://localhost:4245/api/ops/projects/<projectId>/senders
 ```

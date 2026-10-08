@@ -1,6 +1,6 @@
 /**
  * Text correction (M4) against a running API in demo mode.
- *   node e2e/real/correction-flow.mjs        (BASE=http://localhost:3000, API_ORIGIN=http://localhost:8080)
+ *   node e2e/real/correction-flow.mjs        (BASE=http://localhost:4246, API_ORIGIN=http://localhost:4245)
  * 김서연 on the seed draft REQ-2609-105 (할수 → 할 수, autosave, restore) and on a fresh draft built from
  * sample-dataset phrases (1:N swap / restore, overlapping results, description-only, card → editor
  * selection, stale banner, 전체 검사 with the bottom bar, 건의하기); 박지훈 on REQ-2609-101 (edit lock +
