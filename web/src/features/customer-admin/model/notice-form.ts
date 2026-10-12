@@ -1,5 +1,6 @@
 import type { Notice, NoticeScope, NoticeUpsert } from "@/entities/notice";
 import { firstMissing } from "@/shared/lib";
+import { isRichTextEmpty } from "@/shared/ui/rich-text";
 
 export interface NoticeForm {
   scope: NoticeScope;
@@ -21,10 +22,11 @@ export function initialNoticeForm(notice: Notice | null, currentProjectId: numbe
   return { scope: "PROJECT", projectId: String(currentProjectId ?? firstProjectId ?? ""), title: "", body: "" };
 }
 
+/** Title and a body with visible text or an image (the editor's empty document counts as empty). */
 export function noticeFormProblem(form: NoticeForm): string | null {
   return firstMissing([
     [form.title, "제목"],
-    [form.body, "내용"],
+    [isRichTextEmpty(form.body) ? "" : form.body, "내용"],
   ]);
 }
 

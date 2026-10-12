@@ -30,6 +30,7 @@ import com.txtms.domain.user.service.UserService;
 import com.txtms.global.audit.AuditLogService;
 import com.txtms.global.common.PageQuery;
 import com.txtms.global.common.PageResponse;
+import com.txtms.global.common.RichText;
 import com.txtms.global.config.AppProperties;
 import com.txtms.global.exception.BusinessException;
 import com.txtms.global.exception.ErrorCode;
@@ -47,6 +48,8 @@ public class NoticeService {
 
     static final int TITLE_MAX = 200;
     /** Server cap of the (non-paged) notice lists, newest first (contract §0.1 small lists). */
+    /** Upper bound of a rich body including inline images (base64), about 5 MB. */
+    static final int HTML_MAX = 5_000_000;
     static final String WITHDRAWN = "철회된 공지는 수정하거나 다시 철회할 수 없습니다";
 
     private final NoticeRepository notices;
@@ -199,8 +202,30 @@ public class NoticeService {
         return v;
     }
 
+    /**
+     * Body of the rich text editor (contract §18): sanitized HTML, judged by its visible text (and images). A body
+     * that is not HTML is plain text as before the editor and is kept as written.
+     */
     private String body(String raw) {
         String v = raw == null ? "" : raw.strip();
+        if (!RichText.isHtml(v)) {
+            return plainBody(v);
+        }
+        RichText.Result rich = RichText.sanitize(v);
+        String text = rich.text().strip();
+        if (text.isEmpty() && !rich.hasImage()) {
+            throw BusinessException.validation("body", "내용을(를) 입력하세요");
+        }
+        if (text.codePointCount(0, text.length()) > bodyMax) {
+            throw BusinessException.validation("body", String.format("내용은 최대 %,d자입니다", bodyMax));
+        }
+        if (rich.html().length() > HTML_MAX) {
+            throw BusinessException.validation("body", "이미지를 포함한 내용이 너무 큽니다. 이미지를 줄여 주세요");
+        }
+        return rich.html();
+    }
+
+    private String plainBody(String v) {
         if (v.isEmpty()) {
             throw BusinessException.validation("body", "내용을(를) 입력하세요");
         }

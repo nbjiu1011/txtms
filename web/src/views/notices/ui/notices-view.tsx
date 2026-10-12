@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { LIST_PAGE_SIZE, formatDateTime, useClampPage, useListPage, useViewIntent } from "@/shared/lib";
 import { Button, Empty, ListItem, Page, PageHeader, Pager, Panel } from "@/shared/ui";
+import { RichTextView } from "@/shared/ui/rich-text";
 import { isCustomerAdmin } from "@/entities/me";
 import { noticeScopeText, useNotices, type Notice } from "@/entities/notice";
 import { useUserDirectory } from "@/entities/user";
@@ -63,7 +64,7 @@ export function NoticesView({ me, context, openTab }: WorkViewProps) {
                 title={n.title}
                 meta={meta(n)}
                 expanded={shownId === n.id}
-                extra={shownId === n.id ? <span className={styles.body}>{n.body}</span> : null}
+                extra={shownId === n.id ? <RichTextView className={styles.body} value={n.body} /> : null}
                 onClick={() => toggle(n.id)}
               />
             ))}

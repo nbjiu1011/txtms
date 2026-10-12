@@ -2,7 +2,8 @@
 
 import { useId, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ErrorDetails, Field, Input, Modal, Select, Textarea, toast } from "@/shared/ui";
+import { ErrorDetails, Field, Input, Modal, Select, toast } from "@/shared/ui";
+import { RichTextEditor } from "@/shared/ui/rich-text";
 import { dashboardKeys } from "@/entities/dashboard";
 import { noticeApi, noticeKeys, type Notice, type NoticeScope } from "@/entities/notice";
 import type { Project } from "@/entities/project";
@@ -93,13 +94,12 @@ function NoticeEditBody({ onClose, customer, projects, currentProjectId, notice 
       <Field label="제목" required htmlFor={`${id}-title`} error={server.field("title")}>
         <Input id={`${id}-title`} value={form.title} onChange={(e) => set({ title: e.target.value })} />
       </Field>
-      <Field label="내용" required htmlFor={`${id}-body`} error={server.field("body")}>
-        <Textarea
-          id={`${id}-body`}
-          rows={3}
-          className={styles.ta}
+      <Field label="내용" required error={server.field("body")}>
+        <RichTextEditor
+          aria-label="내용"
           value={form.body}
-          onChange={(e) => set({ body: e.target.value })}
+          invalid={!!server.field("body")}
+          onChange={(body) => set({ body })}
         />
       </Field>
       <ErrorDetails message={server.inline.message} items={server.inline.items} />

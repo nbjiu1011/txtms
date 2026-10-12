@@ -21,6 +21,7 @@ repositories {
 val jjwtVersion = "0.13.0"
 val springdocVersion = "3.1.1"
 val poiVersion = "5.5.1"
+val jsoupVersion = "1.23.2"
 
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
@@ -33,6 +34,7 @@ dependencies {
 	implementation("io.jsonwebtoken:jjwt-api:$jjwtVersion")
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:$springdocVersion")
 	implementation("org.apache.poi:poi-ooxml:$poiVersion")
+	implementation("org.jsoup:jsoup:$jsoupVersion")
 	runtimeOnly("io.jsonwebtoken:jjwt-impl:$jjwtVersion")
 	runtimeOnly("io.jsonwebtoken:jjwt-jackson:$jjwtVersion")
 	// The JDBC URL scheme picks the driver and the Hibernate dialect: jdbc:mariadb:// (production) or jdbc:mysql://.

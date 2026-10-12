@@ -1,0 +1,55 @@
+/* Quill snow theme (third-party CSS) adjusted to the app tokens. */
+.editor {
+  border: 1px solid var(--line2);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+}
+.editor:focus-within {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 18%, transparent);
+}
+.editor[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+.editor :global(.ql-toolbar.ql-snow) {
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-sans);
+  padding: 6px 8px;
+}
+.editor :global(.ql-container.ql-snow) {
+  border: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+}
+.editor :global(.ql-editor) {
+  min-height: 160px;
+  max-height: 420px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.editor :global(.ql-editor.ql-blank::before) {
+  color: var(--faint);
+  font-style: normal;
+}
+.editor :global(.ql-editor img) {
+  max-width: 100%;
+}
+
+/* Rendered value: the editor's typography (ql-editor) without the editing box. */
+.view:global(.ql-editor) {
+  height: auto;
+  padding: 0;
+  overflow: visible;
+  font-family: var(--font-sans);
+  font-size: inherit;
+  line-height: 1.6;
+  color: inherit;
+}
+.view img {
+  max-width: 100%;
+}
+.plain {
+  white-space: pre-wrap;
+  word-break: break-word;
+}

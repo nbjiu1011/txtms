@@ -136,4 +136,33 @@ class NoticeIntegrationTest extends IntegrationTestBase {
         expect(409, admin, patch("/api/notices/" + projectNotice), Map.of("title", "부활"));
         assertThat(audits("공지 철회", t.customerId())).isEqualTo(1);
     }
+
+    @Test
+    void richBodiesAreSanitizedAndJudgedByTheirVisibleText() throws Exception {
+        Tenant t = newTenant();
+        Login admin = login(t.admin());
+        String base = "/api/customers/" + t.customerId() + "/notices";
+        JsonNode rich = expect(201, admin, post(base), Map.of("scope", "CUSTOMER", "title", "서식 공지", "body",
+                "<p><strong>점검</strong> 안내<script>alert(1)</script></p><p><a href=\"javascript:x()\">링크</a>"
+                        + "<img src=\"x\" onerror=\"alert(1)\"></p><ol><li data-list=\"bullet\">항목</li></ol>"));
+        String stored = rich.path("body").asString();
+        assertThat(stored).startsWith("<p><strong>점검</strong> 안내</p>").contains("<li data-list=\"bullet\">항목</li>")
+                .doesNotContain("script").doesNotContain("javascript").doesNotContain("onerror");
+        assertThat(jdbc.queryForObject("SELECT body FROM notices WHERE id = ?", String.class,
+                rich.path("id").asLong())).isEqualTo(stored);
+
+        // the editor's empty document has no visible text
+        assertThat(expect(400, admin, post(base), Map.of("scope", "CUSTOMER", "title", "빈 공지", "body",
+                "<p><br></p>")).path("message").asString()).isEqualTo("내용을(를) 입력하세요");
+        // an image alone is content; plain text (not HTML) is kept as written
+        expect(201, admin, post(base), Map.of("scope", "CUSTOMER", "title", "이미지 공지", "body",
+                "<p><img src=\"data:image/png;base64,iVBORw0KGgo=\"></p>"));
+        assertThat(expect(201, admin, post(base), Map.of("scope", "CUSTOMER", "title", "일반 공지", "body",
+                "1 < 2\n둘째 줄")).path("body").asString()).isEqualTo("1 < 2\n둘째 줄");
+        // the visible text limit ignores the markup
+        assertThat(expect(400, admin, post(base), Map.of("scope", "CUSTOMER", "title", "긴 공지", "body",
+                "<p>" + "가".repeat(10_001) + "</p>")).path("message").asString()).isEqualTo("내용은 최대 10,000자입니다");
+        expect(201, admin, post(base), Map.of("scope", "CUSTOMER", "title", "서식 많은 공지", "body",
+                "<p><strong>" + "가".repeat(9_000) + "</strong></p>"));
+    }
 }

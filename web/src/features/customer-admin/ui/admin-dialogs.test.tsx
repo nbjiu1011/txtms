@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/shared/api";
 import { useToastStore } from "@/shared/ui";
@@ -309,13 +309,18 @@ describe("Notice edit and withdraw", () => {
     fireEvent.click(screen.getByRole("button", { name: "게시" }));
     await waitFor(() => expect(lastToast()).toBe("제목을(를) 입력하세요"));
     fireEvent.change(screen.getByLabelText(/제목/), { target: { value: "새 공지" } });
-    fireEvent.change(screen.getByLabelText(/내용/), { target: { value: "안내합니다" } });
+    // the rich text editor's empty document is no content
+    const editor = await screen.findByRole("textbox", { name: "내용" });
+    fireEvent.click(screen.getByRole("button", { name: "게시" }));
+    await waitFor(() => expect(lastToast()).toBe("내용을(를) 입력하세요"));
+    editor.innerHTML = "<p>안내합니다</p>";
+    await act(async () => {}); // the editor reports changes from a MutationObserver
     fireEvent.change(screen.getByLabelText("공지 범위"), { target: { value: "CUSTOMER" } });
     expect(screen.getByText("고객사 전체 구성원에게 보이며 프로젝트나 역할로 거르지 않습니다.")).toBeTruthy();
     expect(screen.queryByLabelText("프로젝트")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "게시" }));
     await waitFor(() =>
-      expect(create).toHaveBeenCalledWith(1, { scope: "CUSTOMER", projectId: null, title: "새 공지", body: "안내합니다" }),
+      expect(create).toHaveBeenCalledWith(1, { scope: "CUSTOMER", projectId: null, title: "새 공지", body: "<p>안내합니다</p>" }),
     );
     await waitFor(() => expect(lastToast()).toBe("공지를 게시했습니다"));
   });
@@ -324,6 +329,8 @@ describe("Notice edit and withdraw", () => {
     const update = vi.spyOn(noticeApi, "update").mockResolvedValue({ ...notice, edited: true });
     wrap(<NoticeEditDialog open onClose={vi.fn()} customer={customer} projects={projects} currentProjectId={1} notice={notice} />);
     expect((screen.getByLabelText("프로젝트") as HTMLSelectElement).value).toBe("2");
+    // a plain-text notice loads as paragraphs; untouched, its body is sent back as it was
+    expect((await screen.findByRole("textbox", { name: "내용" })).innerHTML).toBe("<p>본문</p>");
     fireEvent.change(screen.getByLabelText(/제목/), { target: { value: "점검 안내 (수정)" } });
     fireEvent.click(screen.getByRole("button", { name: "수정" }));
     await waitFor(() =>

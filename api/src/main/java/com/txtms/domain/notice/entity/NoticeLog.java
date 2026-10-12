@@ -42,7 +42,7 @@ public class NoticeLog {
     @Column(name = "previous_title", nullable = false, updatable = false, length = 200)
     private String previousTitle;
 
-    @Column(name = "previous_body", nullable = false, updatable = false, columnDefinition = "text")
+    @Column(name = "previous_body", nullable = false, updatable = false, columnDefinition = "mediumtext")
     private String previousBody;
 
     protected NoticeLog() {

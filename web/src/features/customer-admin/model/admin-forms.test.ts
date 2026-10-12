@@ -93,6 +93,8 @@ describe("notice form", () => {
   it("requires title and body; customer scope drops the project", () => {
     expect(noticeFormProblem({ scope: "PROJECT", projectId: "1", title: "", body: "x" })).toBe("제목을(를) 입력하세요");
     expect(noticeFormProblem({ scope: "PROJECT", projectId: "1", title: "t", body: "" })).toBe("내용을(를) 입력하세요");
+    expect(noticeFormProblem({ scope: "PROJECT", projectId: "1", title: "t", body: "<p><br></p>" })).toBe("내용을(를) 입력하세요");
+    expect(noticeFormProblem({ scope: "PROJECT", projectId: "1", title: "t", body: "<p>안내</p>" })).toBeNull();
     expect(noticeBody({ scope: "CUSTOMER", projectId: "1", title: " t ", body: "b" })).toEqual({
       scope: "CUSTOMER",
       projectId: null,
