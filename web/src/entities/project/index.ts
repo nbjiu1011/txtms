@@ -6,5 +6,6 @@ export {
   projectApi,
   projectKeys,
   useCustomerProjects,
+  useManagedProjects,
   useProject,
 } from "./api/project-queries";

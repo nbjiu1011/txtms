@@ -18,7 +18,7 @@ const PLAN = {
     "/notifications": null,
     "/projects/1": null,
     "/projects/1/dashboard": ["dashboardU1", "Dashboard"],
-    "/requests?projectId=1&page=0&size=100": ["requestListU1", "Page<RequestSummary>"],
+    "/requests?projectId=1&page=0&size=20": ["requestListU1", "Page<RequestSummary>"],
     "/requests/REQ-2609-102": ["request102U1", "RequestDetail"],
     "/requests/REQ-2609-088": ["request088U1", "RequestDetail"],
     "/requests/REQ-2609-088/history": null,

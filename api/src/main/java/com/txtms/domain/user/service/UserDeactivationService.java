@@ -54,6 +54,7 @@ public class UserDeactivationService {
 
     private final CustomerAdminAccess adminAccess;
     private final UserService userService;
+    private final MemberAdminService members;
     private final ProjectAccess projectAccess;
     private final RequestQueryService requests;
     private final ReviewWorkflowService reviews;
@@ -64,11 +65,12 @@ public class UserDeactivationService {
     private final int maxText;
 
     public UserDeactivationService(CustomerAdminAccess adminAccess, UserService userService,
-            ProjectAccess projectAccess, RequestQueryService requests, ReviewWorkflowService reviews,
+            MemberAdminService members, ProjectAccess projectAccess, RequestQueryService requests, ReviewWorkflowService reviews,
             ContentLockService locks, SessionService sessions, AuditLogService audit, Clock clock,
             AppProperties properties) {
         this.adminAccess = adminAccess;
         this.userService = userService;
+        this.members = members;
         this.projectAccess = projectAccess;
         this.requests = requests;
         this.reviews = reviews;
@@ -103,7 +105,8 @@ public class UserDeactivationService {
         return new DeactivationImpact(requests.summaries(scope.reviewing(), now),
                 requests.summaries(scope.requesting(), now),
                 scope.leadProjects().stream().map(ProjectResponse::of).toList(),
-                scope.lastApproverProjects().stream().map(ProjectResponse::of).toList(), scope.lastAdmin());
+                scope.lastApproverProjects().stream().map(ProjectResponse::of).toList(), scope.lastAdmin(),
+                members.substitutesOf(admin.customer(), target.getId()));
     }
 
     public void deactivate(AuthUser auth, long customerId, long userId, DeactivateBody body) {

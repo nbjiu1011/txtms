@@ -4,7 +4,7 @@ import { useWorkContextStore } from "@/entities/me";
 import type { OpsTodo } from "@/entities/ops";
 
 /** Operator screens that accept a hand-off (the view-intent key is the route key). */
-export type OpsIntentView = Extract<RouteKey, "opsCustomers" | "opsSetup" | "opsStandards">;
+export type OpsIntentView = Extract<RouteKey, "opsSetup" | "opsStandards">;
 
 /** What the receiving screen should select: a customer and/or a sub tab. */
 export interface OpsIntent {

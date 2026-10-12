@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,8 @@ import com.txtms.domain.project.service.ProjectAccess;
 import com.txtms.domain.user.entity.User;
 import com.txtms.domain.user.service.UserService;
 import com.txtms.global.audit.AuditLogService;
+import com.txtms.global.common.PageQuery;
+import com.txtms.global.common.PageResponse;
 import com.txtms.global.config.AppProperties;
 import com.txtms.global.exception.BusinessException;
 import com.txtms.global.exception.ErrorCode;
@@ -44,7 +47,6 @@ public class NoticeService {
 
     static final int TITLE_MAX = 200;
     /** Server cap of the (non-paged) notice lists, newest first (contract §0.1 small lists). */
-    static final int LIST_LIMIT = 500;
     static final String WITHDRAWN = "철회된 공지는 수정하거나 다시 철회할 수 없습니다";
 
     private final NoticeRepository notices;
@@ -71,10 +73,10 @@ public class NoticeService {
 
     // ------------------------------------------------------------------ reading
 
-    public List<NoticeResponse> list(AuthUser auth, long customerId) {
+    public PageResponse<NoticeResponse> list(AuthUser auth, long customerId, PageQuery page) {
         User user = userService.require(auth.userId());
         Customer customer = projectAccess.requireAccessibleCustomer(user, customerId);
-        return responses(visible(user, customer).stream().limit(LIST_LIMIT).toList());
+        return PageResponse.slice(visible(user, customer), page, this::responses);
     }
 
     /** Newest visible notices of the customer, for dashboards. */
@@ -104,10 +106,10 @@ public class NoticeService {
     // ------------------------------------------------------------------ management
 
     /** Every notice of the customer, withdrawn ones included, newest first. */
-    public List<NoticeResponse> manage(AuthUser auth, long customerId) {
+    public PageResponse<NoticeResponse> manage(AuthUser auth, long customerId, PageQuery page) {
         Admin admin = adminAccess.require(auth, customerId);
-        return responses(notices.findByCustomerIdOrderByCreatedAtDescIdDesc(admin.customerId()).stream()
-                .limit(LIST_LIMIT).toList());
+        return PageResponse.batch(notices.findByCustomerIdOrderByCreatedAtDescIdDesc(admin.customerId(),
+                PageRequest.of(page.page(), page.size())), this::responses);
     }
 
     @Transactional

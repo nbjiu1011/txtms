@@ -11,15 +11,19 @@ import styles from "./auth-form.module.css";
 
 export const demoPersonaKeys = { list: () => queryKeys.list("demo-personas", {}) };
 
-/** Demo personas (`GET /api/auth/demo-personas`). Undefined while loading, [] when demo mode is off/unreachable. */
-export function useDemoPersonas() {
+/**
+ * Demo personas (`GET /api/auth/demo-personas`). Undefined while loading, [] when persona login is off (404, the
+ * default) or the API is unreachable. `enabled: false` skips the request (regular sessions never ask).
+ */
+export function useDemoPersonas(enabled = true) {
   return useQuery<DemoPersona[]>({
     queryKey: demoPersonaKeys.list(),
+    enabled,
     queryFn: async () => {
       try {
         return await authApi.demoPersonas();
       } catch (error) {
-        // 404 = demo mode disabled; other errors (API down) also hide the section.
+        // 404 = persona login disabled; other errors (API down) also hide the section.
         if (isApiError(error)) return [];
         throw error;
       }
@@ -33,7 +37,7 @@ export interface DemoPersonaListProps {
   onSuccess: () => void;
 }
 
-/** "체험 계정으로 둘러보기" — persona buttons; hidden entirely when demo mode is unavailable. */
+/** "체험 계정으로 둘러보기" — persona buttons; hidden entirely when persona login is unavailable. */
 export function DemoPersonaList({ onSuccess }: DemoPersonaListProps) {
   const { data: personas } = useDemoPersonas();
   const [pendingId, setPendingId] = useState<number | null>(null);

@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.txtms.domain.contenttype.entity.ContentType;
 import com.txtms.domain.customer.entity.Customer;
 import com.txtms.domain.customer.entity.NotifyChannel;
+import com.txtms.domain.project.dto.ProjectResponse;
 import com.txtms.domain.request.dto.response.SampleRequestSummary;
 import com.txtms.domain.user.dto.MemberResponse;
 import com.txtms.domain.user.dto.UserSummary;
@@ -91,6 +92,10 @@ public final class OpsDtos {
     /** Contract SetupLog (§12). */
     public record SetupLogEntry(long id, long customerId, Instant at, Long actorId, String actorName, String action,
             String target, String result) {
+    }
+
+    /** Working data of the initial setup screen (contract §12 {@code setup-context}). */
+    public record SetupContext(List<ProjectResponse> projects, List<MemberResponse> members) {
     }
 
     /** Sample requests of a customer and how many real requests stay untouched by the sample cleanup. */

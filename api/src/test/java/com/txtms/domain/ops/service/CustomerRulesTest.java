@@ -26,12 +26,25 @@ class CustomerRulesTest {
     }
 
     @Test
+    void pastedAddressesEmailsAndKoreanDomainsAreNormalized() {
+        assertThat(CustomerRules.domain("admin@TagoPlus.co.kr")).isEqualTo("tagoplus.co.kr");
+        assertThat(CustomerRules.domain("https://www.tagoplus.co.kr:8080/login?x=1")).isEqualTo("tagoplus.co.kr");
+        assertThat(CustomerRules.domain("http://tagoplus.co.kr/")).isEqualTo("tagoplus.co.kr");
+        assertThat(CustomerRules.domain("tagoplus.co.kr.")).isEqualTo("tagoplus.co.kr");
+        assertThat(CustomerRules.domain("txtms.tagoplus.co.kr")).isEqualTo("txtms.tagoplus.co.kr");
+        assertThat(CustomerRules.domain("예시.com")).isEqualTo("xn--vv4b11d.com");
+        assertThat(CustomerRules.domain("회사.한국")).isEqualTo("xn--vf4b131b.xn--3e0b707e");
+    }
+
+    @Test
     void invalidDomainsAreRefused() {
         assertThat(domainError(null)).isEqualTo("회사 도메인을(를) 입력하세요");
         assertThat(domainError("  @ ")).isEqualTo("회사 도메인을(를) 입력하세요");
         assertThat(domainError("")).isEqualTo("회사 도메인을(를) 입력하세요");
+        assertThat(domainError("https://")).isEqualTo("회사 도메인을(를) 입력하세요");
+        assertThat(domainError("user@")).isEqualTo("회사 도메인을(를) 입력하세요");
         for (String bad : new String[] {"example", "example.c", "-a.com", "a-.com", "a..com", "exa mple.com",
-                "user@example.com", "example.co.kr/", "예시.com", "example.123", ".example.com"}) {
+                "example.123", ".example.com", "http://localhost:8080"}) {
             assertThat(domainError(bad)).as(bad).isEqualTo("도메인 형식을 확인하세요");
         }
         assertThat(domainError("a".repeat(64) + ".com")).isEqualTo("도메인 형식을 확인하세요");
@@ -54,6 +67,6 @@ class CustomerRulesTest {
     @Test
     void duplicateWordingNamesTheExistingCustomer() {
         assertThat(CustomerRules.duplicateDomain("한빛카드"))
-                .isEqualTo("한빛카드이(가) 같은 도메인을 쓰고 있습니다. 중복 허용 여부는 협의 23 결정 전까지 막습니다");
+                .isEqualTo("한빛카드이(가) 같은 도메인을 쓰고 있습니다");
     }
 }

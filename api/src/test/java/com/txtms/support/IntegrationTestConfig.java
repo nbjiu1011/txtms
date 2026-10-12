@@ -1,5 +1,6 @@
 package com.txtms.support;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.flyway.autoconfigure.FlywayMigrationStrategy;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -14,8 +15,13 @@ public class IntegrationTestConfig {
         return new MutableClock();
     }
 
-    /** Every test run starts from an empty schema so the full migration chain is exercised. */
+    /**
+     * Every test run starts from an empty schema so the full migration chain is exercised. A second context with
+     * different settings ({@code txtms.it.clean-database=false}) shares that database and only migrates, so it never
+     * wipes data the main context's tests are using.
+     */
     @Bean
+    @ConditionalOnProperty(name = "txtms.it.clean-database", havingValue = "true", matchIfMissing = true)
     FlywayMigrationStrategy cleanMigrate() {
         return flyway -> {
             flyway.clean();

@@ -164,11 +164,11 @@ class DashboardIntegrationTest extends IntegrationTestBase {
     @Test
     void noticesAreScopedToCustomerAndProjectMembership() throws Exception {
         long c1 = customerId("hanbitcard.co.kr");
-        JsonNode kim = getJson(login(KIM_REQUESTER), "/api/notices?customerId=" + c1);
+        JsonNode kim = getJson(login(KIM_REQUESTER), "/api/notices?customerId=" + c1).path("content");
         assertThat(kim).hasSize(2);
         assertThat(kim.get(0).path("logs")).isEmpty();
         assertThat(kim.get(0).path("withdrawn").asBoolean()).isFalse();
-        JsonNode oh = getJson(login(OH_REQUESTER), "/api/notices?customerId=" + c1);
+        JsonNode oh = getJson(login(OH_REQUESTER), "/api/notices?customerId=" + c1).path("content");
         assertThat(oh).hasSize(1);
         assertThat(oh.get(0).path("scope").asString()).isEqualTo("CUSTOMER");
     }

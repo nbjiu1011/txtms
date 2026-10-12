@@ -1,8 +1,8 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { formatDate } from "@/shared/lib";
-import { Button, Empty, Icon, Page, PageHeader, Panel, Table, Tag, tableClasses } from "@/shared/ui";
+import { LIST_PAGE_SIZE, formatDate, useClampPage, useListPage } from "@/shared/lib";
+import { Button, Empty, Icon, Page, PageHeader, Pager, Panel, Table, Tag, tableClasses } from "@/shared/ui";
 import { noticeScopeText, useManagedNotices, type Notice } from "@/entities/notice";
 import { useUserDirectory } from "@/entities/user";
 import { NoticeEditDialog, WithdrawNoticeDialog } from "@/features/customer-admin";
@@ -14,7 +14,9 @@ type Editing = { notice: Notice | null } | null;
 /** `noticeAdmin` tab — 공지 관리 (reference `vNoticeAdmin`; operator notices are Phase 2). */
 export function AdminNoticesView({ context }: WorkViewProps) {
   const { customer, customerId, projects, projectId } = context;
-  const notices = useManagedNotices(customerId);
+  const [page, setPage] = useListPage(String(customerId));
+  const notices = useManagedNotices(customerId, page, LIST_PAGE_SIZE);
+  useClampPage(page, notices.isPlaceholderData ? undefined : notices.data?.page.totalPages, setPage);
   const users = useUserDirectory(customerId);
   const [editing, setEditing] = useState<Editing>(null);
   const [withdrawing, setWithdrawing] = useState<Notice | null>(null);
@@ -57,7 +59,7 @@ export function AdminNoticesView({ context }: WorkViewProps) {
                 </tr>
               </thead>
               <tbody>
-                {notices.data.map((n) => (
+                {notices.data.content.map((n) => (
                   <tr key={n.id}>
                     <td className={tableClasses.ttl}>{n.title}</td>
                     <td>{noticeScopeText(n, projectName)}</td>
@@ -89,7 +91,8 @@ export function AdminNoticesView({ context }: WorkViewProps) {
                 ))}
               </tbody>
             </Table>
-            {notices.data.length === 0 ? <Empty title="공지가 없습니다" /> : null}
+            {notices.data.content.length === 0 ? <Empty title="공지가 없습니다" /> : null}
+            <Pager page={page} totalPages={notices.data.page.totalPages} onPage={setPage} />
           </>
         )}
       </Panel>

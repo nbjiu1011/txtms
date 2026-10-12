@@ -101,7 +101,7 @@ try {
     await d.getByRole("button", { name: "생성" }).click();
     await toastSeen(ops, "고객사를 만들었습니다. 초기 설정을 이어서 진행하세요");
     await ops.waitForURL(/\/ops\/setup$/);
-    customerId = (await apiAs(OPS, "GET", "/ops/customers")).find((c) => c.domain === DOMAIN).id;
+    customerId = (await apiAs(OPS, "GET", "/ops/customers/options")).find((c) => c.domain === DOMAIN).id;
     await expect(m().getByRole("combobox", { name: "고객사 선택" })).toHaveValue(String(customerId));
   });
 
@@ -143,7 +143,7 @@ try {
     await d.getByLabel("역할").selectOption("REQUESTER");
     await d.getByRole("button", { name: "초대 링크 생성" }).click();
     await dialog(ops, "초대 링크 생성 완료").getByRole("button", { name: "닫기" }).first().click();
-    // pending invitations come from the operator members list (`GET /api/ops/customers/{id}/members`)
+    // pending invitations come from the setup working data (`GET /api/ops/customers/{id}/setup-context`)
     await expect(m().getByText(`요청자 1명, 검수자 0명 · 초대 대기 ${MEMBER_EMAIL}`)).toBeVisible();
     await expect(m().getByText(`· 초대 대기 ${ADMIN_EMAIL}`, { exact: false })).toBeVisible();
   });
@@ -297,7 +297,7 @@ try {
       await expect(m().getByRole("cell", { name: action, exact: true }).first()).toBeVisible();
     }
     await shot(ops, "customers");
-    // older entries (고객사 생성, 사용자 초대, 발신 정보) are on the next pages (12 per page)
+    // older entries (고객사 생성, 사용자 초대, 발신 정보) may be on the next pages (20 per page)
     const seen = new Set();
     for (let i = 0; i < 4; i++) {
       for (const action of ["고객사 생성", "사용자 초대", "프로젝트 발신 정보 변경"]) {
@@ -327,12 +327,13 @@ try {
     await expect(d).toBeHidden();
   });
 
-  await step("고객사 비활성: reason required, then deactivated (cleanup)", async () => {
+  await step("고객사 상세 + 비활성: reason required, then deactivated (cleanup)", async () => {
+    // the list is paged in id order: the new customer may sit on a later page, so open its detail directly
     await go("/ops/customers", "고객사 관리");
-    const row = m().getByRole("row", { name: new RegExp(NAME) });
-    await row.getByRole("button", { name: NAME }).click();
-    await expect(m().getByRole("heading", { name: `${NAME} 상세` })).toBeVisible();
-    await row.getByRole("button", { name: "비활성" }).click();
+    await expect(m().getByRole("button", { name: /상세 보기$/ }).first()).toBeVisible();
+    await go(`/ops/customers/${customerId}`, NAME);
+    await expect(m().getByRole("heading", { name: "프로젝트" })).toBeVisible();
+    await m().getByRole("button", { name: "비활성", exact: true }).click();
     const d = dialog(ops, `${NAME} 비활성화`);
     await d.getByRole("button", { name: "비활성화" }).click();
     await toastSeen(ops, "비활성 사유을(를) 입력하세요");
@@ -340,10 +341,11 @@ try {
     await shot(ops, "deactivate");
     await d.getByRole("button", { name: "비활성화" }).click();
     await toastSeen(ops, "비활성 처리했습니다. 데이터는 보존됩니다");
-    await expect(row.getByRole("button", { name: "사용 재개" })).toBeVisible();
+    await expect(m().getByRole("button", { name: "사용 재개" })).toBeVisible();
     // an inactive customer still lists its projects and pending users (operator lists, contract §14.7)
-    await expect(m().getByText("기본 프로젝트 대표 미지정")).toBeVisible();
-    await expect(m().getByText(`${MEMBER_EMAIL} 초대 대기`)).toBeVisible();
+    await expect(m().getByRole("cell", { name: "기본 프로젝트", exact: true })).toBeVisible();
+    await expect(m().getByText(MEMBER_EMAIL)).toBeVisible();
+    await expect(m().getByText("초대 대기").first()).toBeVisible();
     customerId = 0;
   });
 } finally {

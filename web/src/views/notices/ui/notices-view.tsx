@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { formatDateTime, useViewIntent } from "@/shared/lib";
-import { Button, Empty, ListItem, Page, PageHeader, Panel } from "@/shared/ui";
+import { LIST_PAGE_SIZE, formatDateTime, useClampPage, useListPage, useViewIntent } from "@/shared/lib";
+import { Button, Empty, ListItem, Page, PageHeader, Pager, Panel } from "@/shared/ui";
 import { isCustomerAdmin } from "@/entities/me";
 import { noticeScopeText, useNotices, type Notice } from "@/entities/notice";
 import { useUserDirectory } from "@/entities/user";
@@ -15,7 +15,9 @@ const NOTICES_INTENT = "notices";
 /** `notices` tab — notices of the user's scope as an accordion (reference `vNotices`). */
 export function NoticesView({ me, context, openTab }: WorkViewProps) {
   const { customerId, projects } = context;
-  const notices = useNotices(customerId);
+  const [page, setPage] = useListPage(String(customerId));
+  const notices = useNotices(customerId, page, LIST_PAGE_SIZE);
+  useClampPage(page, notices.isPlaceholderData ? undefined : notices.data?.page.totalPages, setPage);
   const users = useUserDirectory(customerId);
   const [openId, setOpenId] = useState<number | null>(null);
   // A dashboard notice row opens this tab with that notice expanded; it stays the expanded one
@@ -51,19 +53,22 @@ export function NoticesView({ me, context, openTab }: WorkViewProps) {
             description={notices.error.message}
             action={<Button onClick={() => void notices.refetch()}>다시 시도</Button>}
           />
-        ) : notices.data.length === 0 ? (
+        ) : notices.data.content.length === 0 ? (
           <Empty title="공지가 없습니다" />
         ) : (
-          notices.data.map((n) => (
-            <ListItem
-              key={n.id}
-              title={n.title}
-              meta={meta(n)}
-              expanded={shownId === n.id}
-              extra={shownId === n.id ? <span className={styles.body}>{n.body}</span> : null}
-              onClick={() => toggle(n.id)}
-            />
-          ))
+          <>
+            {notices.data.content.map((n) => (
+              <ListItem
+                key={n.id}
+                title={n.title}
+                meta={meta(n)}
+                expanded={shownId === n.id}
+                extra={shownId === n.id ? <span className={styles.body}>{n.body}</span> : null}
+                onClick={() => toggle(n.id)}
+              />
+            ))}
+            <Pager page={page} totalPages={notices.data.page.totalPages} onPage={setPage} />
+          </>
         )}
       </Panel>
     </Page>

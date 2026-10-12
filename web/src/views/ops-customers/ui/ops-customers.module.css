@@ -1,10 +1,6 @@
 .block {
   margin-bottom: 18px;
 }
-/* selected row (`background: var(--sunk)`) */
-.selected td {
-  background: var(--sunk);
-}
 .nameBtn {
   border: 0;
   background: none;
@@ -85,4 +81,15 @@ select.filter {
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+.rowActions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.user {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }

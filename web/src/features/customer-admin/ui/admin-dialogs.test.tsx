@@ -184,18 +184,20 @@ describe("RoleEditDialog", () => {
 });
 
 describe("DeactivateUserDialog", () => {
+  const target = member(6, [{ projectId: 1, roles: ["REVIEWER"], lead: false }]);
+  // the server's candidates: usable reviewers other than the target
+  const substitutes = [member(2, [{ projectId: 1, roles: ["REVIEWER"], lead: false }])];
   const impact = (patch: Partial<DeactivationImpact> = {}): DeactivationImpact => ({
     reviewing: [],
     requesting: [],
     leadProjects: [],
     lastApproverProjects: [],
     lastAdmin: false,
+    substitutes,
     ...patch,
   });
-  const target = member(6, [{ projectId: 1, roles: ["REVIEWER"], lead: false }]);
-  const members = [target, member(2, [{ projectId: 1, roles: ["REVIEWER"], lead: false }]), member(1, [{ projectId: 1, roles: ["REQUESTER"], lead: false }])];
   const open = (i: DeactivationImpact) =>
-    wrap(<DeactivateUserDialog open onClose={vi.fn()} customerId={1} member={target} impact={i} members={members} />);
+    wrap(<DeactivateUserDialog open onClose={vi.fn()} customerId={1} member={target} impact={i} />);
 
   it("without handover: impact rows only, deactivates with no substitute", async () => {
     const deactivate = vi.spyOn(memberApi, "deactivate").mockResolvedValue(undefined);

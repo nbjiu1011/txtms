@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { Button, Empty, Page, PageHeader, Panel } from "@/shared/ui";
+import { LIST_PAGE_SIZE, useClampPage, useListPage } from "@/shared/lib";
+import { Button, Empty, Page, PageHeader, Pager, Panel } from "@/shared/ui";
 import { isCustomerAdmin, projectRoles } from "@/entities/me";
 import { useArchiveCampaigns, useArchiveContents, type ArchiveLine } from "@/entities/request";
 import { copyCompletedText } from "@/features/completed-output";
@@ -10,7 +11,6 @@ import type { WorkViewProps } from "@/widgets/app-shell";
 import { EMPTY_ARCHIVE_FILTERS, archiveFiltersToParams, type ArchiveFilters } from "../model/archive-view-model";
 import { ArchiveFilterBar } from "./archive-filters";
 import { ArchiveLineItem } from "./archive-line";
-import styles from "./content-archive.module.css";
 
 const DESCRIPTION =
   "검수 완료 또는 승인 완료된 콘텐츠를 보관합니다. 같은 콘텐츠의 최신 완료본을 먼저 보여주고, 과거 완료본과 후속 요청을 펼쳐 볼 수 있습니다.";
@@ -18,7 +18,8 @@ const DESCRIPTION =
 /**
  * `contents` tab — completed contents of the selected project grouped by lineage (latest completion
  * first; past completions and open follow-up requests on demand), with filters, copy, open in a new
- * tab and 후속 요청 for requesters.
+ * tab and 후속 요청 for requesters. 20 lines per page (server paging; back to the first page when the
+ * filters or the project change).
  */
 export function ContentArchiveView({ me, context, openTab }: WorkViewProps) {
   const { projectId, customerId } = context;
@@ -27,11 +28,16 @@ export function ContentArchiveView({ me, context, openTab }: WorkViewProps) {
   const onFilters = useCallback((next: ArchiveFilters) => setFilters(next), []);
   const roles = projectRoles(me, projectId);
   const allowed = projectId !== null && (roles.length > 0 || isCustomerAdmin(me, customerId));
+  const [page, setPage] = useListPage(JSON.stringify([projectId, filters]));
   const params = useMemo(
-    () => (projectId !== null && allowed ? archiveFiltersToParams(projectId, filters) : null),
-    [projectId, allowed, filters],
+    () =>
+      projectId !== null && allowed
+        ? { ...archiveFiltersToParams(projectId, filters), page, size: LIST_PAGE_SIZE }
+        : null,
+    [projectId, allowed, filters, page],
   );
   const list = useArchiveContents(params);
+  useClampPage(page, list.isPlaceholderData ? undefined : list.data?.page.totalPages, setPage);
   const campaigns = useArchiveCampaigns(allowed ? projectId : null);
   const openRequest = (id: string) => openTab({ route: "request", params: { id } });
   const { followUp } = useRequestCreate(openRequest);
@@ -55,7 +61,7 @@ export function ContentArchiveView({ me, context, openTab }: WorkViewProps) {
     );
   }
 
-  const lines = list.data?.pages.flatMap((p) => p.content) ?? [];
+  const lines = list.data?.content ?? [];
   const copy = (line: ArchiveLine) =>
     void copyCompletedText({
       requestId: line.latest.requestId,
@@ -98,18 +104,8 @@ export function ContentArchiveView({ me, context, openTab }: WorkViewProps) {
             ))}
           </div>
         )}
-        {list.hasNextPage ? (
-          <div className={styles.more}>
-            <Button
-              size="sm"
-              aria-disabled={list.isFetchingNextPage || undefined}
-              onClick={() => {
-                if (!list.isFetchingNextPage) void list.fetchNextPage();
-              }}
-            >
-              {list.isFetchingNextPage ? "불러오는 중…" : "더 보기"}
-            </Button>
-          </div>
+        {list.data && !list.isError ? (
+          <Pager page={page} totalPages={list.data.page.totalPages} onPage={setPage} />
         ) : null}
       </Panel>
     </Page>

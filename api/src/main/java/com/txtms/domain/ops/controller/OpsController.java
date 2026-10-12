@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.txtms.domain.contenttype.dto.ContentTypeResponse;
+import com.txtms.domain.customer.dto.CustomerResponse;
 import com.txtms.domain.mail.OutboxService.OutboxMail;
 import com.txtms.domain.ops.dto.OpsDtos.ContentTypeActiveBody;
 import com.txtms.domain.ops.dto.OpsDtos.CreateCustomerBody;
@@ -27,6 +28,7 @@ import com.txtms.domain.ops.dto.OpsDtos.OpsInvitation;
 import com.txtms.domain.ops.dto.OpsDtos.SampleOverview;
 import com.txtms.domain.ops.dto.OpsDtos.SampleRequestBody;
 import com.txtms.domain.ops.dto.OpsDtos.SampleResetResult;
+import com.txtms.domain.ops.dto.OpsDtos.SetupContext;
 import com.txtms.domain.ops.dto.OpsDtos.SetupLogEntry;
 import com.txtms.domain.ops.dto.OpsDtos.SetupProjectBody;
 import com.txtms.domain.ops.dto.OpsDtos.TemplateBody;
@@ -69,8 +71,20 @@ public class OpsController {
     // ------------------------------------------------------------------ customers
 
     @GetMapping("/customers")
-    public List<OpsCustomer> customers(@AuthenticationPrincipal AuthUser auth) {
-        return customers.list(auth);
+    public PageResponse<OpsCustomer> customers(@AuthenticationPrincipal AuthUser auth,
+            @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer size) {
+        return customers.list(auth, PageQuery.of(page, size));
+    }
+
+    /** Reference list for customer selects (inactive included); declared before {@code /customers/{id}}. */
+    @GetMapping("/customers/options")
+    public List<CustomerResponse> customerOptions(@AuthenticationPrincipal AuthUser auth) {
+        return customers.options(auth);
+    }
+
+    @GetMapping("/customers/{id}")
+    public OpsCustomer customer(@AuthenticationPrincipal AuthUser auth, @PathVariable long id) {
+        return customers.detail(auth, id);
     }
 
     @PostMapping("/customers")
@@ -108,13 +122,20 @@ public class OpsController {
     }
 
     @GetMapping("/customers/{id}/members")
-    public List<MemberResponse> members(@AuthenticationPrincipal AuthUser auth, @PathVariable long id) {
-        return setup.members(auth, id);
+    public PageResponse<MemberResponse> members(@AuthenticationPrincipal AuthUser auth, @PathVariable long id,
+            @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer size) {
+        return setup.members(auth, id, PageQuery.of(page, size));
     }
 
     @GetMapping("/customers/{id}/projects")
-    public List<ProjectResponse> projects(@AuthenticationPrincipal AuthUser auth, @PathVariable long id) {
-        return setup.projects(auth, id);
+    public PageResponse<ProjectResponse> projects(@AuthenticationPrincipal AuthUser auth, @PathVariable long id,
+            @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer size) {
+        return setup.projects(auth, id, PageQuery.of(page, size));
+    }
+
+    @GetMapping("/customers/{id}/setup-context")
+    public SetupContext setupContext(@AuthenticationPrincipal AuthUser auth, @PathVariable long id) {
+        return setup.context(auth, id);
     }
 
     @PutMapping("/projects/{id}/templates")
@@ -130,9 +151,10 @@ public class OpsController {
     }
 
     @GetMapping("/setup-logs")
-    public List<SetupLogEntry> setupLogs(@AuthenticationPrincipal AuthUser auth,
-            @RequestParam(required = false) Long customerId) {
-        return logs.setupLogs(auth, customerId);
+    public PageResponse<SetupLogEntry> setupLogs(@AuthenticationPrincipal AuthUser auth,
+            @RequestParam(required = false) Long customerId, @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        return logs.setupLogs(auth, customerId, PageQuery.of(page, size));
     }
 
     // ------------------------------------------------------------------ content types

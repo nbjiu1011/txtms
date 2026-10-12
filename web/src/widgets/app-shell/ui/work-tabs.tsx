@@ -20,10 +20,11 @@ export interface WorkTabsProps {
   onOpen: (ref: TabRef) => void;
 }
 
-/** Visible title of a tab: request/content titles come from the view, menus from ROUTES. */
+/** Visible title of a tab: request/content/customer titles come from the view, menus from ROUTES. */
 export function tabTitle(tab: WorkTab): string {
   if (tab.route === "request") return tab.title || tab.params.id || "요청";
   if (tab.route === "content") return tab.title || "콘텐츠";
+  if (tab.route === "opsCustomer") return tab.title || "고객사";
   return ROUTES[tab.route].title;
 }
 

@@ -31,6 +31,8 @@ import com.txtms.domain.variable.entity.VariableType;
 import com.txtms.domain.variable.repository.VariableLogRepository;
 import com.txtms.domain.variable.repository.VariableRepository;
 import com.txtms.global.audit.AuditLogService;
+import com.txtms.global.common.PageQuery;
+import com.txtms.global.common.PageResponse;
 import com.txtms.global.exception.BusinessException;
 import com.txtms.global.exception.ErrorCode;
 import com.txtms.global.security.AuthUser;
@@ -85,10 +87,23 @@ public class VariableService {
             boolean includeDeleted) {
         User user = userService.require(auth.userId());
         Project project = projectAccess.requireWorkProject(user, projectId);
-        if (includeDeleted && !userService.actorOf(user).adminOf(project.getCustomerId())) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, ADMIN_REQUIRED);
+        if (includeDeleted) {
+            requireAdmin(user, project);
         }
-        List<String> payloads = requestQueries.currentPayloadsOfProject(project.getId());
+        List<Variable> rows = matching(project, q, active, includeDeleted).stream().limit(LIST_LIMIT).toList();
+        return responses(project, rows);
+    }
+
+    /** 변수 관리 list (customer admins): deleted variables included, registration order, one page. */
+    public PageResponse<VariableResponse> manage(AuthUser auth, long projectId, String q, Boolean active,
+            PageQuery page) {
+        User user = userService.require(auth.userId());
+        Project project = projectAccess.requireWorkProject(user, projectId);
+        requireAdmin(user, project);
+        return PageResponse.slice(matching(project, q, active, true), page, rows -> responses(project, rows));
+    }
+
+    private List<Variable> matching(Project project, String q, Boolean active, boolean includeDeleted) {
         String needle = q == null || q.isBlank() ? null : q.trim().toLowerCase(Locale.ROOT);
         List<Variable> source = includeDeleted ? variables.findByProjectIdOrderByIdAsc(project.getId())
                 : variables.findByProjectIdAndDeletedFalseOrderByIdAsc(project.getId());
@@ -96,9 +111,15 @@ public class VariableService {
                 .filter(v -> active == null || v.isActive() == active)
                 .filter(v -> needle == null || v.getKey().toLowerCase(Locale.ROOT).contains(needle)
                         || v.getDescription() != null && v.getDescription().toLowerCase(Locale.ROOT).contains(needle))
-                .limit(LIST_LIMIT)
-                .map(v -> response(v, inUse(v.getKey(), payloads)))
                 .toList();
+    }
+
+    private List<VariableResponse> responses(Project project, List<Variable> rows) {
+        if (rows.isEmpty()) {
+            return List.of();
+        }
+        List<String> payloads = requestQueries.currentPayloadsOfProject(project.getId());
+        return rows.stream().map(v -> response(v, inUse(v.getKey(), payloads))).toList();
     }
 
     /** Active variables of a project: key → current value (submit validation, link resolution). */

@@ -97,8 +97,8 @@ describe("CreateCustomerDialog", () => {
     vi.spyOn(opsApi, "createCustomer").mockRejectedValue(
       new ApiError(409, {
         code: "DUPLICATE",
-        message: "도담생명이(가) 같은 도메인을 쓰고 있습니다. 중복 허용 여부는 협의 23 결정 전까지 막습니다",
-        fieldErrors: [{ field: "domain", message: "도담생명이(가) 같은 도메인을 쓰고 있습니다. 중복 허용 여부는 협의 23 결정 전까지 막습니다" }],
+        message: "도담생명이(가) 같은 도메인을 쓰고 있습니다",
+        fieldErrors: [{ field: "domain", message: "도담생명이(가) 같은 도메인을 쓰고 있습니다" }],
       }),
     );
     wrap(<CreateCustomerDialog open onClose={vi.fn()} customers={[]} onCreated={vi.fn()} />);

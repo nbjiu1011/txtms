@@ -1,8 +1,8 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { formatDateTime } from "@/shared/lib";
-import { Button, Empty, Page, PageHeader, Panel, Select, Table } from "@/shared/ui";
+import { LIST_PAGE_SIZE, formatDateTime, useClampPage, useListPage } from "@/shared/lib";
+import { Button, Empty, Page, PageHeader, Pager, Panel, Select, Table } from "@/shared/ui";
 import {
   VARIABLE_TYPE_LABEL,
   logsByVariable,
@@ -24,7 +24,9 @@ export function AdminVariablesView({ context }: WorkViewProps) {
   const projectId =
     selected !== null && projects.some((p) => p.id === selected) ? selected : (currentProjectId ?? projects[0]?.id ?? null);
   // Deleted variables stay listed as 삭제 with their history (reference 삭제 (이력 보존)); one log call per project.
-  const variables = useAdminVariables(projectId);
+  const [page, setPage] = useListPage(String(projectId));
+  const variables = useAdminVariables(projectId, page, LIST_PAGE_SIZE);
+  useClampPage(page, variables.isPlaceholderData ? undefined : variables.data?.page.totalPages, setPage);
   const logs = useProjectVariableLogs(projectId);
   const history = logs.data ? logsByVariable(logs.data) : null;
   const [editing, setEditing] = useState<Editing>(null);
@@ -83,7 +85,7 @@ export function AdminVariablesView({ context }: WorkViewProps) {
                 </tr>
               </thead>
               <tbody>
-                {variables.data.map((v) => (
+                {variables.data.content.map((v) => (
                   <tr key={v.id}>
                     <td>{v.key}</td>
                     <td>{v.description}</td>
@@ -111,7 +113,8 @@ export function AdminVariablesView({ context }: WorkViewProps) {
                 ))}
               </tbody>
             </Table>
-            {variables.data.length === 0 ? <Empty title="등록된 변수가 없습니다" /> : null}
+            {variables.data.content.length === 0 ? <Empty title="등록된 변수가 없습니다" /> : null}
+            <Pager page={page} totalPages={variables.data.page.totalPages} onPage={setPage} />
           </>
         )}
       </Panel>

@@ -63,12 +63,16 @@ const types: ContentTypeSetting[] = [
   { type: "FREEFORM", active: true, mockEnabled: false },
 ];
 
+/** Contract page of fixture rows (single page). */
+function pageOf<T>(rows: T[], size = 20) {
+  return { content: rows, page: { number: 0, size, totalElements: rows.length, totalPages: rows.length ? 1 : 0 } };
+}
+
 function setup() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
-  client.setQueryData(opsKeys.customers(), [
-    customer(1, "한빛카드"),
-    customer(2, "도담생명", { unassignedDatasetTypes: ["SMS", "FREEFORM"] }),
-  ]);
+  const customers = [customer(1, "한빛카드"), customer(2, "도담생명", { unassignedDatasetTypes: ["SMS", "FREEFORM"] })];
+  client.setQueryData(opsKeys.customers(0, 20), pageOf(customers));
+  client.setQueryData(opsKeys.customerOptions(), customers);
   client.setQueryData(opsKeys.datasets(), datasets);
   client.setQueryData(opsKeys.assignments(), [
     assignment(1, "ALIMTALK", 1, true),

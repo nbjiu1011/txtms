@@ -17,4 +17,9 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Long> 
     @Modifying(flushAutomatically = true)
     @Query("update UserSession s set s.revokedAt = :now where s.userId = :userId and s.revokedAt is null")
     int revokeAllOf(@Param("userId") Long userId, @Param("now") Instant now);
+
+    @Modifying(flushAutomatically = true)
+    @Query("update UserSession s set s.revokedAt = :now where s.userId = :userId and s.id <> :keepId "
+            + "and s.revokedAt is null")
+    int revokeAllOfExcept(@Param("userId") Long userId, @Param("keepId") Long keepId, @Param("now") Instant now);
 }

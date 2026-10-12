@@ -1,7 +1,5 @@
 package com.txtms.domain.ops.service;
 
-import java.util.List;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,12 +45,12 @@ public class OpsLogService {
         return audit.ofCustomer(customers.require(customerId).getId(), page);
     }
 
-    public List<SetupLogEntry> setupLogs(AuthUser auth, Long customerId) {
+    public PageResponse<SetupLogEntry> setupLogs(AuthUser auth, Long customerId, PageQuery page) {
         operators.require(auth);
         if (customerId != null) {
             customers.require(customerId);
         }
-        return setupLogs.list(customerId);
+        return setupLogs.list(customerId, page);
     }
 
     /**

@@ -17,6 +17,7 @@ import com.txtms.domain.auth.service.SessionService;
 import com.txtms.domain.contenttype.entity.ContentType;
 import com.txtms.domain.contenttype.service.ContentTypeService;
 import com.txtms.domain.correction.service.DatasetService;
+import com.txtms.domain.customer.dto.CustomerResponse;
 import com.txtms.domain.customer.entity.Customer;
 import com.txtms.domain.customer.entity.NotifyChannel;
 import com.txtms.domain.customer.service.CustomerService;
@@ -32,6 +33,7 @@ import com.txtms.domain.user.entity.User;
 import com.txtms.domain.user.service.UserService;
 import com.txtms.global.audit.AuditLogService;
 import com.txtms.global.common.PageQuery;
+import com.txtms.global.common.PageResponse;
 import com.txtms.global.exception.BusinessException;
 import com.txtms.global.exception.ErrorCode;
 import com.txtms.global.security.AuthUser;
@@ -48,6 +50,8 @@ public class OpsCustomerService {
     static final String DEFAULT_PROJECT = "기본 프로젝트";
     static final int DEFAULT_DUE_SOON_DAYS = 3;
     static final int RECENT_AUDIT = 6;
+    /** Server cap of the customer reference list. */
+    static final int OPTIONS_LIMIT = 500;
 
     private final OperatorAccess operators;
     private final CustomerService customers;
@@ -82,10 +86,25 @@ public class OpsCustomerService {
 
     // ------------------------------------------------------------------ reads
 
+    /** 고객사 관리 list: every customer (inactive included) in id order, one page of figures. */
     @Transactional(readOnly = true)
-    public List<OpsCustomer> list(AuthUser auth) {
+    public PageResponse<OpsCustomer> list(AuthUser auth, PageQuery page) {
         operators.require(auth);
-        return rows();
+        return PageResponse.slice(customers.all(), page, this::rowsOf);
+    }
+
+    /** Reference list for operator selects: every customer (inactive included) in id order. */
+    @Transactional(readOnly = true)
+    public List<CustomerResponse> options(AuthUser auth) {
+        operators.require(auth);
+        return customers.all().stream().limit(OPTIONS_LIMIT).map(CustomerResponse::of).toList();
+    }
+
+    /** One customer with its figures, active or not (missing: {@code NOT_FOUND}). */
+    @Transactional(readOnly = true)
+    public OpsCustomer detail(AuthUser auth, long customerId) {
+        operators.require(auth);
+        return row(customers.require(customerId));
     }
 
     /** Contract OpsDashboard (§9): KPIs and setup steps of active customers, every customer row, 6 newest audits. */
@@ -99,12 +118,15 @@ public class OpsCustomerService {
 
     /** Every customer (inactive included) with its figures, in id order. */
     List<OpsCustomer> rows() {
+        return rowsOf(customers.all());
+    }
+
+    private List<OpsCustomer> rowsOf(List<Customer> all) {
         Map<Long, Long> projectCounts = projectAccess.projectCounts();
         Map<Long, Long> userCounts = users.countByCustomer();
         Map<Long, RequestCounts> requestCounts = requestStats.countsByCustomer();
         Map<Long, Set<ContentType>> assigned = datasets.assignedTypesByCustomer();
         List<ContentType> inUse = contentTypes.activeTypes();
-        List<Customer> all = customers.all();
         Map<Long, User> creators = users.byIds(all.stream().map(Customer::getCreatedBy).filter(Objects::nonNull)
                 .collect(Collectors.toSet()));
         List<OpsCustomer> rows = new ArrayList<>();

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Empty, Icon, Page, PageHeader, Panel, Table, Tag, tableClasses } from "@/shared/ui";
-import { useCustomerProjects, type Project } from "@/entities/project";
+import { LIST_PAGE_SIZE, useClampPage, useListPage } from "@/shared/lib";
+import { Button, Empty, Icon, Page, PageHeader, Pager, Panel, Table, Tag, tableClasses } from "@/shared/ui";
+import { useManagedProjects, type Project } from "@/entities/project";
 import { useCustomerUsers, useUserDirectory, type UserDirectory, type UserSummary } from "@/entities/user";
 import { ProjectEditDialog } from "@/features/customer-admin";
 import type { WorkViewProps } from "@/widgets/app-shell";
@@ -13,7 +14,9 @@ type Editing = { project: Project | null } | null;
 /** `projects` tab — projects of the selected customer (reference `vProjects`). */
 export function AdminProjectsView({ context }: WorkViewProps) {
   const { customer, customerId } = context;
-  const projects = useCustomerProjects(customerId);
+  const [page, setPage] = useListPage(String(customerId));
+  const projects = useManagedProjects(customerId, page, LIST_PAGE_SIZE);
+  useClampPage(page, projects.isPlaceholderData ? undefined : projects.data?.page.totalPages, setPage);
   const users = useCustomerUsers(customerId);
   const directory = useUserDirectory(customerId);
   const [editing, setEditing] = useState<Editing>(null);
@@ -55,7 +58,7 @@ export function AdminProjectsView({ context }: WorkViewProps) {
               </tr>
             </thead>
             <tbody>
-              {projects.data.map((p) => (
+              {projects.data.content.map((p) => (
                 <ProjectRow
                   key={p.id}
                   project={p}
@@ -67,6 +70,7 @@ export function AdminProjectsView({ context }: WorkViewProps) {
             </tbody>
           </Table>
         )}
+        {projects.isSuccess ? <Pager page={page} totalPages={projects.data.page.totalPages} onPage={setPage} /> : null}
       </Panel>
       {customer && editing ? (
         <ProjectEditor

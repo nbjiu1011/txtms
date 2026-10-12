@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { buildUrl } from "@/shared/api";
+import { LIST_PAGE_SIZE } from "@/shared/lib";
 import {
   EMPTY_REQUEST_FILTERS,
-  REQUEST_LIST_PAGE_SIZE,
   filtersToListParams,
   statusListParams,
   viewListParams,
@@ -10,7 +10,8 @@ import {
 
 describe("filtersToListParams", () => {
   it("sends only the project and paging for empty filters", () => {
-    expect(filtersToListParams(1, EMPTY_REQUEST_FILTERS)).toEqual({ projectId: 1, page: 0, size: REQUEST_LIST_PAGE_SIZE });
+    expect(filtersToListParams(1, EMPTY_REQUEST_FILTERS)).toEqual({ projectId: 1, page: 0, size: LIST_PAGE_SIZE });
+    expect(LIST_PAGE_SIZE).toBe(20);
   });
 
   it("maps every filter control to its contract query key", () => {
@@ -34,7 +35,7 @@ describe("filtersToListParams", () => {
     expect(params).toEqual({
       projectId: 1,
       page: 2,
-      size: REQUEST_LIST_PAGE_SIZE,
+      size: LIST_PAGE_SIZE,
       q: "포인트",
       type: "ALIMTALK",
       status: "IN_REVIEW",
@@ -57,7 +58,7 @@ describe("filtersToListParams", () => {
 
   it("produces the expected URL", () => {
     const params = filtersToListParams(1, { ...EMPTY_REQUEST_FILTERS, status: "DRAFT", mine: true });
-    expect(buildUrl("/requests", { ...params })).toBe("/api/requests?projectId=1&page=0&size=100&status=DRAFT&mine=true");
+    expect(buildUrl("/requests", { ...params })).toBe("/api/requests?projectId=1&page=0&size=20&status=DRAFT&mine=true");
   });
 });
 

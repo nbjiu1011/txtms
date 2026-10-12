@@ -1,7 +1,5 @@
 package com.txtms.domain.user.controller;
 
-import java.util.List;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -12,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -23,6 +22,8 @@ import com.txtms.domain.user.dto.MemberBodies.ProjectRolesBody;
 import com.txtms.domain.user.dto.MemberResponse;
 import com.txtms.domain.user.service.MemberAdminService;
 import com.txtms.domain.user.service.UserDeactivationService;
+import com.txtms.global.common.PageQuery;
+import com.txtms.global.common.PageResponse;
 import com.txtms.global.security.AuthUser;
 
 /** User and role management of the customer admin (contract §11). */
@@ -39,8 +40,9 @@ public class MemberAdminController {
     }
 
     @GetMapping("/members")
-    public List<MemberResponse> members(@AuthenticationPrincipal AuthUser auth, @PathVariable long customerId) {
-        return members.members(auth, customerId);
+    public PageResponse<MemberResponse> members(@AuthenticationPrincipal AuthUser auth, @PathVariable long customerId,
+            @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer size) {
+        return members.members(auth, customerId, PageQuery.of(page, size));
     }
 
     @PutMapping("/users/{userId}/project-roles")

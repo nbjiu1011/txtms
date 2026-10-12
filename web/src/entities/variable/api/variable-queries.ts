@@ -1,12 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
-import { http, queryKeys } from "@/shared/api";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { http, queryKeys, type Page } from "@/shared/api";
 import type { ProjectVariableLog, Variable, VariableCreate, VariablePatch } from "../model/types";
 
 export const variableKeys = {
   all: queryKeys.all("variables"),
   byProject: (projectId: number) => queryKeys.list("variables", { projectId }),
-  /** Admin list with deleted variables (`includeDeleted=true`). */
-  adminByProject: (projectId: number) => queryKeys.list("variables", { projectId, includeDeleted: true }),
+  /** 변수 관리 list (deleted variables included), one page. */
+  adminByProject: (projectId: number, page: number, size: number) =>
+    queryKeys.list("variables", { projectId, manage: true, page, size }),
   logsAll: queryKeys.all("variable-logs"),
   projectLogs: (projectId: number) => queryKeys.list("variable-logs", { projectId }),
 };
@@ -25,12 +26,13 @@ export function useProjectVariables(projectId: number | null, enabled = true) {
   });
 }
 
-/** Variables of a project including deleted ones (customer admin, reference 삭제 (이력 보존) rows). */
-export function useAdminVariables(projectId: number | null) {
+/** One page of the 변수 관리 list (customer admin): deleted variables included (reference 삭제 (이력 보존) rows). */
+export function useAdminVariables(projectId: number | null, page: number, size: number) {
   return useQuery({
-    queryKey: variableKeys.adminByProject(projectId ?? -1),
-    queryFn: () => http.get<Variable[]>(`/projects/${projectId}/variables`, { query: { includeDeleted: true } }),
+    queryKey: variableKeys.adminByProject(projectId ?? -1, page, size),
+    queryFn: () => http.get<Page<Variable>>(`/projects/${projectId}/variables/manage`, { query: { page, size } }),
     enabled: projectId !== null,
+    placeholderData: keepPreviousData,
   });
 }
 

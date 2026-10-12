@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { Button, Empty, Page, PageHeader, Panel } from "@/shared/ui";
+import { useClampPage, useListPage } from "@/shared/lib";
+import { Button, Empty, Page, PageHeader, Pager, Panel } from "@/shared/ui";
 import { isCustomerAdmin, projectRoles } from "@/entities/me";
 import {
   EMPTY_REQUEST_FILTERS,
@@ -19,7 +20,10 @@ import { RequestTable } from "./request-table";
 const OPERATOR_NO_CONTENT =
   "고객사 콘텐츠 조회 권한은 제공하지 않습니다. 고객사 초기 설정과 교정 기준은 운영 관리 메뉴에서 운영합니다.";
 
-/** `requests` tab — every request of the selected project with the reference filters. */
+/**
+ * `requests` tab — every request of the selected project with the reference filters, 20 per page
+ * (server paging; back to the first page when the filters or the project change).
+ */
 export function RequestListView({ me, context, openTab }: WorkViewProps) {
   const { projectId, customerId, project } = context;
   const [filters, setFilters] = useState<RequestFilters>(EMPTY_REQUEST_FILTERS);
@@ -27,11 +31,13 @@ export function RequestListView({ me, context, openTab }: WorkViewProps) {
   const roles = projectRoles(me, projectId);
   const allowed = roles.length > 0 || isCustomerAdmin(me, customerId);
   const users = useUserDirectory(customerId);
+  const [page, setPage] = useListPage(JSON.stringify([projectId, filters]));
   const params = useMemo(
-    () => (projectId === null ? null : filtersToListParams(projectId, filters)),
-    [projectId, filters],
+    () => (projectId === null ? null : filtersToListParams(projectId, filters, page)),
+    [projectId, filters, page],
   );
   const list = useRequests(params ?? {}, allowed && params !== null);
+  useClampPage(page, list.isPlaceholderData ? undefined : list.data?.page.totalPages, setPage);
 
   if (projectId === null || !allowed) {
     return (
@@ -86,6 +92,9 @@ export function RequestListView({ me, context, openTab }: WorkViewProps) {
           />
         ) : rows.length === 0 ? (
           <Empty title="조건에 맞는 요청이 없습니다" description="검색 조건을 줄이거나 초기화해 보세요." />
+        ) : null}
+        {list.data && !list.isError ? (
+          <Pager page={page} totalPages={list.data.page.totalPages} onPage={setPage} />
         ) : null}
       </Panel>
     </Page>

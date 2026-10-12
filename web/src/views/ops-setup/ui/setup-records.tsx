@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { formatDateTime } from "@/shared/lib";
+import { LIST_PAGE_SIZE, formatDateTime, useClampPage, useListPage } from "@/shared/lib";
 import { Button, Empty, Pager, Panel, PanelBody, PanelHeader, ReadOnlyBox, Table, Tag } from "@/shared/ui";
 import { OUTBOX_KIND_LABEL, OUTBOX_STATUS_LABEL } from "@/entities/audit";
 import { useOpsOutbox, useSampleOverview, useSetupLogs, type OpsCustomer } from "@/entities/ops";
@@ -80,16 +79,13 @@ export function SamplePanel({ customer, hasActiveProject, onCreate, onClear }: S
   );
 }
 
-const LOG_PAGE = 20;
-
-/** 시드 실행 이력 (reference `SeedLogTable`): the customer's setup log, newest first. */
+/** 시드 실행 이력 (reference `SeedLogTable`): the customer's setup log, newest first, 20 per page (server). */
 export function SeedLogPanel({ customerId }: { customerId: number }) {
-  const logs = useSetupLogs(customerId);
-  const [page, setPage] = useState(0);
-  const all = logs.data ?? [];
-  const totalPages = Math.ceil(all.length / LOG_PAGE);
-  const current = Math.min(page, Math.max(0, totalPages - 1));
-  const rows = all.slice(current * LOG_PAGE, (current + 1) * LOG_PAGE);
+  const [page, setPage] = useListPage(String(customerId));
+  const logs = useSetupLogs(customerId, page, LIST_PAGE_SIZE);
+  const rows = logs.data?.content ?? [];
+  const totalPages = logs.data?.page.totalPages ?? 0;
+  useClampPage(page, logs.isPlaceholderData ? undefined : logs.data?.page.totalPages, setPage);
   return (
     <Panel className={styles.block} aria-busy={logs.isFetching}>
       <PanelHeader title="시드 실행 이력" note="대상, 실행자, 결과, 영향 범위를 남깁니다" />
@@ -131,14 +127,12 @@ export function SeedLogPanel({ customerId }: { customerId: number }) {
               )}
             </tbody>
           </Table>
-          <Pager page={current} totalPages={totalPages} onPage={setPage} />
+          <Pager page={page} totalPages={totalPages} onPage={setPage} />
         </>
       )}
     </Panel>
   );
 }
-
-const OUTBOX_PAGE = 5;
 
 /**
  * 메일 발송 대기함 of the selected customer's users (operator, `GET /api/ops/outbox?customerId=`):
@@ -147,10 +141,8 @@ const OUTBOX_PAGE = 5;
  */
 export function OpsOutboxPanel({ customer }: { customer: Pick<OpsCustomer, "id" | "name"> }) {
   // the page belongs to one customer: a new customer starts on its first page
-  const [paging, setPaging] = useState({ customerId: customer.id, page: 0 });
-  const page = paging.customerId === customer.id ? paging.page : 0;
-  const setPage = (next: number) => setPaging({ customerId: customer.id, page: next });
-  const outbox = useOpsOutbox(customer.id, page, OUTBOX_PAGE);
+  const [page, setPage] = useListPage(String(customer.id));
+  const outbox = useOpsOutbox(customer.id, page, LIST_PAGE_SIZE);
   const mails = outbox.data?.content ?? [];
   return (
     <Panel className={styles.block} aria-label="메일 발송 대기함" aria-busy={outbox.isFetching}>

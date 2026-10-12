@@ -9,13 +9,30 @@ export interface CustomerForm {
 
 export const EMPTY_CUSTOMER_FORM: CustomerForm = { name: "", domain: "", approvalEnabled: false };
 
-/** Server normalisation of a company domain: trimmed, lower-cased, leading `@` removed. */
+/**
+ * Same normalisation as the server: the host name is taken from whatever was pasted
+ * (`admin@Tago.co.kr`, `https://www.tago.co.kr:8080/x`, `tago.co.kr.` → `tago.co.kr`) and a Korean
+ * domain becomes punycode (`예시.com` → `xn--vv4b11d.com`).
+ */
 export function normalizeDomain(raw: string): string {
-  const value = raw.trim().toLowerCase();
-  return value.startsWith("@") ? value.slice(1) : value;
+  let value = raw.trim().toLowerCase();
+  value = value.replace(/^[a-z][a-z0-9+.-]*:\/\//, "");
+  const at = value.lastIndexOf("@");
+  if (at >= 0) value = value.slice(at + 1);
+  value = value.split(/[/?#]/)[0].replace(/:\d+$/, "").replace(/\.+$/, "");
+  if (value.startsWith("www.")) value = value.slice(4);
+  if (!value) return "";
+  if (/[^\x00-\x7f]/.test(value)) {
+    try {
+      value = new URL(`http://${value}`).hostname;
+    } catch {
+      return value;
+    }
+  }
+  return value;
 }
 
-const DOMAIN = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
+const DOMAIN = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:[a-z]{2,63}|xn--[a-z0-9-]{1,59})$/;
 
 /** Host name check of the API: letters/digits/inner hyphens per label, final label ≥ 2 letters, ≤ 253. */
 export function isDomainFormat(domain: string): boolean {
@@ -35,7 +52,7 @@ export function domainPreview(raw: string): string | null {
 export const DOMAIN_FORMAT_MESSAGE = "도메인 형식을 확인하세요";
 
 export function duplicateDomainMessage(existingName: string): string {
-  return `${existingName}이(가) 같은 도메인을 쓰고 있습니다. 중복 허용 여부는 협의 23 결정 전까지 막습니다`;
+  return `${existingName}이(가) 같은 도메인을 쓰고 있습니다`;
 }
 
 /** Reference `opsCustNew` checks in order; the first problem with its contract field. */

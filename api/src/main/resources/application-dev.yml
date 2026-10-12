@@ -15,3 +15,5 @@ app:
     enabled: true
     # Dev-only password given to every demo account so email login can be smoke-tested.
     default-password: "Txtms!2026"
+    # Email + password login only. Set to true to bring back one-click persona login and the persona switcher.
+    persona-login-enabled: false

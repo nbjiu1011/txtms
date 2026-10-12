@@ -10,6 +10,7 @@ import com.txtms.domain.contenttype.entity.ContentType;
 import com.txtms.domain.contenttype.service.ContentTypeService;
 import com.txtms.domain.customer.entity.Customer;
 import com.txtms.domain.ops.dto.OpsDtos.OpsInvitation;
+import com.txtms.domain.ops.dto.OpsDtos.SetupContext;
 import com.txtms.domain.ops.dto.OpsDtos.SetupProjectBody;
 import com.txtms.domain.ops.dto.OpsDtos.TemplateBody;
 import com.txtms.domain.project.dto.ProjectResponse;
@@ -24,6 +25,8 @@ import com.txtms.domain.user.entity.User;
 import com.txtms.domain.user.service.MemberAdminService;
 import com.txtms.domain.user.service.UserService;
 import com.txtms.global.audit.AuditLogService;
+import com.txtms.global.common.PageQuery;
+import com.txtms.global.common.PageResponse;
 import com.txtms.global.exception.BusinessException;
 import com.txtms.global.security.AuthUser;
 
@@ -35,6 +38,9 @@ import com.txtms.global.security.AuthUser;
 @Service
 @Transactional
 public class OpsSetupService {
+
+    /** Server cap of each setup-context list. */
+    static final int CONTEXT_LIMIT = 500;
 
     private final OperatorAccess operators;
     private final OpsCustomerService opsCustomers;
@@ -89,9 +95,9 @@ public class OpsSetupService {
 
     /** Members of a customer (pending and inactive users included), also for an inactive customer. */
     @Transactional(readOnly = true)
-    public List<MemberResponse> members(AuthUser auth, long customerId) {
+    public PageResponse<MemberResponse> members(AuthUser auth, long customerId, PageQuery page) {
         operators.require(auth);
-        return members.membersOf(opsCustomers.requireExisting(customerId));
+        return members.membersOf(opsCustomers.requireExisting(customerId), page);
     }
 
     /**
@@ -99,10 +105,20 @@ public class OpsSetupService {
      * (templates, senders, roles); no request or content data and no {@code activeRequestCount}.
      */
     @Transactional(readOnly = true)
-    public List<ProjectResponse> projects(AuthUser auth, long customerId) {
+    public PageResponse<ProjectResponse> projects(AuthUser auth, long customerId, PageQuery page) {
         operators.require(auth);
         Customer customer = opsCustomers.requireExisting(customerId);
-        return projectAccess.byCustomer(customer.getId()).stream().map(ProjectResponse::of).toList();
+        return PageResponse.slice(projectAccess.byCustomer(customer.getId()), page,
+                rows -> rows.stream().map(ProjectResponse::of).toList());
+    }
+
+    /** Working data of the setup screen: every project and member of the customer (each at most 500). */
+    @Transactional(readOnly = true)
+    public SetupContext context(AuthUser auth, long customerId) {
+        operators.require(auth);
+        Customer customer = opsCustomers.requireExisting(customerId);
+        return new SetupContext(projectAccess.byCustomer(customer.getId()).stream().limit(CONTEXT_LIMIT)
+                .map(ProjectResponse::of).toList(), members.membersOf(customer));
     }
 
     /** Alimtalk templates of a project; audited {@code 프로젝트 발신 정보 변경}, setup log {@code 템플릿 등록}. */

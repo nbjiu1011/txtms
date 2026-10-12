@@ -41,7 +41,7 @@ class AuthIntegrationTest extends IntegrationTestBase {
         assertThat(me.path("name").asString()).isEqualTo("김서연");
         assertThat(me.path("operator").asBoolean()).isFalse();
         assertThat(me.has("isOperator")).isFalse();
-        assertThat(me.path("demo").asBoolean()).isTrue();
+        assertThat(me.path("demo").asBoolean()).isFalse();
         assertThat(me.path("memberships")).hasSize(1);
         assertThat(me.path("memberships").get(0).path("roles").get(0).asString()).isEqualTo("REQUESTER");
         assertThat(me.path("memberships").get(0).path("lead").asBoolean()).isFalse();
@@ -93,24 +93,20 @@ class AuthIntegrationTest extends IntegrationTestBase {
                 .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
     }
 
+    /** Persona login is off by default (app.demo.persona-login-enabled=false) even though demo mode is on. */
     @Test
-    void demoPersonasAndDemoLogin() throws Exception {
-        MvcResult personas = mvc.perform(get("/api/auth/demo-personas")).andExpect(status().isOk()).andReturn();
-        JsonNode list = read(personas);
-        assertThat(list).hasSize(9);
-        assertThat(list.get(0).path("name").asString()).isEqualTo("김서연");
-        assertThat(list.get(0).path("roleLabel").asString()).isEqualTo("요청자");
-        assertThat(list.get(0).path("avatarColor").asString()).isEqualTo("#3C6E71");
-
-        long u1 = list.get(0).path("userId").asLong();
-        MvcResult result = mvc.perform(post("/api/auth/demo-login").contentType(MediaType.APPLICATION_JSON)
-                .content(body(Map.of("userId", u1))))
-                .andExpect(status().isOk())
-                .andReturn();
-        Login login = toLogin(result);
-        assertThat(login.me().path("id").asLong()).isEqualTo(u1);
-        assertThat(login.me().path("demo").asBoolean()).isTrue();
-        assertThat(login.refreshCookie()).isNotNull();
+    void personaLoginIsNotFoundWhenDisabled() throws Exception {
+        mvc.perform(get("/api/auth/demo-personas"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+        mvc.perform(post("/api/auth/demo-login").contentType(MediaType.APPLICATION_JSON)
+                .content(body(Map.of("userId", userId(KIM_REQUESTER)))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+        // seeded demo users still log in with email and password, as regular (non-demo) sessions
+        Login login = login(OH_REQUESTER);
+        assertThat(login.me().path("demo").asBoolean()).isFalse();
+        assertThat(getJson(login, "/api/me").path("demo").asBoolean()).isFalse();
     }
 
     @Test
@@ -250,6 +246,14 @@ class AuthIntegrationTest extends IntegrationTestBase {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.fieldErrors[0].field").value("name"));
+        mvc.perform(patch("/api/me").header("Authorization", "Bearer " + login.accessToken())
+                .contentType(MediaType.APPLICATION_JSON).content(body(Map.of("name", "가".repeat(51)))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].message").value("이름은 50자 이하로 입력하세요"));
+        mvc.perform(patch("/api/me").header("Authorization", "Bearer " + login.accessToken())
+                .contentType(MediaType.APPLICATION_JSON).content(body(Map.of("name", "서아람", "dept", "팀".repeat(101)))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("dept"));
     }
 
     private void refreshOk(Login login) throws Exception {

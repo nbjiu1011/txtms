@@ -104,18 +104,26 @@ removes their `COMMON` and unplanned assignments, and audits every change as the
 nothing. The shared dev database `txtms` was refreshed this way on 2026-10-07 (알림톡 v4, 문자/RCS/자유입력형 v2; the
 old COMMON and type versions stay, unassigned).
 
-Demo accounts log in without a password through `GET /api/auth/demo-personas` + `POST /api/auth/demo-login`.
-For email login tests the dev profile also gives every demo account the password `Txtms!2026`
+Everyone logs in with email and password. The dev profile gives every demo account the password `Txtms!2026`
 (`app.demo.default-password`). Example: `seoyeon.kim@hanbitcard.co.kr` (requester), `dohyun.lee@hanbitcard.co.kr`
 (lead reviewer), `mina.choi@hanbitcard.co.kr` (approver), `minho.kang@hanbitcard.co.kr` (customer admin),
 `woojin.jung@txtms.io` (operator). Demo mode must stay off in production; demo accounts cannot log in when it is off.
+
+One-click persona login (the client's role demo login: `GET /api/auth/demo-personas` + `POST /api/auth/demo-login`,
+and the persona switcher in the web app) is off by default, also in the dev profile. Turn it on with
+`app.demo.persona-login-enabled=true` (needs `app.demo.enabled=true` as well), e.g.
+`./gradlew bootRun --args='--app.demo.persona-login-enabled=true'` or the same flag on the jar. When it is off both
+endpoints answer 404 and every session is a regular one (`Me.demo = false`), seeded demo accounts included. The real
+browser E2E scripts and fixture capture scripts of the web app sign in through `demo-login`, so run the API with the
+flag on for them.
 
 ### Smoke test
 
 ```bash
 curl -s http://localhost:4245/actuator/health
-curl -s http://localhost:4245/api/auth/demo-personas
-curl -s -c cookies.txt -H "Content-Type: application/json" -d '{"userId":1}' http://localhost:4245/api/auth/demo-login
+curl -s -c cookies.txt -H "Content-Type: application/json" \
+  -d '{"email":"seoyeon.kim@hanbitcard.co.kr","password":"Txtms!2026","remember":false}' \
+  http://localhost:4245/api/auth/login
 # use the returned accessToken:
 curl -s -H "Authorization: Bearer <accessToken>" "http://localhost:4245/api/requests?projectId=1"
 curl -s -b cookies.txt -X POST http://localhost:4245/api/auth/refresh
@@ -153,6 +161,12 @@ database.
   `Origin`, unless the origin is `app.web-base-url`, a CORS origin or the API itself) with 403 and keeps the cookie.
   Login and the token endpoints accept JSON only (a cross-site form post gets 400).
 - Invitation and reset links are single use even when submitted twice at once (token row read with a write lock).
+- `PATCH /api/me` changes the own name (required, ≤ 50) and department (≤ 100). `PUT /api/me/password`
+  `{ currentPassword, newPassword }` → 204 changes the own password: the current password must match
+  (`currentPassword` field error otherwise; the attempt counts against the same per-email failure lock as the login,
+  so five wrong attempts lock both for 15 minutes), the new one follows the invitation policy (8+ characters, two of
+  letters/digits/specials) and must differ from the current one. On success every other session of the user is
+  revoked (the calling session stays signed in) and `비밀번호 변경` is audited.
 
 ## Layout
 

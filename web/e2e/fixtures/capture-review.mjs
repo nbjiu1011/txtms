@@ -10,7 +10,8 @@ import { fileURLToPath } from "node:url";
 const API = (process.argv[2] ?? "http://localhost:4245") + "/api";
 const SEED = /^REQ-2609-/;
 
-const list = (view) => `/requests?projectId=1&view=${view}&page=0&size=100`;
+/** Work lists ask for 20 rows per page; the dashboard KPI modal (`APPROVAL_PENDING`) for 100. */
+const list = (view, size = 20) => `/requests?projectId=1&view=${view}&page=0&size=${size}`;
 /** persona → paths (lists are filtered to the seed). */
 const PLAN = {
   2: [list("MY_ASSIGNED_ACTIVE"), list("MY_ASSIGNED_DONE")],
@@ -26,7 +27,7 @@ const PLAN = {
     "/requests/REQ-2609-101",
     "/requests/REQ-2609-101/history",
   ],
-  4: [list("APPROVAL_QUEUE"), list("APPROVAL_PENDING"), list("APPROVAL_PROCESSED")],
+  4: [list("APPROVAL_QUEUE"), list("APPROVAL_PENDING", 100), list("APPROVAL_PROCESSED")],
 };
 
 async function login(userId) {

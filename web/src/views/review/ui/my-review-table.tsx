@@ -1,7 +1,8 @@
 "use client";
 
-import { Button, Empty, Panel, Table, Tag, tableClasses } from "@/shared/ui";
-import { RequestStatusChip, REQUEST_LIST_PAGE_SIZE, useRequests } from "@/entities/request";
+import { LIST_PAGE_SIZE, useClampPage, useListPage } from "@/shared/lib";
+import { Button, Empty, Pager, Panel, Table, Tag, tableClasses } from "@/shared/ui";
+import { RequestStatusChip, useRequests } from "@/entities/request";
 import { toMyReviewRow, type MineFilter } from "../model/review-rows";
 import styles from "./review.module.css";
 
@@ -14,14 +15,16 @@ export interface MyReviewTableProps {
   onOpen: (id: string) => void;
 }
 
-/** 내 검수 — requests I am assigned to (진행 중 = not final, 완료 = final). */
+/** 내 검수 — requests I am assigned to (진행 중 = not final, 완료 = final), 20 per page. */
 export function MyReviewTable({ projectId, meId, filter, onOpen }: MyReviewTableProps) {
+  const [page, setPage] = useListPage(`${projectId}:${filter}`);
   const list = useRequests({
     projectId,
     view: filter === "active" ? "MY_ASSIGNED_ACTIVE" : "MY_ASSIGNED_DONE",
-    page: 0,
-    size: REQUEST_LIST_PAGE_SIZE,
+    page,
+    size: LIST_PAGE_SIZE,
   });
+  useClampPage(page, list.isPlaceholderData ? undefined : list.data?.page.totalPages, setPage);
   const rows = list.isError ? [] : (list.data?.content ?? []).map((r) => toMyReviewRow(r, meId));
   return (
     <Panel aria-busy={list.isFetching}>
@@ -69,6 +72,9 @@ export function MyReviewTable({ projectId, meId, filter, onOpen }: MyReviewTable
         />
       ) : rows.length === 0 ? (
         <Empty title="해당하는 검수 요청이 없습니다" />
+      ) : null}
+      {list.data && !list.isError ? (
+        <Pager page={page} totalPages={list.data.page.totalPages} onPage={setPage} />
       ) : null}
     </Panel>
   );

@@ -24,9 +24,12 @@ import com.txtms.domain.project.entity.ProjectTemplate;
 import com.txtms.domain.project.repository.ProjectRepository;
 import com.txtms.domain.request.entity.RequestStatus;
 import com.txtms.domain.request.service.RequestQueryService;
+import com.txtms.domain.request.service.RequestStatsService;
 import com.txtms.domain.user.entity.User;
 import com.txtms.domain.user.service.UserService;
 import com.txtms.global.audit.AuditLogService;
+import com.txtms.global.common.PageQuery;
+import com.txtms.global.common.PageResponse;
 import com.txtms.global.exception.BusinessException;
 import com.txtms.global.exception.ErrorCode;
 import com.txtms.global.security.AuthUser;
@@ -47,17 +50,31 @@ public class ProjectAdminService {
     private final CustomerAdminAccess adminAccess;
     private final UserService userService;
     private final RequestQueryService requests;
+    private final RequestStatsService requestStats;
     private final AuditLogService audit;
     private final Clock clock;
 
     public ProjectAdminService(ProjectRepository projects, CustomerAdminAccess adminAccess, UserService userService,
-            RequestQueryService requests, AuditLogService audit, Clock clock) {
+            RequestQueryService requests, RequestStatsService requestStats, AuditLogService audit, Clock clock) {
         this.projects = projects;
         this.adminAccess = adminAccess;
         this.userService = userService;
         this.requests = requests;
+        this.requestStats = requestStats;
         this.audit = audit;
         this.clock = clock;
+    }
+
+    /**
+     * 프로젝트 관리 list: every project of the customer (stopped ones included) in id order, each with the number of
+     * requests in progress.
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<ProjectResponse> manage(AuthUser auth, long customerId, PageQuery page) {
+        Admin admin = adminAccess.require(auth, customerId);
+        Map<Long, Long> active = requestStats.activeCountsByProject(admin.customerId());
+        return PageResponse.slice(projects.findByCustomerIdOrderByIdAsc(admin.customerId()), page,
+                rows -> rows.stream().map(p -> ProjectResponse.of(p, active.getOrDefault(p.getId(), 0L))).toList());
     }
 
     public ProjectResponse create(AuthUser auth, long customerId, ProjectBody body) {

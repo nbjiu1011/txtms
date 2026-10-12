@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Empty, Page, PageHeader, Panel, SubTabs } from "@/shared/ui";
+import { LIST_PAGE_SIZE, useClampPage } from "@/shared/lib";
+import { Button, Empty, Page, PageHeader, Pager, Panel, SubTabs } from "@/shared/ui";
 import {
   useDatasetAssignments,
   useDatasets,
   useOpsContentTypes,
+  useOpsCustomerOptions,
   useOpsCustomers,
   type Dataset,
 } from "@/entities/ops";
@@ -34,7 +36,11 @@ export function OpsStandardsView({ context }: WorkViewProps) {
   const [customerPicked, setCustomerPicked] = useState<number | null>(null);
   const [registering, setRegistering] = useState(false);
   const [rulesOf, setRulesOf] = useState<Dataset | null>(null);
-  const customers = useOpsCustomers();
+  // the matrix pages through customers; the rules panel picks from the reference list
+  const [matrixPage, setMatrixPage] = useState(0);
+  const matrix = useOpsCustomers(matrixPage, LIST_PAGE_SIZE);
+  useClampPage(matrixPage, matrix.isPlaceholderData ? undefined : matrix.data?.page.totalPages, setMatrixPage);
+  const customers = useOpsCustomerOptions();
   const datasets = useDatasets();
   const assignments = useDatasetAssignments();
   const contentTypes = useOpsContentTypes();
@@ -81,8 +87,9 @@ export function OpsStandardsView({ context }: WorkViewProps) {
     );
   }
 
-  const failed = customers.isError || datasets.isError || assignments.isError || contentTypes.isError;
-  const loading = customers.isPending || datasets.isPending || assignments.isPending || contentTypes.isPending;
+  const failed = matrix.isError || customers.isError || datasets.isError || assignments.isError || contentTypes.isError;
+  const loading =
+    matrix.isPending || customers.isPending || datasets.isPending || assignments.isPending || contentTypes.isPending;
 
   return (
     <Page wide>
@@ -107,6 +114,7 @@ export function OpsStandardsView({ context }: WorkViewProps) {
             action={
               <Button
                 onClick={() => {
+                  void matrix.refetch();
                   void customers.refetch();
                   void datasets.refetch();
                   void assignments.refetch();
@@ -127,10 +135,13 @@ export function OpsStandardsView({ context }: WorkViewProps) {
       ) : (
         <>
           <AssignMatrix
-            customers={list}
+            customers={matrix.data?.content ?? []}
             datasets={dsList}
             assignments={assignments.data ?? []}
             contentTypes={typeList}
+            pager={
+              <Pager page={matrixPage} totalPages={matrix.data?.page.totalPages ?? 0} onPage={setMatrixPage} />
+            }
           />
           {customer ? (
             <EffectiveRulesPanel

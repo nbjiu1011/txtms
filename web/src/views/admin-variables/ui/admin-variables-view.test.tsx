@@ -26,7 +26,10 @@ const variable = (id: number, key: string, patch: Partial<Variable> = {}): Varia
 
 function setup(variables: Variable[]) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
-  client.setQueryData(variableKeys.adminByProject(1), variables);
+  client.setQueryData(variableKeys.adminByProject(1, 0, 20), {
+    content: variables,
+    page: { number: 0, size: 20, totalElements: variables.length, totalPages: variables.length ? 1 : 0 },
+  });
   // newest first, like `GET /api/projects/{id}/variable-logs`
   const logs: ProjectVariableLog[] = variables.flatMap((v) => [
     ...(v.deleted

@@ -20,6 +20,8 @@ import com.txtms.domain.variable.dto.VariableLogResponse;
 import com.txtms.domain.variable.dto.VariableResponse;
 import com.txtms.domain.variable.dto.VariableUpdateRequest;
 import com.txtms.domain.variable.service.VariableService;
+import com.txtms.global.common.PageQuery;
+import com.txtms.global.common.PageResponse;
 import com.txtms.global.security.AuthUser;
 
 @RestController
@@ -36,6 +38,14 @@ public class VariableController {
             @RequestParam(required = false) String q, @RequestParam(required = false) Boolean active,
             @RequestParam(defaultValue = "false") boolean includeDeleted) {
         return variables.list(auth, projectId, q, active, includeDeleted);
+    }
+
+    /** 변수 관리 list of the customer admin: deleted variables included, one page. */
+    @GetMapping("/api/projects/{projectId}/variables/manage")
+    public PageResponse<VariableResponse> manage(@AuthenticationPrincipal AuthUser auth, @PathVariable long projectId,
+            @RequestParam(required = false) String q, @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer size) {
+        return variables.manage(auth, projectId, q, active, PageQuery.of(page, size));
     }
 
     /** Change log of all variables of the project, newest first (customer admins). */

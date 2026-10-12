@@ -158,15 +158,30 @@ class OpsIntegrationTest extends IntegrationTestBase {
         assertThat(created.path("unassignedDatasetTypes")).hasSize(4);
         assertThat(created.path("createdBy").asLong()).isEqualTo(operator.userId());
         assertThat(created.path("createdByName").asString()).isEqualTo("정우진");
-        assertThat(byId(getJson(operator, "/api/ops/customers"), cid).path("createdByName").asString())
+        assertThat(getJson(operator, "/api/ops/customers/" + cid).path("createdByName").asString())
                 .isEqualTo("정우진");
+        // the list is paged in id order (default size 20): the newest customer is the last row of the last page
+        JsonNode firstPage = getJson(operator, "/api/ops/customers");
+        assertThat(firstPage.path("page").path("number").asInt()).isZero();
+        assertThat(firstPage.path("page").path("size").asInt()).isEqualTo(20);
+        long total = firstPage.path("page").path("totalElements").asLong();
+        assertThat(firstPage.path("content")).hasSize((int) Math.min(total, 20));
+        JsonNode lastRow = getJson(operator, "/api/ops/customers?size=1&page=" + (total - 1)).path("content").get(0);
+        assertThat(lastRow.path("id").asLong()).isEqualTo(cid);
+        assertThat(lastRow.path("createdByName").asString()).isEqualTo("정우진");
+        assertThat(getJson(operator, "/api/ops/customers?size=1&page=" + total).path("content")).isEmpty();
         Map<String, Object> defaultProject = jdbc.queryForMap(
                 "SELECT id, name, lead_user_id FROM projects WHERE customer_id = ?", cid);
         assertThat(defaultProject.get("name")).isEqualTo("기본 프로젝트");
         assertThat(defaultProject.get("lead_user_id")).isNull();
         assertThat(auditCount("고객사 생성", cid)).isEqualTo(1);
-        JsonNode logs = getJson(operator, "/api/ops/setup-logs?customerId=" + cid);
+        JsonNode logPage = getJson(operator, "/api/ops/setup-logs?customerId=" + cid);
+        assertThat(logPage.path("page").path("totalElements").asLong()).isEqualTo(2);
+        assertThat(logPage.path("page").path("size").asInt()).isEqualTo(20);
+        JsonNode logs = logPage.path("content");
         assertThat(logs).hasSize(2);
+        assertThat(getJson(operator, "/api/ops/setup-logs?customerId=" + cid + "&page=1&size=1").path("content")
+                .get(0).path("action").asString()).isEqualTo("고객사 생성");
         assertThat(logs.get(0).path("action").asString()).isEqualTo("기본 프로젝트 생성");
         assertThat(logs.get(0).path("result").asString()).isEqualTo("첫 고객사 관리자 초대 필요");
         assertThat(logs.get(1).path("action").asString()).isEqualTo("고객사 생성");
@@ -296,9 +311,10 @@ class OpsIntegrationTest extends IntegrationTestBase {
         JsonNode submitted = expect(200, writer, post("/api/requests/" + rid + "/submit"),
                 Map.of("rowVersion", rowVersion(writer, rid)));
         assertThat(submitted.path("status").asString()).isEqualTo("WAITING");
-        assertThat(getJson(operator, "/api/ops/setup-logs?customerId=" + cid).toString()).contains("템플릿 등록")
+        assertThat(getJson(operator, "/api/ops/setup-logs?customerId=" + cid).path("content").toString())
+                .contains("템플릿 등록")
                 .contains("발신번호 등록").contains("초기 프로젝트 생성").contains("초대 링크 생성");
-        JsonNode customerRow = byId(getJson(operator, "/api/ops/customers"), cid);
+        JsonNode customerRow = getJson(operator, "/api/ops/customers/" + cid);
         assertThat(customerRow.path("activeRequestCount").asLong()).isEqualTo(1);
         assertThat(customerRow.path("projectCount").asLong()).isEqualTo(2);
         assertThat(customerRow.path("userCount").asLong()).isEqualTo(2);
@@ -320,7 +336,8 @@ class OpsIntegrationTest extends IntegrationTestBase {
         String domain = t.requester().substring(t.requester().indexOf('@') + 1);
 
         // ---- operators only (customer admins included), 401 without a token, NOT_FOUND for a missing customer
-        for (String path : List.of(base + "/members", base + "/projects", "/api/ops/outbox?customerId=" + cid)) {
+        for (String path : List.of(base, base + "/members", base + "/projects", base + "/setup-context",
+                "/api/ops/customers", "/api/ops/customers/options", "/api/ops/outbox?customerId=" + cid)) {
             assertThat(expect(403, tenantAdmin, get(path), null).path("message").asString()).as(path)
                     .isEqualTo("운영 담당자 권한이 필요합니다");
             expect(403, req, get(path), null);
@@ -328,10 +345,12 @@ class OpsIntegrationTest extends IntegrationTestBase {
         }
         expect(404, operator, get("/api/ops/customers/999999/members"), null);
         expect(404, operator, get("/api/ops/customers/999999/projects"), null);
+        expect(404, operator, get("/api/ops/customers/999999/setup-context"), null);
+        expect(404, operator, get("/api/ops/customers/999999"), null);
         expect(404, operator, get("/api/ops/outbox?customerId=999999"), null);
 
         // ---- the customer was not created by an operator: no creator name
-        JsonNode row = byId(getJson(operator, "/api/ops/customers"), cid);
+        JsonNode row = getJson(operator, "/api/ops/customers/" + cid);
         assertThat(row.has("createdByName")).isTrue();
         assertThat(row.path("createdByName").isNull()).isTrue();
 
@@ -360,14 +379,26 @@ class OpsIntegrationTest extends IntegrationTestBase {
         assertThat(mails.get(1).path("kind").asString()).isEqualTo("INVITATION");
         assertThat(mails.get(1).path("masked").asBoolean()).isFalse();
         assertThat(mails.get(1).path("body").asString()).contains("/invite/" + storedToken(inviteeEmail));
+        // a mail of another customer, created here so the comparison does not depend on other tests' data
+        Tenant other = newTenant();
+        jdbc.update("INSERT INTO outbound_emails (customer_id, to_address, subject, body, kind, status, created_at)"
+                + " VALUES (?, 'other@example.com', 'TX TMS 초대', 'body', 'INVITATION', 'PENDING', UTC_TIMESTAMP(6))",
+                other.customerId());
         assertThat(getJson(operator, "/api/ops/outbox?size=1").path("page").path("totalElements").asLong())
                 .isGreaterThan(outbox.path("page").path("totalElements").asLong());
 
         // ---- members: the customer admin's list shape, pending users included
-        JsonNode members = getJson(operator, base + "/members");
-        assertThat(members).hasSize(7);
-        assertThat(members.toString()).isEqualTo(getJson(tenantAdmin, "/api/customers/" + cid + "/members")
+        JsonNode memberPage = getJson(operator, base + "/members");
+        assertThat(memberPage.toString()).isEqualTo(getJson(tenantAdmin, "/api/customers/" + cid + "/members")
                 .toString());
+        assertThat(memberPage.path("page").path("totalElements").asLong()).isEqualTo(7);
+        JsonNode members = memberPage.path("content");
+        assertThat(members).hasSize(7);
+        JsonNode secondPage = getJson(operator, base + "/members?page=1&size=5");
+        assertThat(secondPage.path("content")).hasSize(2);
+        assertThat(secondPage.path("page").path("totalPages").asInt()).isEqualTo(2);
+        assertThat(secondPage.path("content").get(0).path("user").path("id").asLong())
+                .isEqualTo(members.get(5).path("user").path("id").asLong());
         JsonNode invitee = null;
         for (JsonNode m : members) {
             if (m.path("user").path("email").asString().equals(inviteeEmail)) {
@@ -380,7 +411,9 @@ class OpsIntegrationTest extends IntegrationTestBase {
         assertThat(invitee.path("projects").get(0).path("roles").get(0).asString()).isEqualTo("REVIEWER");
 
         // ---- projects: metadata only, no activeRequestCount
-        JsonNode projects = getJson(operator, base + "/projects");
+        JsonNode projectPage = getJson(operator, base + "/projects");
+        assertThat(projectPage.path("page").path("totalElements").asLong()).isEqualTo(1);
+        JsonNode projects = projectPage.path("content");
         assertThat(projects).hasSize(1);
         assertThat(projects.get(0).path("id").asLong()).isEqualTo(t.projectId());
         assertThat(projects.get(0).path("templates").get(0).path("code").asString()).isEqualTo("HB_POINT_01");
@@ -409,8 +442,22 @@ class OpsIntegrationTest extends IntegrationTestBase {
 
         // ---- an inactive customer stays readable for the operator (the customer API closes it)
         expect(200, operator, post(base + "/deactivate"), Map.of("reason", "계약 종료"));
-        assertThat(getJson(operator, base + "/members")).hasSize(7);
-        assertThat(getJson(operator, base + "/projects")).hasSize(1);
+        assertThat(getJson(operator, base + "/members").path("content")).hasSize(7);
+        assertThat(getJson(operator, base + "/projects").path("content")).hasSize(1);
+        // setup working data and the detail stay readable too; the reference list keeps inactive customers
+        JsonNode context = getJson(operator, base + "/setup-context");
+        assertThat(context.path("projects").toString()).isEqualTo(projects.toString());
+        assertThat(context.path("members")).hasSize(7);
+        assertThat(getJson(operator, base).path("active").asBoolean()).isFalse();
+        boolean inOptions = false;
+        for (JsonNode c : getJson(operator, "/api/ops/customers/options")) {
+            if (c.path("id").asLong() == cid) {
+                inOptions = true;
+                assertThat(c.path("active").asBoolean()).isFalse();
+                assertThat(c.has("projectCount")).as("Customer shape").isFalse();
+            }
+        }
+        assertThat(inOptions).isTrue();
         assertThat(getJson(operator, "/api/ops/outbox?customerId=" + cid).path("content")).hasSize(2);
         expect(404, operator, get("/api/customers/" + cid + "/projects"), null);
     }
@@ -446,7 +493,7 @@ class OpsIntegrationTest extends IntegrationTestBase {
                 .asString()).isEqualTo("이미 비활성 상태인 고객사입니다");
         assertThat(expect(409, operator, post(base + "/projects"), Map.of("name", "x")).path("message").asString())
                 .isEqualTo("비활성 고객사입니다. 사용 재개 후 진행하세요");
-        assertThat(byId(getJson(operator, "/api/ops/customers"), t.customerId()).path("active").asBoolean())
+        assertThat(getJson(operator, "/api/ops/customers/" + t.customerId()).path("active").asBoolean())
                 .isFalse();
         assertThat(getJson(operator, "/api/ops/audit-logs?customerId=" + t.customerId()).path("content").get(0)
                 .path("detail").asString()).isEqualTo("계약 종료");
@@ -485,7 +532,7 @@ class OpsIntegrationTest extends IntegrationTestBase {
             expect(400, req, put("/api/requests/" + alimtalk + "/type"), Map.of("type", "SMS"));
             assertThat(getJson(req, "/api/requests/" + existing).path("type").asString()).isEqualTo("SMS");
             // an inactive type is not an unassigned combination
-            assertThat(byId(getJson(operator, "/api/ops/customers"), t.customerId())
+            assertThat(getJson(operator, "/api/ops/customers/" + t.customerId())
                     .path("unassignedDatasetTypes").toString()).doesNotContain("SMS");
             expect(404, operator, patch("/api/ops/content-types/FAX"), Map.of("active", true));
             assertThat(expect(400, operator, patch("/api/ops/content-types/SMS"), Map.of()).path("message")
@@ -554,7 +601,7 @@ class OpsIntegrationTest extends IntegrationTestBase {
         assertThat(overview.path("sample").asBoolean()).isTrue();
         assertThat(overview.path("samples")).hasSize(3);
         assertThat(overview.path("realRequestCount").asLong()).isEqualTo(1);
-        assertThat(byId(getJson(operator, "/api/ops/customers"), s.customerId()).path("sampleRequestCount")
+        assertThat(getJson(operator, "/api/ops/customers/" + s.customerId()).path("sampleRequestCount")
                 .asLong()).isEqualTo(3);
 
         expect(204, operator, delete(sBase + "/sample-data"), null);
@@ -570,7 +617,8 @@ class OpsIntegrationTest extends IntegrationTestBase {
         assertThat(jdbc.queryForObject("SELECT detail FROM audit_logs WHERE action = '샘플 데이터 초기화' "
                 + "AND customer_id = ? ORDER BY id DESC LIMIT 1", String.class, s.customerId()))
                 .isEqualTo("샘플 3건 삭제, 운영 데이터 보존");
-        assertThat(getJson(operator, "/api/ops/setup-logs?customerId=" + s.customerId()).get(0).path("result")
+        assertThat(getJson(operator, "/api/ops/setup-logs?customerId=" + s.customerId()).path("content").get(0)
+                .path("result")
                 .asString()).isEqualTo("운영 요청 1건은 보존");
     }
 

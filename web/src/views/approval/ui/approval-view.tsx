@@ -1,7 +1,20 @@
 "use client";
 
-import { Banner, Button, Empty, ListItem, Page, PageHeader, Panel, PanelHeader, Table, tableClasses } from "@/shared/ui";
-import { REQUEST_LIST_PAGE_SIZE, RequestStatusChip, useRequests } from "@/entities/request";
+import { LIST_PAGE_SIZE, useClampPage, useListPage } from "@/shared/lib";
+import {
+  Banner,
+  Button,
+  Empty,
+  ListItem,
+  Page,
+  PageHeader,
+  Pager,
+  Panel,
+  PanelHeader,
+  Table,
+  tableClasses,
+} from "@/shared/ui";
+import { RequestStatusChip, useRequests } from "@/entities/request";
 import { useUserDirectory } from "@/entities/user";
 import type { WorkViewProps } from "@/widgets/app-shell";
 import { hasActiveApprover, toApprovalQueueRow } from "../model/approval-rows";
@@ -9,14 +22,25 @@ import styles from "./approval.module.css";
 
 const COLUMNS = ["요청 ID", "제목", "차수", "주담당", "콘텐츠", "확정 납기", "처리 가능"];
 
-/** `approval` tab — the project's approval queue (shared by all approvers) and my processed requests. */
+/**
+ * `approval` tab — the project's approval queue (shared by all approvers) and my processed requests,
+ * each paged on its own (20 per page).
+ */
 export function ApprovalView({ context, openTab }: WorkViewProps) {
   const { projectId, customerId, project } = context;
   const users = useUserDirectory(customerId);
-  const scope = { projectId: projectId ?? -1, page: 0, size: REQUEST_LIST_PAGE_SIZE };
+  const scope = { projectId: projectId ?? -1, size: LIST_PAGE_SIZE };
   const ready = projectId !== null;
-  const queue = useRequests({ ...scope, view: "APPROVAL_QUEUE" }, ready);
-  const processed = useRequests({ ...scope, view: "APPROVAL_PROCESSED" }, ready);
+  const [queuePage, setQueuePage] = useListPage(String(projectId));
+  const [processedPage, setProcessedPage] = useListPage(String(projectId));
+  const queue = useRequests({ ...scope, view: "APPROVAL_QUEUE", page: queuePage }, ready);
+  const processed = useRequests({ ...scope, view: "APPROVAL_PROCESSED", page: processedPage }, ready);
+  useClampPage(queuePage, queue.isPlaceholderData ? undefined : queue.data?.page.totalPages, setQueuePage);
+  useClampPage(
+    processedPage,
+    processed.isPlaceholderData ? undefined : processed.data?.page.totalPages,
+    setProcessedPage,
+  );
   const openRequest = (id: string) => openTab({ route: "request", params: { id } });
   const rows = queue.isError ? [] : (queue.data?.content ?? []).map(toApprovalQueueRow);
   const noApprover =
@@ -32,7 +56,7 @@ export function ApprovalView({ context, openTab }: WorkViewProps) {
         </Banner>
       ) : null}
       <Panel className={styles.queue} aria-busy={queue.isFetching}>
-        <PanelHeader title="승인 대기" note={`${queue.data?.page.totalElements ?? rows.length}건`} />
+        <PanelHeader title="승인 대기" note={`${queue.data?.page.totalElements ?? 0}건`} />
         <Table>
           <thead>
             <tr>
@@ -66,6 +90,9 @@ export function ApprovalView({ context, openTab }: WorkViewProps) {
         ) : rows.length === 0 ? (
           <Empty title="승인할 요청이 없습니다" />
         ) : null}
+        {queue.data && !queue.isError ? (
+          <Pager page={queuePage} totalPages={queue.data.page.totalPages} onPage={setQueuePage} />
+        ) : null}
       </Panel>
       <Panel aria-busy={processed.isFetching}>
         <PanelHeader title="내가 처리한 요청" />
@@ -90,6 +117,9 @@ export function ApprovalView({ context, openTab }: WorkViewProps) {
             />
           ))
         )}
+        {processed.data && !processed.isError ? (
+          <Pager page={processedPage} totalPages={processed.data.page.totalPages} onPage={setProcessedPage} />
+        ) : null}
       </Panel>
     </Page>
   );

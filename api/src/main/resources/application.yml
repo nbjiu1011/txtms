@@ -81,9 +81,13 @@ app:
     # Comma-separated extra origins allowed to call the API directly.
     allowed-origins: ${CORS_ALLOWED_ORIGINS:}
   demo:
-    # Demo personas, demo-login and the demo seed. Never enable in production.
-    enabled: false
-    default-password: ""
+    # Demo seed and demo accounts. Never enable in production (the dev server sets DEMO_ENABLED=true).
+    enabled: ${DEMO_ENABLED:false}
+    # Password given to demo accounts when they are first seeded.
+    default-password: ${DEMO_DEFAULT_PASSWORD:}
+    # One-click persona login (persona list, demo-login, persona switcher). Needs demo mode; off by default so
+    # everyone logs in with email and password.
+    persona-login-enabled: false
   attachment:
     max-file-size: 20MB
     max-count: 10
@@ -91,7 +95,7 @@ app:
     max-image-size: 5MB
   storage:
     # TODO(stub): local disk until object storage is connected. Relative paths resolve from the working directory.
-    local-root: storage
+    local-root: ${STORAGE_ROOT:storage}
   content:
     max-contents-per-request: 1000
     max-text-length: 10000

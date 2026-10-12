@@ -25,6 +25,7 @@ import com.txtms.domain.mail.MailSender;
 import com.txtms.domain.request.service.ContentLockService;
 import com.txtms.domain.user.entity.User;
 import com.txtms.domain.user.service.UserService;
+import com.txtms.global.audit.AuditLogService;
 import com.txtms.global.config.AppProperties;
 import com.txtms.global.exception.BusinessException;
 import com.txtms.global.exception.ErrorCode;
@@ -37,6 +38,8 @@ public class AuthService {
 
     public static final String LOGIN_FAILED_MESSAGE = "이메일 또는 비밀번호를 확인하세요";
     public static final String INVALID_LINK_MESSAGE = "유효하지 않은 링크입니다";
+    public static final String CURRENT_PASSWORD_MISMATCH_MESSAGE = "현재 비밀번호가 일치하지 않습니다";
+    public static final String SAME_PASSWORD_MESSAGE = "현재 비밀번호와 다른 비밀번호를 입력하세요";
 
     private final UserService userService;
     private final CustomerService customerService;
@@ -51,13 +54,14 @@ public class AuthService {
     private final ContentLockService contentLocks;
     private final Clock clock;
     private final AppProperties properties;
+    private final AuditLogService audit;
     private final String dummyHash;
 
     public AuthService(UserService userService, CustomerService customerService, SessionService sessionService,
             LoginAttemptService loginAttempts, MeService meService, JwtService jwtService,
             PasswordEncoder passwordEncoder, PasswordResetRepository passwordResets,
             UserInvitationRepository invitations, MailSender mailSender, ContentLockService contentLocks,
-            Clock clock, AppProperties properties) {
+            Clock clock, AppProperties properties, AuditLogService audit) {
         this.userService = userService;
         this.customerService = customerService;
         this.sessionService = sessionService;
@@ -71,6 +75,7 @@ public class AuthService {
         this.contentLocks = contentLocks;
         this.clock = clock;
         this.properties = properties;
+        this.audit = audit;
         // compared against for unknown accounts so response time does not reveal whether an email exists
         this.dummyHash = passwordEncoder.encode("dummy-password-for-timing");
     }
@@ -111,7 +116,7 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public List<DemoPersona> demoPersonas() {
-        requireDemoMode();
+        requirePersonaLogin();
         List<DemoPersona> personas = new ArrayList<>();
         for (DemoPersonas.Persona p : DemoPersonas.LOGIN_SCREEN) {
             userService.findByEmail(p.email())
@@ -124,7 +129,7 @@ public class AuthService {
 
     @Transactional
     public LoginResult demoLogin(long userId) {
-        requireDemoMode();
+        requirePersonaLogin();
         User user = userService.find(userId).orElseThrow(BusinessException::notFound);
         boolean demoCustomer = user.getCustomerId() == null
                 || customerService.find(user.getCustomerId()).map(c -> c.isSample()).orElse(false);
@@ -150,6 +155,51 @@ public class AuthService {
     public void logout(AuthUser authUser) {
         sessionService.revoke(authUser.sessionId());
         contentLocks.releaseAllOf(authUser.userId());
+    }
+
+    /**
+     * Self-service password change of the signed-in user. The current password must match; wrong attempts count
+     * against the same failure lock as the login of that email (so the two cannot be combined to guess more often).
+     * On success every other session of the user ends and the current one stays signed in.
+     *
+     * @return number of other sessions that were ended
+     */
+    @Transactional
+    public int changePassword(AuthUser authUser, String currentPassword, String newPassword) {
+        User user = userService.require(authUser.userId());
+        String attemptKey = user.getEmail().trim().toLowerCase();
+        if (loginAttempts.isLocked(attemptKey)) {
+            throw passwordCheckLocked();
+        }
+        String hash = user.getPasswordHash();
+        if (hash == null || !passwordEncoder.matches(currentPassword, hash)) {
+            if (loginAttempts.recordFailure(attemptKey)) {
+                throw passwordCheckLocked();
+            }
+            throw BusinessException.validation("currentPassword", CURRENT_PASSWORD_MISMATCH_MESSAGE);
+        }
+        if (PasswordPolicy.tooLong(newPassword)) {
+            throw BusinessException.validation("newPassword", PasswordPolicy.TOO_LONG_MESSAGE);
+        }
+        if (!PasswordPolicy.satisfied(newPassword)) {
+            throw BusinessException.validation("newPassword", PasswordPolicy.MESSAGE);
+        }
+        if (passwordEncoder.matches(newPassword, hash)) {
+            throw BusinessException.validation("newPassword", SAME_PASSWORD_MESSAGE);
+        }
+        Instant now = clock.instant();
+        user.changePasswordHash(passwordEncoder.encode(newPassword), now);
+        int ended = sessionService.revokeOthersOf(user.getId(), authUser.sessionId());
+        loginAttempts.clear(attemptKey);
+        audit.record(user.getId(), user.getCustomerId(), "비밀번호 변경", user.getName(),
+                ended > 0 ? "다른 세션 " + ended + "개 로그아웃" : null);
+        return ended;
+    }
+
+    private BusinessException passwordCheckLocked() {
+        long minutes = Math.max(1, properties.auth().loginLockDuration().toMinutes());
+        return new BusinessException(ErrorCode.RATE_LIMITED,
+                "비밀번호 확인에 여러 번 실패해 잠시 잠겼습니다. " + minutes + "분 후 다시 시도하세요");
     }
 
     /** Always succeeds from the caller's point of view; only active accounts receive a reset link. */
@@ -236,15 +286,17 @@ public class AuthService {
     }
 
     private LoginResult startSession(User user, boolean remember) {
-        boolean demoSession = user.isDemo() && properties.demo().enabled();
+        // only persona login (demo mode + persona-login-enabled) makes demo sessions with the persona switcher
+        boolean demoSession = user.isDemo() && properties.demo().personaLoginAvailable();
         SessionService.Created created = sessionService.create(user, remember, demoSession);
         String accessToken = jwtService.issue(user.getId(), created.session().getId());
         return new LoginResult(accessToken, created.refreshToken(), remember,
                 meService.build(user, created.session()));
     }
 
-    private void requireDemoMode() {
-        if (!properties.demo().enabled()) {
+    /** Persona list and demo-login exist only with demo mode and persona login switched on. */
+    private void requirePersonaLogin() {
+        if (!properties.demo().personaLoginAvailable()) {
             throw BusinessException.notFound();
         }
     }

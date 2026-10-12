@@ -819,7 +819,7 @@ export const requestListU1: Page<RequestSummary> = {
   ],
   "page": {
     "number": 0,
-    "size": 100,
+    "size": 20,
     "totalElements": 9,
     "totalPages": 1
   }
@@ -2782,7 +2782,7 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
       "variablesRevision": 6
     },
     "/projects/1/dashboard": dashboardU1,
-    "/requests?projectId=1&page=0&size=100": requestListU1,
+    "/requests?projectId=1&page=0&size=20": requestListU1,
     "/requests/REQ-2609-102": request102U1,
     "/requests/REQ-2609-088": request088U1,
     "/requests/REQ-2609-088/history": [

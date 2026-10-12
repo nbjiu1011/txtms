@@ -1,7 +1,7 @@
 /** Solution operator resources — contract §9 (OpsDashboard), §12. */
 import type { AuditLog } from "@/entities/audit/@x/ops";
 import type { Customer } from "@/entities/customer/@x/ops";
-import type { ProjectRole, ProjectTemplate } from "@/entities/project/@x/ops";
+import type { Project, ProjectRole, ProjectTemplate } from "@/entities/project/@x/ops";
 import type { ContentType, RequestStatus } from "@/entities/request/@x/ops";
 import type { Member, UserSummary } from "@/entities/user/@x/ops";
 
@@ -130,6 +130,12 @@ export interface SampleOverview {
   samples: SampleRequest[];
   /** Real requests the sample cleanup never deletes. */
   realRequestCount: number;
+}
+
+/** Working data of the initial setup screen (`GET /api/ops/customers/{id}/setup-context`, each list max 500). */
+export interface SetupContext {
+  projects: Project[];
+  members: Member[];
 }
 
 export interface SampleResetResult {

@@ -2,7 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { isApiError } from "@/shared/api";
+import { serverFormError } from "@/shared/api";
 import { Field, Input, toast } from "@/shared/ui";
 import { meApi, useSessionStore, type Me } from "@/entities/me";
 import { profileSchema, type ProfileValues } from "../model/schema";
@@ -20,6 +20,7 @@ export function ProfileForm({ me, className }: ProfileFormProps) {
     handleSubmit,
     formState: { errors, dirtyFields },
     reset,
+    setError,
   } = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: { name: me.name, dept: me.dept ?? "" },
@@ -31,8 +32,11 @@ export function ProfileForm({ me, className }: ProfileFormProps) {
       const updated = await meApi.patch({ name: values.name, dept: values.dept });
       useSessionStore.getState().setMe(updated);
       reset({ name: updated.name, dept: updated.dept ?? "" });
-    } catch (error) {
-      toast(isApiError(error) ? error.message : "저장하지 못했습니다");
+    } catch (thrown) {
+      const error = serverFormError(thrown, "저장하지 못했습니다");
+      const fields = (["name", "dept"] as const).filter((key) => error.fields[key]);
+      for (const key of fields) setError(key, { type: "server", message: error.fields[key] });
+      if (fields.length === 0) toast(error.message);
     }
   });
 
@@ -47,7 +51,12 @@ export function ProfileForm({ me, className }: ProfileFormProps) {
         />
       </Field>
       <Field label="소속" htmlFor="profile-dept" error={errors.dept?.message}>
-        <Input id="profile-dept" autoComplete="organization" {...register("dept", { onBlur: () => void save() })} />
+        <Input
+          id="profile-dept"
+          autoComplete="organization"
+          aria-invalid={errors.dept ? true : undefined}
+          {...register("dept", { onBlur: () => void save() })}
+        />
       </Field>
       <button type="submit" hidden aria-hidden="true" tabIndex={-1} />
     </form>

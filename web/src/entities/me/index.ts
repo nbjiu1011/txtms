@@ -8,6 +8,7 @@ export type {
   MePatch,
   MeSession,
   Membership,
+  PasswordChangeBody,
   PasswordResetRequestBody,
   TokenPasswordBody,
 } from "./model/types";

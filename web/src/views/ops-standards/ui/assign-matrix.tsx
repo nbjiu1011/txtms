@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatDate } from "@/shared/lib";
 import { Button, Panel, PanelBody, PanelHeader, Select, Table, Tag, tableClasses, toast } from "@/shared/ui";
@@ -18,10 +18,13 @@ import { invalidateOps } from "@/features/ops-admin";
 import styles from "./ops-standards.module.css";
 
 export interface AssignMatrixProps {
+  /** One page of customers (rows). */
   customers: OpsCustomer[];
   datasets: Dataset[];
   assignments: DatasetAssignment[];
   contentTypes: ContentTypeSetting[];
+  /** Page navigation under the table. */
+  pager?: ReactNode;
 }
 
 export const UNASSIGNED_TOAST = "배정을 해제했습니다. 다시 배정하기 전에는 이 조합의 텍스트 교정을 실행할 수 없습니다";
@@ -31,7 +34,7 @@ export const UNASSIGNED_TOAST = "배정을 해제했습니다. 다시 배정하�
  * 고객사 × 콘텐츠 유형 배정 (reference `vAssign`): one effective dataset per customer × type; picking a
  * version assigns (or changes, which resets the confirmation), 미배정 removes it, 확인 처리 confirms.
  */
-export function AssignMatrix({ customers, datasets, assignments, contentTypes }: AssignMatrixProps) {
+export function AssignMatrix({ customers, datasets, assignments, contentTypes, pager }: AssignMatrixProps) {
   const client = useQueryClient();
   const [busy, setBusy] = useState<string | null>(null);
   /** Select value being saved per cell (shown at once; the lists refresh afterwards). */
@@ -165,13 +168,15 @@ export function AssignMatrix({ customers, datasets, assignments, contentTypes }:
           ))}
         </tbody>
       </Table>
+      {pager}
     </Panel>
   );
 }
 
 export interface EffectiveRulesPanelProps {
-  customers: OpsCustomer[];
-  customer: OpsCustomer;
+  /** Customers of the select (reference list). */
+  customers: Pick<OpsCustomer, "id" | "name">[];
+  customer: Pick<OpsCustomer, "id" | "name">;
   onPick: (id: number) => void;
   datasets: Dataset[];
   assignments: DatasetAssignment[];

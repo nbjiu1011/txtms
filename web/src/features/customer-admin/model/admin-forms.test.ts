@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Project } from "@/entities/project";
 import type { DeactivationImpact, Member } from "@/entities/user";
 import type { Variable } from "@/entities/variable";
-import { blockingItems, deactivationProblem, needsSubstitute, preBlocked, substituteCandidates } from "./deactivation";
+import { blockingItems, deactivationProblem, needsSubstitute, preBlocked } from "./deactivation";
 import { inviteStep, type InviteForm } from "./invite-form";
 import { noticeBody, noticeFormProblem } from "./notice-form";
 import { projectFormProblem, type ProjectForm } from "./project-form";
@@ -110,6 +110,7 @@ describe("deactivation rules", () => {
     requesting: [],
     leadProjects: [],
     lastApproverProjects: [],
+    substitutes: [],
     lastAdmin: false,
     ...patch,
   });
@@ -152,8 +153,6 @@ describe("deactivation rules", () => {
       { label: "마지막 고객사 관리자", value: "예" },
     ]);
     expect(deactivationProblem(i, undefined, "")).toBe("마지막 승인자입니다. 새 승인자를 먼저 지정하세요");
-    const members = [member(1, ["REVIEWER"]), member(2, ["REVIEWER"]), member(3, ["REQUESTER"]), member(4, ["REVIEWER"], { pending: true })];
-    expect(substituteCandidates(members, 1).map((m) => m.user.id)).toEqual([2]);
   });
 });
 

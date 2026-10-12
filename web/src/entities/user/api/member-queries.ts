@@ -1,20 +1,22 @@
-import { useQuery } from "@tanstack/react-query";
-import { http, queryKeys } from "@/shared/api";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { http, queryKeys, type Page } from "@/shared/api";
 import type { ProjectRole } from "@/entities/project/@x/user";
 import type { DeactivationImpact, Member, MemberInvite } from "../model/types";
 
 export const memberKeys = {
   all: queryKeys.all("members"),
-  byCustomer: (customerId: number) => queryKeys.list("members", { customerId }),
+  byCustomer: (customerId: number, page: number, size: number) =>
+    queryKeys.list("members", { customerId, page, size }),
   impact: (customerId: number, userId: number) => queryKeys.detail("deactivation-impact", `${customerId}:${userId}`),
 };
 
-/** Users of a customer with roles, pending invitations and inactive accounts (customer admin). */
-export function useCustomerMembers(customerId: number | null) {
+/** One page of a customer's users with roles, pending invitations and inactive accounts (customer admin). */
+export function useCustomerMembers(customerId: number | null, page: number, size: number) {
   return useQuery({
-    queryKey: memberKeys.byCustomer(customerId ?? -1),
-    queryFn: () => http.get<Member[]>(`/customers/${customerId}/members`),
+    queryKey: memberKeys.byCustomer(customerId ?? -1, page, size),
+    queryFn: () => http.get<Page<Member>>(`/customers/${customerId}/members`, { query: { page, size } }),
     enabled: customerId !== null,
+    placeholderData: keepPreviousData,
   });
 }
 

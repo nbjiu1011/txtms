@@ -63,10 +63,17 @@ const pendingAdmin: Member = {
 };
 const realCustomer = customer(3, "새봄은행", { approvalEnabled: false, unassignedDatasetTypes: ["SMS", "RCS"] });
 
+/** Contract page of fixture rows (single page). */
+function pageOf<T>(rows: T[], size = 20) {
+  return { content: rows, page: { number: 0, size, totalElements: rows.length, totalPages: rows.length ? 1 : 0 } };
+}
+
 function setup(customerId: number) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
-  client.setQueryData(opsKeys.customers(), [sampleCustomer, realCustomer]);
-  client.setQueryData(opsKeys.projects(1), [
+  client.setQueryData(opsKeys.customerOptions(), [sampleCustomer, realCustomer]);
+  client.setQueryData(opsKeys.customer(1), sampleCustomer);
+  client.setQueryData(opsKeys.customer(3), realCustomer);
+  const projects1 = [
     project(1, 1, {
       name: "카드 혜택 알림",
       templates: [{ code: "HB_POINT_01", name: "포인트" }],
@@ -76,20 +83,21 @@ function setup(customerId: number) {
         { userId: 3, roles: ["REVIEWER"] },
       ],
     }),
-  ]);
-  client.setQueryData(opsKeys.projects(3), [project(7, 3, { name: "기본 프로젝트" })]);
-  client.setQueryData(opsKeys.members(1), []);
-  client.setQueryData(opsKeys.members(3), [pendingAdmin]);
+  ];
+  client.setQueryData(opsKeys.setupContext(1), { projects: projects1, members: [] });
+  client.setQueryData(opsKeys.setupContext(3), { projects: [project(7, 3, { name: "기본 프로젝트" })], members: [pendingAdmin] });
   client.setQueryData(opsKeys.datasets(), []);
   client.setQueryData(opsKeys.assignments(), []);
   client.setQueryData(opsKeys.contentTypes(), []);
-  client.setQueryData(opsKeys.setupLogs(1), []);
-  client.setQueryData(opsKeys.setupLogs(3), [
-    { id: 1, customerId: 3, at: "2026-10-07T05:00:00Z", actorId: 5, actorName: "정우진", action: "기본 프로젝트 생성", target: "기본 프로젝트", result: "첫 고객사 관리자 초대 필요" },
-  ]);
-  const emptyPage = { content: [], page: { number: 0, size: 5, totalElements: 0, totalPages: 0 } };
-  client.setQueryData(opsKeys.outbox(1, 0, 5), emptyPage);
-  client.setQueryData(opsKeys.outbox(3, 0, 5), emptyPage);
+  client.setQueryData(opsKeys.setupLogs(1, 0, 20), pageOf([]));
+  client.setQueryData(
+    opsKeys.setupLogs(3, 0, 20),
+    pageOf([
+      { id: 1, customerId: 3, at: "2026-10-07T05:00:00Z", actorId: 5, actorName: "정우진", action: "기본 프로젝트 생성", target: "기본 프로젝트", result: "첫 고객사 관리자 초대 필요" },
+    ]),
+  );
+  client.setQueryData(opsKeys.outbox(1, 0, 20), pageOf([]));
+  client.setQueryData(opsKeys.outbox(3, 0, 20), pageOf([]));
   const overview: SampleOverview = {
     customerId: 1,
     sample: true,

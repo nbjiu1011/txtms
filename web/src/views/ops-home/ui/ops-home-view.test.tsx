@@ -131,10 +131,9 @@ describe("OpsHomeView", () => {
     expect(intentOf("opsStandards")).toEqual({ customerId: 2, sub: "assign" });
   });
 
-  it("opens 고객사 관리 with the clicked customer selected", () => {
+  it("opens the detail page of the clicked customer", () => {
     const { openTab } = setup();
     fireEvent.click(screen.getByRole("button", { name: /^도담생명프로젝트/ }));
-    expect(openTab).toHaveBeenCalledWith({ route: "opsCustomers", params: {} });
-    expect(intentOf("opsCustomers")).toEqual({ customerId: 2 });
+    expect(openTab).toHaveBeenCalledWith({ route: "opsCustomer", params: { id: "2" } });
   });
 });

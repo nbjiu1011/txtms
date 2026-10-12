@@ -22,7 +22,8 @@ class NoticeIntegrationTest extends IntegrationTestBase {
 
     private List<String> titles(Login login, long customerId) throws Exception {
         List<String> out = new ArrayList<>();
-        getJson(login, "/api/notices?customerId=" + customerId).forEach(n -> out.add(n.path("title").asString()));
+        getJson(login, "/api/notices?customerId=" + customerId + "&size=100").path("content")
+                .forEach(n -> out.add(n.path("title").asString()));
         return out;
     }
 
@@ -118,9 +119,18 @@ class NoticeIntegrationTest extends IntegrationTestBase {
         assertThat(withdrawn.path("withdrawn").asBoolean()).isTrue();
         assertThat(withdrawn.path("logs").get(2).path("action").asString()).isEqualTo("철회");
         assertThat(titles(req, t.customerId())).containsExactly("정기 점검 안내");
-        JsonNode manage = getJson(admin, base + "/manage");
+        JsonNode managePage = getJson(admin, base + "/manage");
+        assertThat(managePage.path("page").path("totalElements").asLong()).isEqualTo(2);
+        assertThat(managePage.path("page").path("size").asInt()).isEqualTo(20);
+        JsonNode manage = managePage.path("content");
         assertThat(manage).hasSize(2);
         assertThat(manage.get(0).path("withdrawn").asBoolean()).isTrue();
+        JsonNode older = getJson(admin, base + "/manage?page=1&size=1");
+        assertThat(older.path("page").path("totalPages").asInt()).isEqualTo(2);
+        assertThat(older.path("content").get(0).path("id").asLong()).isEqualTo(manage.get(1).path("id").asLong());
+        JsonNode visible = getJson(req, "/api/notices?customerId=" + t.customerId());
+        assertThat(visible.path("page").path("totalElements").asLong()).isEqualTo(1);
+        assertThat(getJson(req, "/api/notices?customerId=" + t.customerId() + "&page=1").path("content")).isEmpty();
         assertThat(expect(409, admin, post("/api/notices/" + projectNotice + "/withdraw"), null).path("message")
                 .asString()).isEqualTo("철회된 공지는 수정하거나 다시 철회할 수 없습니다");
         expect(409, admin, patch("/api/notices/" + projectNotice), Map.of("title", "부활"));

@@ -1,46 +1,50 @@
 "use client";
 
 import { useState } from "react";
-import { formatDateTime } from "@/shared/lib";
+import { LIST_PAGE_SIZE, formatDateTime } from "@/shared/lib";
 import { Button, Empty, Pager, Panel, PanelHeader, Select, Table } from "@/shared/ui";
 import { useOpsAuditLogs, type OpsCustomer } from "@/entities/ops";
 import styles from "./ops-customers.module.css";
 
-const PAGE_SIZE = 12;
-
 export interface OpsAuditPanelProps {
-  customers: OpsCustomer[];
+  /** Customers of the filter select; omitted with `customerId`. */
+  customers?: Pick<OpsCustomer, "id" | "name">[];
+  /** Fixed customer (detail page): no filter select. */
+  customerId?: number;
 }
 
 /**
  * 운영 이력 (reference `OpsAuditTable`): every customer's audit trail and the operator records without a
- * customer, newest first, 12 per page like the reference; narrowed to one customer on demand.
+ * customer, newest first, 20 per page (server paging); narrowed to one customer on demand or fixed to one.
  */
-export function OpsAuditPanel({ customers }: OpsAuditPanelProps) {
+export function OpsAuditPanel({ customers = [], customerId: fixed }: OpsAuditPanelProps) {
   const [page, setPage] = useState(0);
-  const [customerId, setCustomerId] = useState<number | null>(null);
-  const logs = useOpsAuditLogs({ customerId, page, size: PAGE_SIZE });
+  const [picked, setPicked] = useState<number | null>(null);
+  const customerId = fixed ?? picked;
+  const logs = useOpsAuditLogs({ customerId, page, size: LIST_PAGE_SIZE });
   const rows = logs.data?.content ?? [];
 
   return (
     <Panel className={styles.audit} aria-busy={logs.isFetching}>
       <PanelHeader title="운영 이력" note="접근과 반출은 업무 로그와 따로 보존합니다">
-        <Select
-          aria-label="운영 이력 고객사"
-          className={styles.filter}
-          value={customerId ?? ""}
-          onChange={(e) => {
-            setPage(0);
-            setCustomerId(e.target.value ? Number(e.target.value) : null);
-          }}
-        >
-          <option value="">전체 고객사</option>
-          {customers.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </Select>
+        {fixed === undefined ? (
+          <Select
+            aria-label="운영 이력 고객사"
+            className={styles.filter}
+            value={picked ?? ""}
+            onChange={(e) => {
+              setPage(0);
+              setPicked(e.target.value ? Number(e.target.value) : null);
+            }}
+          >
+            <option value="">전체 고객사</option>
+            {customers.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </Select>
+        ) : null}
       </PanelHeader>
       {logs.isPending ? (
         <Empty plain title="기록을 불러오는 중입니다" />

@@ -1,3 +1,4 @@
+import { LIST_PAGE_SIZE } from "@/shared/lib";
 import type { ContentType, RequestListParams, RequestListView, RequestStatus } from "./types";
 
 /** Filter state of the request list screen (all controls of the reference filter bar). */
@@ -30,12 +31,15 @@ export const EMPTY_REQUEST_FILTERS: RequestFilters = {
   mine: false,
 };
 
-/** Rows the list screen shows at once (the reference shows the whole project list). */
+/** Rows of the dashboard KPI / pipeline list modals (default of `viewListParams` / `statusListParams`). */
 export const REQUEST_LIST_PAGE_SIZE = 100;
 
-/** Maps the filter state to `GET /api/requests` query params (empty values are omitted). */
+/**
+ * Maps the filter state to `GET /api/requests` query params of one list page (`LIST_PAGE_SIZE` rows,
+ * empty values are omitted).
+ */
 export function filtersToListParams(projectId: number, filters: RequestFilters, page = 0): RequestListParams {
-  const params: RequestListParams = { projectId, page, size: REQUEST_LIST_PAGE_SIZE };
+  const params: RequestListParams = { projectId, page, size: LIST_PAGE_SIZE };
   const q = filters.q.trim();
   if (q) params.q = q;
   if (filters.type) params.type = filters.type;

@@ -33,6 +33,32 @@ export const tokenPasswordSchema = z.object({
 });
 export type TokenPasswordValues = z.infer<typeof tokenPasswordSchema>;
 
+export const CURRENT_PASSWORD_REQUIRED = "현재 비밀번호를 입력하세요";
+export const PASSWORD_CONFIRM_MISMATCH = "새 비밀번호가 일치하지 않습니다";
+export const PASSWORD_SAME_AS_CURRENT = "현재 비밀번호와 다른 비밀번호를 입력하세요";
+
+/**
+ * Keys = `PUT /api/me/password` body keys plus the client-only confirmation (`newPasswordConfirm`, not sent).
+ * The server checks the current password and the policy again.
+ */
+export const passwordChangeSchema = z
+  .object({
+    currentPassword: z.string().check(z.minLength(1, CURRENT_PASSWORD_REQUIRED)),
+    newPassword: z.string().check(z.refine(passwordMeetsPolicy, PASSWORD_POLICY_ERROR)),
+    newPasswordConfirm: z.string(),
+  })
+  .check(
+    z.refine((v) => v.newPasswordConfirm === v.newPassword, {
+      message: PASSWORD_CONFIRM_MISMATCH,
+      path: ["newPasswordConfirm"],
+    }),
+    z.refine((v) => v.currentPassword.length === 0 || v.newPassword !== v.currentPassword, {
+      message: PASSWORD_SAME_AS_CURRENT,
+      path: ["newPassword"],
+    }),
+  );
+export type PasswordChangeValues = z.infer<typeof passwordChangeSchema>;
+
 /** Password reset: the name is not editable (and ignored by the server). */
 export const passwordResetSchema = z.object({
   name: z.optional(z.string()),

@@ -3,6 +3,7 @@ import { http, uploadFile, type Page } from "@/shared/api";
 import type { AuditLog, OutboxMail } from "@/entities/audit/@x/ops";
 import type { Project, ProjectTemplate } from "@/entities/project/@x/ops";
 import type { ContentType, ContentTypeSetting } from "@/entities/request/@x/ops";
+import type { Customer } from "@/entities/customer/@x/ops";
 import type { Member } from "@/entities/user/@x/ops";
 import type {
   CustomerCreate,
@@ -19,6 +20,7 @@ import type {
   SampleRequest,
   SampleRequestCreate,
   SampleResetResult,
+  SetupContext,
   SetupLog,
   SetupProjectCreate,
 } from "../model/types";
@@ -30,17 +32,23 @@ import type {
 export const opsKeys = {
   all: ["ops"] as const,
   dashboard: () => ["ops", "dashboard", "detail", "me"] as const,
-  customers: () => ["ops", "customers", "list", {}] as const,
+  customers: (page: number, size: number) => ["ops", "customers", "list", { page, size }] as const,
+  customer: (id: number) => ["ops", "customers", "detail", id] as const,
+  customerOptions: () => ["ops", "customer-options", "list", {}] as const,
   contentTypes: () => ["ops", "content-types", "list", {}] as const,
   datasets: () => ["ops", "datasets", "list", {}] as const,
   dataset: (id: number) => ["ops", "datasets", "detail", id] as const,
   assignments: () => ["ops", "dataset-assignments", "list", {}] as const,
-  setupLogs: (customerId: number) => ["ops", "setup-logs", "list", { customerId }] as const,
+  setupLogs: (customerId: number, page: number, size: number) =>
+    ["ops", "setup-logs", "list", { customerId, page, size }] as const,
   auditLogs: (params: OpsAuditParams) => ["ops", "audit-logs", "list", params] as const,
   outbox: (customerId: number | null, page: number, size: number) =>
     ["ops", "outbox", "list", { customerId, page, size }] as const,
-  members: (customerId: number) => ["ops", "members", "list", { customerId }] as const,
-  projects: (customerId: number) => ["ops", "projects", "list", { customerId }] as const,
+  members: (customerId: number, page: number, size: number) =>
+    ["ops", "members", "list", { customerId, page, size }] as const,
+  projects: (customerId: number, page: number, size: number) =>
+    ["ops", "projects", "list", { customerId, page, size }] as const,
+  setupContext: (customerId: number) => ["ops", "setup-context", "detail", customerId] as const,
   samples: (customerId: number) => ["ops", "sample-requests", "list", { customerId }] as const,
 };
 
@@ -49,9 +57,30 @@ export function useOpsDashboard(enabled = true) {
   return useQuery({ queryKey: opsKeys.dashboard(), queryFn: () => http.get<OpsDashboard>("/ops/dashboard"), enabled });
 }
 
-/** Every customer with operator counts, inactive ones included (id order). */
-export function useOpsCustomers() {
-  return useQuery({ queryKey: opsKeys.customers(), queryFn: () => http.get<OpsCustomer[]>("/ops/customers") });
+/** 고객사 관리 list: one page of customers with operator counts, inactive ones included (id order). */
+export function useOpsCustomers(page: number, size: number) {
+  return useQuery({
+    queryKey: opsKeys.customers(page, size),
+    queryFn: () => http.get<Page<OpsCustomer>>("/ops/customers", { query: { page, size } }),
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** One customer with operator counts (detail page), active or not. */
+export function useOpsCustomer(id: number | null) {
+  return useQuery({
+    queryKey: opsKeys.customer(id ?? -1),
+    queryFn: () => http.get<OpsCustomer>(`/ops/customers/${id}`),
+    enabled: id !== null,
+  });
+}
+
+/** Reference list for customer selects: every customer, inactive ones included (id order, max 500). */
+export function useOpsCustomerOptions() {
+  return useQuery({
+    queryKey: opsKeys.customerOptions(),
+    queryFn: () => http.get<Customer[]>("/ops/customers/options"),
+  });
 }
 
 export function useOpsContentTypes() {
@@ -83,12 +112,13 @@ export function useDatasetAssignments() {
   });
 }
 
-/** 설정 이력 of a customer, newest first (max 500). */
-export function useSetupLogs(customerId: number | null) {
+/** 설정 이력 of a customer, newest first, one page. */
+export function useSetupLogs(customerId: number | null, page: number, size: number) {
   return useQuery({
-    queryKey: opsKeys.setupLogs(customerId ?? -1),
-    queryFn: () => http.get<SetupLog[]>("/ops/setup-logs", { query: { customerId } }),
+    queryKey: opsKeys.setupLogs(customerId ?? -1, page, size),
+    queryFn: () => http.get<Page<SetupLog>>("/ops/setup-logs", { query: { customerId, page, size } }),
     enabled: customerId !== null,
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -113,20 +143,31 @@ export function useOpsOutbox(customerId: number | null, page: number, size: numb
   });
 }
 
-/** Members of a customer, pending invitations and inactive customers included (contract §14.7). */
-export function useOpsCustomerMembers(customerId: number | null) {
+/** One page of a customer's members, pending invitations and inactive customers included (contract §14.7). */
+export function useOpsCustomerMembers(customerId: number | null, page: number, size: number) {
   return useQuery({
-    queryKey: opsKeys.members(customerId ?? -1),
-    queryFn: () => http.get<Member[]>(`/ops/customers/${customerId}/members`),
+    queryKey: opsKeys.members(customerId ?? -1, page, size),
+    queryFn: () => http.get<Page<Member>>(`/ops/customers/${customerId}/members`, { query: { page, size } }),
     enabled: customerId !== null,
+    placeholderData: keepPreviousData,
   });
 }
 
-/** Projects of a customer, stopped ones and inactive customers included (contract §14.7). */
-export function useOpsCustomerProjects(customerId: number | null) {
+/** One page of a customer's projects, stopped ones and inactive customers included (contract §14.7). */
+export function useOpsCustomerProjects(customerId: number | null, page: number, size: number) {
   return useQuery({
-    queryKey: opsKeys.projects(customerId ?? -1),
-    queryFn: () => http.get<Project[]>(`/ops/customers/${customerId}/projects`),
+    queryKey: opsKeys.projects(customerId ?? -1, page, size),
+    queryFn: () => http.get<Page<Project>>(`/ops/customers/${customerId}/projects`, { query: { page, size } }),
+    enabled: customerId !== null,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Every project and member of a customer for the initial setup screen (selects, step checks). */
+export function useOpsSetupContext(customerId: number | null) {
+  return useQuery({
+    queryKey: opsKeys.setupContext(customerId ?? -1),
+    queryFn: () => http.get<SetupContext>(`/ops/customers/${customerId}/setup-context`),
     enabled: customerId !== null,
   });
 }

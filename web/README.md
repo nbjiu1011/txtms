@@ -13,8 +13,14 @@ API_ORIGIN=http://localhost:4245 npm run dev     # http://localhost:4246
 ```
 
 The browser only talks to `/api/*` on the web origin; `next.config.ts` rewrites it to `API_ORIGIN`
-(default `http://localhost:4245`). If the API is down the login page still renders (the demo persona
-section is hidden) and protected URLs redirect to `/login?next=…`.
+(default `http://localhost:4245`). If the API is down the login page still renders and protected URLs redirect
+to `/login?next=…`.
+
+Users sign in with email and password (dev demo accounts: `Txtms!2026`, e.g. `seoyeon.kim@hanbitcard.co.kr`). The
+one-click demo persona list on the login page and the persona switcher in the user popover appear only when the API
+runs with `app.demo.persona-login-enabled=true` (off by default; the API then answers `GET /api/auth/demo-personas`
+with 404 and every session has `me.demo = false`). The real-API E2E scripts (`e2e:real*`) and the fixture capture
+scripts sign in through the persona login, so start the API with that flag for them.
 
 | Variable | Where | Default | Purpose |
 |---|---|---|---|
@@ -173,7 +179,7 @@ confirmation) → two contents (C1 uses `#{customer_name}`) → submit → appro
 variables, C1 복사 (the clipboard holds the substituted text, `copy-events` 204), XLSX export (file downloaded, `PK`
 header) → 후속 요청 작성 (whole: new draft with both contents, `원본 {ID}` breadcrumb back) → C2 후속 요청 from the result
 row → that follow-up is approved → 콘텐츠: the C2 line shows the follow-up as latest with the original as 과거 완료본 and
-the whole follow-up (`이력 2` / `접기`), C1 copy and 새 탭, filters (campaign, type, status, completion date, 초기화, 더 보기
+the whole follow-up (`이력 2` / `접기`), C1 copy and 새 탭, filters (campaign, type, status, completion date, 초기화, pager
 when present), 후속 요청 from a line → 자유입력형 uploads with the demo scan outcome (`FILE_UNSAFE` → 등록 차단,
 `FILE_SCAN_FAILED` → 검사 실패, then a real PDF) → approved → ZIP export (file name, manifest and file entry) → a clone
 of the seed REQ-2609-107 (seed file without a stored original) approved → ZIP shows `…시연용 파일의 원본이 없습니다` and
@@ -232,13 +238,14 @@ customer; the content types are restored even when a step fails. Screenshots `op
 
 `admin-visual.mjs` also captures the operator screens and modals (`ops-*-u5`): 대시보드 2.2%, 유형 관리 0.3%, the other
 screens and modals 3–6.5% differing pixels — dev DB data (more customers and versions, E2E leftovers). Intended
-differences: no `내 지원 접근` KPI / panel (Phase 2); 고객사 관리 shows 상세 and 프로젝트·요청 side by side instead of the
-reference's empty right column, plus a customer filter on 운영 이력; 초기 설정·시드 adds the 메일 발송 대기함 and 프로젝트
+differences: no `내 지원 접근` KPI / panel (Phase 2); 고객사 관리 is a paged list with a separate detail tab (user
+decision 2026-10-08, the reference shows the selected customer under the list), plus a customer filter on 운영 이력; 초기 설정·시드 adds the 메일 발송 대기함 and 프로젝트
 발신 정보 panels and a 데이터셋 등록 button, without the 공통 row (Phase 2); the assignment matrix has no 공통 column; the
 dataset modal takes an XLSX upload or JSON in the contract's 7-column keys instead of the reference's `mode/p/s/r` JSON;
 목업 시드 checkboxes are read-only (Phase 2).
 
-Against the real API: `API_ORIGIN=http://localhost:4245 npm run dev`, then sign in with a demo persona.
+Against the real API: `API_ORIGIN=http://localhost:4245 npm run dev`, then sign in with a demo account's email and
+password.
 If a dev server already runs, `VISUAL_PORT=4246 npm run e2e:visual` reuses it.
 
 ## Structure (Feature-Sliced Design)
@@ -254,7 +261,7 @@ src/
 │                  ops-standards, profile
 ├─ widgets/        app-shell (sidebar, top bar, work tabs, popovers, tab store), auth-layout (login hero),
 │                  workload-table (검수자별 업무량, shared by 검수 › 배정 관리 and 업무량·실적)
-├─ features/       auth (login, demo personas, reset request, token password, session), profile-edit,
+├─ features/       auth (login, demo personas, reset request, token password, password change, session), profile-edit,
 │                  request-create (new, clone, follow-up), request-workflow (submit/cancel, assignment, schedule, recall, opinions,
 │                  asks/answers, completion, approval, unlock), completed-output (copy,
 │                  XLSX/ZIP export), variable-picker, bulk-import, text-correction (panel, cards,
@@ -314,17 +321,18 @@ URL scheme (`src/shared/config/routes.ts`, `pathToTab` / `tabToPath`):
 
 | Path | State |
 |---|---|
-| `/login` | done — hero, email/password (+ 로그인 유지), 비밀번호 재설정 request modal, demo personas (`GET /api/auth/demo-personas`, hidden when unavailable) |
+| `/login` | done — hero, email/password (+ 로그인 유지), 비밀번호 재설정 request modal, demo personas only when the API enables persona login (`GET /api/auth/demo-personas`, hidden on 404 — the default) |
 | `/invite/[token]`, `/reset/[token]` | done — token check, set password + automatic sign-in, invalid-link state |
-| app shell | done — sidebar, customer/project context, approval tag, notification popover, user/persona popover, work tabs |
-| `/profile` | done — name/department (`PATCH /api/me`), 시연 데이터 초기화 for operators (`POST /api/ops/sample-reset`), logout |
+| app shell | done — sidebar, customer/project context, approval tag, notification popover, user popover (name/email, 내 설정, 로그아웃 for every session; the persona list only in a demo persona session, `me.demo`), work tabs |
+| `/profile` | done — avatar, name, email, customer · department; name (required, ≤ 50) / department (≤ 100) saved on blur (`PATCH /api/me`, server field errors inline); 소속과 역할 read-only (customer, per project role tags + 대표 검수자, 고객사 관리자 / 솔루션 운영 담당자); 비밀번호 변경 (`PUT /api/me/password`: current / new / confirm, policy and confirmation checked inline, server field errors under the field, toast `비밀번호를 변경했습니다`, other sessions are signed out); 시연 데이터 초기화 for operators (`POST /api/ops/sample-reset`); logout |
+| logout | `POST /api/auth/logout` (the API revokes the session and clears the refresh cookie), the in-memory token and user are dropped, then a full navigation to `/login` discards the query cache and the in-memory tabs. The saved tab list per user (route + params only) stays in localStorage so the next login of that user restores it |
 | `/` | done — `+새 요청` (requesters), role dashboard (`GET /api/projects/{id}/dashboard`): today (KST), pipeline + stage modal (`status=`), KPI tiles + list modal (same `view`, `customerId` for customer views), 지금 처리할 일, 최근 요청, 검수자별 업무량 (lead), 공지 (static rows). Operators: the ops dashboard (below) |
-| `/requests` | done — `+새 요청` (requesters), all reference filters (title/ID search debounced 250ms), table, recall/후속/긴급/지연 tags, empty / loading / error / no-permission states |
-| `/review` | done — 내 검수 (진행 중 / 완료: `MY_ASSIGNED_ACTIVE` / `MY_ASSIGNED_DONE`, 내 역할 주담당 / 공동 검수, 검수량, 지연 / 임박) for reviewers; 배정 관리 for the lead (배정 대기 with 배정 → request tab + assignment modal, 지연, 납기 임박, workload table from `GET /api/projects/{id}/workload`) |
-| `/approval` | done — 승인 대기 (`APPROVAL_QUEUE`, 처리 가능 = listed in `APPROVAL_PENDING`, else 본인 관여 요청), 내가 처리한 요청 (`APPROVAL_PROCESSED`), no-active-approver banner |
+| `/requests` | done — `+새 요청` (requesters), all reference filters (title/ID search debounced 250ms), table (20 per page, server paging; back to page 1 on filter / project change), recall/후속/긴급/지연 tags, empty / loading / error / no-permission states |
+| `/review` | done — 내 검수 (진행 중 / 완료: `MY_ASSIGNED_ACTIVE` / `MY_ASSIGNED_DONE`, 내 역할 주담당 / 공동 검수, 검수량, 지연 / 임박) for reviewers; 배정 관리 for the lead (배정 대기 with 배정 → request tab + assignment modal, 지연, 납기 임박, workload table from `GET /api/projects/{id}/workload`); every list 20 per page with its own pager, header counts = `totalElements` |
+| `/approval` | done — 승인 대기 (`APPROVAL_QUEUE`, 처리 가능 = listed in `APPROVAL_PENDING`, else 본인 관여 요청), 내가 처리한 요청 (`APPROVAL_PROCESSED`), each 20 per page with its own pager, no-active-approver banner |
 | `/requests/{id}` | draft authoring and review workflow (below) — header (breadcrumb, chips, round, tags, meta, status track, sub tabs), banners, work grid (content list with 편집 중 / 수정 중 markers, type editors, lock bars, guide drawer, version compare), side panel (교정 panel and result cards, 미리보기 mockups, 의견 + form, 확인 요청 thread + ask / answer forms), 요청 정보, 히스토리 (merged, round separators, filter), 완료 결과 (bundle, XLSX/ZIP export, copy, variables). Not-found / denied states |
 | `/requests/{id}/contents/{key}` | content header + two-column work grid (draft autosave or review-time revision editing) |
-| `/contents` | done — completed contents by lineage (`GET /api/archive/contents`, 20 per page + 더 보기), filters (text debounced 250ms, type, campaign from `GET /api/archive/campaigns`, status, completion date, 초기화), expand past completions / follow-ups, 복사, 새 탭, 후속 요청 (requesters), empty / loading / error / no-permission states |
+| `/contents` | done — completed contents by lineage (`GET /api/archive/contents`, 20 per page with a pager; back to page 1 on filter change), filters (text debounced 250ms, type, campaign from `GET /api/archive/campaigns`, status, completion date, 초기화), expand past completions / follow-ups, 복사, 새 탭, 후속 요청 (requesters), empty / loading / error / no-permission states |
 | `/performance`, `/notices`, `/admin/*` | done — see "Work management and customer admin (M5 + M6)" |
 | `/ops/customers`, `/ops/setup`, `/ops/standards` | done — see "Solution operator (M7)" |
 
@@ -462,22 +470,22 @@ URL scheme (`src/shared/config/routes.ts`, `pathToTab` / `tabToPath`):
   완료율 (`–` when nothing was received, one decimal) / 기간 내 완료량 / 현재 진행, 개인 실적 table with bars, 현재 업무량
   (the server's workload of every target project, `widgets/workload-table`). A refused query (e.g. start after end) shows
   the server message.
-- **공지** (`views/notices`): accordion of `GET /api/notices?customerId` (`{범위}  {작성자}  {M/D HH:mm}` + `수정됨`), admins
+- **공지** (`views/notices`): accordion of `GET /api/notices?customerId` (20 per page, `{범위}  {작성자}  {M/D HH:mm}` + `수정됨`), admins
   get `공지 관리`. Dashboard notice rows open this tab with that notice expanded (`useViewIntent` hand-off in
   `shared/lib`); the dashboard admin banner's `접근 기록 보기` opens 사용자·권한 관리 on `접근·변경 기록`.
 - **고객사 관리** menus (customer admins of the selected customer, also in the add-tab popover): 프로젝트 관리 (table with
-  in-progress counts from the admin project list (`activeRequestCount`), 프로젝트 추가 / 편집 modal: lead, approver checklist on approval customers, 사용 중 + stop warning),
-  변수 관리 (project select, deleted variables listed as `삭제` with 편집 / 삭제 disabled (`includeDeleted=true`), 사용 =
+  in-progress counts, `GET /api/customers/{id}/projects/manage` 20 per page, 프로젝트 추가 / 편집 modal: lead, approver checklist on approval customers, 사용 중 + stop warning),
+  변수 관리 (project select, deleted variables listed as `삭제` with 편집 / 삭제 disabled (`GET …/variables/manage`, 20 per page), 사용 =
   활성/중지 + ` · 사용 중`, 이력 from one project log call (`GET …/variable-logs`), 편집 / 삭제 — 삭제 disabled while in
-  use, `PATCH` sends changed keys only), 사용자·권한 관리 (members with project role columns, pending invitations with 초대
+  use, `PATCH` sends changed keys only), 사용자·권한 관리 (members with project role columns, 20 per page, pending invitations with 초대
   재발급, 역할 / 이메일 / 비활성화 / 재활성화; 사용자 초대 with the external-domain confirmation — a client warning plus a
   held first click, and a server `EXTERNAL_DOMAIN_CONFIRM_REQUIRED` also counts as that step so the next click resends
   with `externalDomainConfirmed: true`; 역할 관리 with live requester/reviewer exclusivity, the lead's reviewer locked,
   approver only on approval customers, only changed projects are sent; 비활성화 loads the deactivation impact first — a
   review in 확인 요청 / 승인 대기 is refused with the reference toast, otherwise the modal shows 진행 중 검수 / 대표 검수자 /
-  승인 대기 이후 plus blocking rows, substitute + handover when reviews or lead projects move; 메일 발송 대기함 paged, the mail kind
+  승인 대기 이후 plus blocking rows, substitute (candidates from the impact's `substitutes`) + handover when reviews or lead projects move; 메일 발송 대기함 paged, the mail kind
   (`초대` / `비밀번호 재설정` / `재통지`) in the meta line, `링크 가림` on masked mails; `접근·변경 기록` sub tab = the customer audit log), 고객사 설정 (approval stage read-only; name saves
-  on blur/Enter, channel and due-soon days at once, toasts as the reference), 공지 관리 (table with logs, 공지 작성 / 수정
+  on blur/Enter, channel and due-soon days at once, toasts as the reference), 공지 관리 (table with logs, 20 per page, 공지 작성 / 수정
   modal, 철회 confirmation).
 - Modal errors: client checks toast the first problem (reference wording); a refused write toasts the server message,
   puts `fieldErrors` under their fields and shows `details` as a list in the modal (`ErrorDetails`); the modal stays open.
@@ -498,15 +506,20 @@ URL scheme (`src/shared/config/routes.ts`, `pathToTab` / `tabToPath`):
 
 - **대시보드** (`views/ops-home`, `GET /api/ops/dashboard`): `{이름}님, 운영 현황입니다` + 고객사 생성, three KPI tiles (not
   clickable), 초기 설정에서 남은 일 (a row opens 초기 설정·시드 or 유효 데이터셋 배정 with that customer selected — a
-  `useViewIntent` hand-off `{ customerId, sub }`), 고객사 (row → 고객사 관리 on that customer), 최근 운영 이력.
-- **고객사 관리** (`views/ops-customers`): every customer (inactive included) with approval, counts, admins, unassigned
-  types, state and 비활성 / 사용 재개; 상세 (domain, approval stage, admins, operation settings, state and reason) next to
-  프로젝트·요청 (projects with lead, request counts, samples, users with pending invitations, 초기 설정 열기 — operator
-  lists `GET /api/ops/customers/{id}/projects|members`, inactive customers included; 등록 shows the creating operator); 운영 이력 (`GET /api/ops/audit-logs`, 12 per
-  page, all customers or one). 고객사 생성 shows the stored domain (`저장 값: …`), refuses format and duplicate domains
-  client side, puts server `fieldErrors` (e.g. `DUPLICATE`) under the field, then switches the context and opens 초기
-  설정·시드 on the new customer. 비활성화 shows the impact and needs a reason; a deactivated customer selected in the top bar
-  is dropped before the lists reload.
+  `useViewIntent` hand-off `{ customerId, sub }`), 고객사 (row → that customer's detail tab), 최근 운영 이력.
+- **고객사 관리** (`views/ops-customers`, list → detail, 2026-10-08 user decision):
+  - 목록 `/ops/customers` (`GET /api/ops/customers`, 20 per page with 이전 / 다음): approval, counts, admins, unassigned
+    types, state, 상세 / 비활성 / 사용 재개; the customer name opens the detail tab. 운영 이력 below (`GET
+    /api/ops/audit-logs`, 20 per page, all customers or one picked from `GET /api/ops/customers/options`).
+  - 상세 `/ops/customers/{id}` (tab `opsCustomer`, one tab per customer, titled with the customer name; `GET
+    /api/ops/customers/{id}`): 기본 정보 (domain, approval stage, admins, operation settings, state and reason, 등록 with
+    the creating operator) and 현황 (project / user / request counts, unassigned datasets, samples); 프로젝트 and 사용자
+    tables (`GET /api/ops/customers/{id}/projects|members`, 20 per page, inactive customers included; lead and project
+    names from `GET …/setup-context`); the customer's 운영 이력; 목록 / 초기 설정 열기 / 비활성 / 사용 재개.
+  - 고객사 생성 shows the stored domain (`저장 값: …`), refuses format and duplicate domains client side (reference list
+    `options`), puts server `fieldErrors` (e.g. `DUPLICATE`) under the field, then switches the context and opens 초기
+    설정·시드 on the new customer. 비활성화 shows the impact and needs a reason; a deactivated customer selected in the top
+    bar is dropped before the lists reload.
 - **초기 설정·시드** (`views/ops-setup`; the customer select also switches the top bar like the reference, an inactive
   customer stays a local selection with a banner): 초기 프로젝트·사용자 steps (관리자 초대 / 프로젝트 생성 / 사용자 초대 /
   배정 화면; pending invitations listed as `초대 대기 {email}`; projects and members from the operator lists, so an

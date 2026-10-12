@@ -10,7 +10,7 @@ import { ApprovalView } from "@/views/approval";
 import { ContentArchiveView } from "@/views/content-archive";
 import { DashboardView } from "@/views/dashboard";
 import { NoticesView } from "@/views/notices";
-import { OpsCustomersView } from "@/views/ops-customers";
+import { OpsCustomerDetailView, OpsCustomersView } from "@/views/ops-customers";
 import { OpsHomeView } from "@/views/ops-home";
 import { OpsSetupView } from "@/views/ops-setup";
 import { OpsStandardsView } from "@/views/ops-standards";
@@ -42,6 +42,7 @@ const VIEWS: WorkViewRegistry = {
   adminCustomer: AdminCustomerView,
   adminNotices: AdminNoticesView,
   opsCustomers: OpsCustomersView,
+  opsCustomer: OpsCustomerDetailView,
   opsSetup: OpsSetupView,
   opsStandards: OpsStandardsView,
   profile: ProfileView,

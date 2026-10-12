@@ -4,7 +4,7 @@ export const REVIEW_CAPTURED_AT = "2026-10-07T16:17:09.162Z";
 /** userId → extra GET responses of the 검수 / 승인 screens (merged into `mockApiAs` with `extra`). */
 export const REVIEW_SNAPSHOT: Record<number, Record<string, unknown>> = {
   "2": {
-    "/requests?projectId=1&view=MY_ASSIGNED_ACTIVE&page=0&size=100": {
+    "/requests?projectId=1&view=MY_ASSIGNED_ACTIVE&page=0&size=20": {
       "content": [
         {
           "id": "REQ-2609-107",
@@ -147,12 +147,12 @@ export const REVIEW_SNAPSHOT: Record<number, Record<string, unknown>> = {
       ],
       "page": {
         "number": 0,
-        "size": 100,
+        "size": 20,
         "totalElements": 3,
         "totalPages": 1
       }
     },
-    "/requests?projectId=1&view=MY_ASSIGNED_DONE&page=0&size=100": {
+    "/requests?projectId=1&view=MY_ASSIGNED_DONE&page=0&size=20": {
       "content": [
         {
           "id": "REQ-2609-106",
@@ -238,14 +238,14 @@ export const REVIEW_SNAPSHOT: Record<number, Record<string, unknown>> = {
       ],
       "page": {
         "number": 0,
-        "size": 100,
+        "size": 20,
         "totalElements": 2,
         "totalPages": 1
       }
     }
   },
   "3": {
-    "/requests?projectId=1&view=MY_ASSIGNED_ACTIVE&page=0&size=100": {
+    "/requests?projectId=1&view=MY_ASSIGNED_ACTIVE&page=0&size=20": {
       "content": [
         {
           "id": "REQ-2609-107",
@@ -382,21 +382,21 @@ export const REVIEW_SNAPSHOT: Record<number, Record<string, unknown>> = {
       ],
       "page": {
         "number": 0,
-        "size": 100,
+        "size": 20,
         "totalElements": 3,
         "totalPages": 1
       }
     },
-    "/requests?projectId=1&view=MY_ASSIGNED_DONE&page=0&size=100": {
+    "/requests?projectId=1&view=MY_ASSIGNED_DONE&page=0&size=20": {
       "content": [],
       "page": {
         "number": 0,
-        "size": 100,
+        "size": 20,
         "totalElements": 0,
         "totalPages": 0
       }
     },
-    "/requests?projectId=1&view=WAITING_ASSIGNMENT&page=0&size=100": {
+    "/requests?projectId=1&view=WAITING_ASSIGNMENT&page=0&size=20": {
       "content": [
         {
           "id": "REQ-2609-104",
@@ -439,12 +439,12 @@ export const REVIEW_SNAPSHOT: Record<number, Record<string, unknown>> = {
       ],
       "page": {
         "number": 0,
-        "size": 100,
+        "size": 20,
         "totalElements": 1,
         "totalPages": 1
       }
     },
-    "/requests?projectId=1&view=OVERDUE&page=0&size=100": {
+    "/requests?projectId=1&view=OVERDUE&page=0&size=20": {
       "content": [
         {
           "id": "REQ-2609-113",
@@ -489,12 +489,12 @@ export const REVIEW_SNAPSHOT: Record<number, Record<string, unknown>> = {
       ],
       "page": {
         "number": 0,
-        "size": 100,
+        "size": 20,
         "totalElements": 1,
         "totalPages": 1
       }
     },
-    "/requests?projectId=1&view=DUE_SOON&page=0&size=100": {
+    "/requests?projectId=1&view=DUE_SOON&page=0&size=20": {
       "content": [
         {
           "id": "REQ-2609-104",
@@ -674,7 +674,7 @@ export const REVIEW_SNAPSHOT: Record<number, Record<string, unknown>> = {
       ],
       "page": {
         "number": 0,
-        "size": 100,
+        "size": 20,
         "totalElements": 4,
         "totalPages": 1
       }
@@ -1038,7 +1038,7 @@ export const REVIEW_SNAPSHOT: Record<number, Record<string, unknown>> = {
     ]
   },
   "4": {
-    "/requests?projectId=1&view=APPROVAL_QUEUE&page=0&size=100": {
+    "/requests?projectId=1&view=APPROVAL_QUEUE&page=0&size=20": {
       "content": [
         {
           "id": "REQ-2609-103",
@@ -1084,7 +1084,7 @@ export const REVIEW_SNAPSHOT: Record<number, Record<string, unknown>> = {
       ],
       "page": {
         "number": 0,
-        "size": 100,
+        "size": 20,
         "totalElements": 1,
         "totalPages": 1
       }
@@ -1140,7 +1140,7 @@ export const REVIEW_SNAPSHOT: Record<number, Record<string, unknown>> = {
         "totalPages": 1
       }
     },
-    "/requests?projectId=1&view=APPROVAL_PROCESSED&page=0&size=100": {
+    "/requests?projectId=1&view=APPROVAL_PROCESSED&page=0&size=20": {
       "content": [
         {
           "id": "REQ-2609-106",
@@ -1267,7 +1267,7 @@ export const REVIEW_SNAPSHOT: Record<number, Record<string, unknown>> = {
       ],
       "page": {
         "number": 0,
-        "size": 100,
+        "size": 20,
         "totalElements": 3,
         "totalPages": 1
       }

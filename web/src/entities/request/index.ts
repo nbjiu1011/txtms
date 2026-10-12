@@ -113,10 +113,8 @@ export {
 } from "./model/sms";
 export { bundleVariableValues, completedCopyText, messageBodyText } from "./model/bundle";
 export {
-  ARCHIVE_PAGE_SIZE,
   archiveKeys,
   fetchArchiveContents,
-  nextArchivePage,
   useArchiveCampaigns,
   useArchiveContents,
 } from "./api/archive-queries";

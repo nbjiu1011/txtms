@@ -25,7 +25,10 @@ export interface Me {
   operator: boolean;
   adminCustomerIds: number[];
   avatarColor: string;
-  /** Demo persona session — the persona switcher is shown only when true. */
+  /**
+   * Demo persona session (only when the API enables one-click persona login) — the persona switcher is shown
+   * only when true. Email/password sessions are always false.
+   */
   demo: boolean;
   memberships: Membership[];
   session: MeSession;
@@ -69,3 +72,9 @@ export interface PasswordResetRequestBody {
 }
 
 export type MePatch = Pick<Me, "name" | "dept">;
+
+/** `PUT /api/me/password` body. */
+export interface PasswordChangeBody {
+  currentPassword: string;
+  newPassword: string;
+}

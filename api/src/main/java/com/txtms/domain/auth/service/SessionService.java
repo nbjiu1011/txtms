@@ -85,6 +85,12 @@ public class SessionService implements SessionValidator {
         repository.revokeAllOf(userId, clock.instant());
     }
 
+    /** Ends every session of the user except {@code keepSessionId}; returns how many were ended. */
+    @Transactional
+    public int revokeOthersOf(long userId, long keepSessionId) {
+        return repository.revokeAllOfExcept(userId, keepSessionId, clock.instant());
+    }
+
     public Instant expiresAt(UserSession session) {
         return policy.expiresAt(session.isRemember(), session.getStartedAt(), session.getLastSeenAt());
     }

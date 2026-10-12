@@ -34,9 +34,24 @@ describe("customer create (reference opsCustNew, contract §12)", () => {
       "도메인 형식을 확인하세요",
     );
     expect(customerFormProblem({ ...form, name: "새봄은행", domain: "@HanbitCard.co.kr" }, existing)?.message).toBe(
-      "한빛카드이(가) 같은 도메인을 쓰고 있습니다. 중복 허용 여부는 협의 23 결정 전까지 막습니다",
+      "한빛카드이(가) 같은 도메인을 쓰고 있습니다",
     );
     expect(customerFormProblem({ ...form, name: "새봄은행", domain: "@Saebom.co.kr" }, existing)).toBeNull();
+  });
+
+  it("extracts the host name from pasted addresses, emails and Korean domains like the server", () => {
+    expect(normalizeDomain("admin@TagoPlus.co.kr")).toBe("tagoplus.co.kr");
+    expect(normalizeDomain("https://www.tagoplus.co.kr:8080/login?x=1")).toBe("tagoplus.co.kr");
+    expect(normalizeDomain("http://tagoplus.co.kr/")).toBe("tagoplus.co.kr");
+    expect(normalizeDomain("tagoplus.co.kr.")).toBe("tagoplus.co.kr");
+    expect(normalizeDomain("txtms.tagoplus.co.kr")).toBe("txtms.tagoplus.co.kr");
+    expect(normalizeDomain("예시.com")).toBe("xn--vv4b11d.com");
+    expect(normalizeDomain("회사.한국")).toBe("xn--vf4b131b.xn--3e0b707e");
+    expect(normalizeDomain("https://")).toBe("");
+    for (const ok of ["admin@TagoPlus.co.kr", "https://www.tagoplus.co.kr/", "예시.com", "회사.한국"]) {
+      expect(isDomainFormat(normalizeDomain(ok))).toBe(true);
+    }
+    expect(customerFormProblem({ name: "타고", domain: "https://tagoplus.co.kr/", approvalEnabled: false }, existing)).toBeNull();
   });
 
   it("follows the API host name rule (labels, final label of letters)", () => {

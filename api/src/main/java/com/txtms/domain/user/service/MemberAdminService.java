@@ -34,6 +34,8 @@ import com.txtms.domain.user.dto.MemberResponse;
 import com.txtms.domain.user.entity.User;
 import com.txtms.global.audit.AuditLogService;
 import com.txtms.global.exception.BusinessException;
+import com.txtms.global.common.PageQuery;
+import com.txtms.global.common.PageResponse;
 import com.txtms.global.exception.ErrorCode;
 import com.txtms.global.security.AuthUser;
 
@@ -83,18 +85,38 @@ public class MemberAdminService {
     }
 
     @Transactional(readOnly = true)
-    public List<MemberResponse> members(AuthUser auth, long customerId) {
+    public PageResponse<MemberResponse> members(AuthUser auth, long customerId, PageQuery page) {
         Admin admin = adminAccess.require(auth, customerId);
-        return membersOf(admin.customer());
+        return membersOf(admin.customer(), page);
     }
 
     /**
-     * Every user of the customer (pending and inactive included) in user id order, at most 500. No access check:
-     * callers gate it (customer admin above, the operator for {@code /api/ops/customers/{id}/members}).
+     * One page of the customer's users (pending and inactive included) in user id order. No access check: callers
+     * gate it (customer admin above, the operator for {@code /api/ops/customers/{id}/members}).
      */
     @Transactional(readOnly = true)
+    public PageResponse<MemberResponse> membersOf(Customer customer, PageQuery page) {
+        return PageResponse.slice(userService.byCustomer(customer.getId()), page, users -> members(customer, users));
+    }
+
+    /** Every user of the customer as reference data (operator setup screen), at most 500. No access check. */
+    @Transactional(readOnly = true)
     public List<MemberResponse> membersOf(Customer customer) {
-        List<User> users = userService.byCustomer(customer.getId()).stream().limit(LIST_LIMIT).toList();
+        return members(customer, userService.byCustomer(customer.getId()).stream().limit(LIST_LIMIT).toList());
+    }
+
+    /** Candidate substitutes for a deactivation: usable users other than the target holding a reviewer role. */
+    List<MemberResponse> substitutesOf(Customer customer, long targetUserId) {
+        List<Project> projects = projectAccess.byCustomer(customer.getId());
+        return userService.byCustomer(customer.getId()).stream()
+                .filter(u -> u.isActive() && !u.isPending() && !u.getId().equals(targetUserId))
+                .filter(u -> projects.stream().anyMatch(p -> p.rolesOf(u.getId()).contains(ProjectRole.REVIEWER)))
+                .limit(LIST_LIMIT)
+                .map(u -> member(customer, u, projects, null))
+                .toList();
+    }
+
+    private List<MemberResponse> members(Customer customer, List<User> users) {
         List<Project> projects = projectAccess.byCustomer(customer.getId());
         Map<Long, Instant> expiries = invitations.usableExpiries(
                 users.stream().filter(User::isPending).map(User::getId).toList());

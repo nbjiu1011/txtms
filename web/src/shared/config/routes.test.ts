@@ -31,6 +31,13 @@ describe("pathToTab", () => {
     });
   });
 
+  it("parses customer detail paths (numeric ids only)", () => {
+    expect(pathToTab("/ops/customers/12")).toEqual({ route: "opsCustomer", params: { id: "12" } });
+    expect(pathToTab("/ops/customers/abc")).toBeNull();
+    expect(pathToTab("/ops/customers/0")).toBeNull();
+    expect(pathToTab("/ops/customers/1/x")).toBeNull();
+  });
+
   it("ignores trailing slashes, query and hash", () => {
     expect(pathToTab("/requests/")).toEqual({ route: "requests", params: {} });
     expect(pathToTab("/requests/REQ-1?x=1#y")).toEqual({ route: "request", params: { id: "REQ-1" } });
@@ -58,7 +65,9 @@ describe("tabToPath", () => {
           ? { route, params: { id: "REQ-2609-101" } }
           : route === "content"
             ? { route, params: { id: "REQ-2609-101", key: "C1" } }
-            : { route, params: {} };
+            : route === "opsCustomer"
+              ? { route, params: { id: "3" } }
+              : { route, params: {} };
       expect(pathToTab(tabToPath(ref))).toEqual(ref);
     }
   });
@@ -73,6 +82,7 @@ describe("tabIdentity", () => {
     expect(tabIdentity({ route: "request", params: { id: "R1" } })).toBe("request:R1");
     expect(tabIdentity({ route: "content", params: { id: "R1", key: "C1" } })).toBe("content:R1:C1");
     expect(tabIdentity({ route: "requests", params: {} })).toBe("requests");
+    expect(tabIdentity({ route: "opsCustomer", params: { id: "3" } })).toBe("opsCustomer:3");
   });
 });
 
@@ -82,6 +92,9 @@ describe("isValidTabRef", () => {
     expect(isValidTabRef({ route: "request", params: { id: "R1" } })).toBe(true);
     expect(isValidTabRef({ route: "request", params: {} })).toBe(false);
     expect(isValidTabRef({ route: "content", params: { id: "R1" } })).toBe(false);
+    expect(isValidTabRef({ route: "opsCustomer", params: { id: "3" } })).toBe(true);
+    expect(isValidTabRef({ route: "opsCustomer", params: { id: "x" } })).toBe(false);
+    expect(isValidTabRef({ route: "opsCustomer", params: {} })).toBe(false);
     expect(isValidTabRef({ route: "spec", params: {} })).toBe(false);
     expect(isValidTabRef(null)).toBe(false);
     expect(isValidTabRef("home")).toBe(false);

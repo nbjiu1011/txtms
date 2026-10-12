@@ -8,9 +8,9 @@ import {
   useDatasetAssignments,
   useDatasets,
   useOpsContentTypes,
-  useOpsCustomerMembers,
-  useOpsCustomerProjects,
-  useOpsCustomers,
+  useOpsCustomer,
+  useOpsCustomerOptions,
+  useOpsSetupContext,
   type Dataset,
 } from "@/entities/ops";
 import type { Project } from "@/entities/project";
@@ -45,16 +45,18 @@ type Dialog =
 
 /** `opsSeed` tab — 초기 설정·시드 (reference `vOpsSeed`) for the selected customer. */
 export function OpsSetupView({ context, openTab }: WorkViewProps) {
-  const customers = useOpsCustomers();
+  // the select lists every customer (inactive included); the screen loads the chosen one with its figures
+  const customers = useOpsCustomerOptions();
   const intent = useOpsIntent("opsSetup");
   const [picked, setPicked] = useState<number | null>(null);
   const [dialog, setDialog] = useState<Dialog>(null);
   const list = customers.data ?? [];
   const wanted = intent?.customerId ?? picked ?? context.customerId;
-  const customer = list.find((c) => c.id === wanted) ?? list[0] ?? null;
-  // operator lists (contract §14.7): stopped projects, pending invitations and inactive customers included
-  const projects = useOpsCustomerProjects(customer?.id ?? null);
-  const members = useOpsCustomerMembers(customer?.id ?? null);
+  const selectedId = (list.find((c) => c.id === wanted) ?? list[0])?.id ?? null;
+  const detail = useOpsCustomer(selectedId);
+  const customer = detail.data?.id === selectedId ? detail.data : null;
+  // working data (contract §12 setup-context): stopped projects, pending invitations and inactive customers included
+  const setupContext = useOpsSetupContext(selectedId);
   const datasets = useDatasets();
   const assignments = useDatasetAssignments();
   const contentTypes = useOpsContentTypes();
@@ -93,17 +95,18 @@ export function OpsSetupView({ context, openTab }: WorkViewProps) {
   );
 
   if (!customer) {
+    const failed = customers.isError ? customers : detail.isError ? detail : null;
     return (
       <Page wide>
         {header}
         <Panel>
-          {customers.isPending ? (
+          {customers.isPending || (selectedId !== null && detail.isPending) ? (
             <Empty plain title="고객사를 불러오는 중입니다" />
-          ) : customers.isError ? (
+          ) : failed ? (
             <Empty
               title="고객사를 불러오지 못했습니다"
-              description={customers.error.message}
-              action={<Button onClick={() => void customers.refetch()}>다시 시도</Button>}
+              description={failed.error?.message}
+              action={<Button onClick={() => void failed.refetch()}>다시 시도</Button>}
             />
           ) : (
             <Empty title="등록된 고객사가 없습니다" description="고객사 관리에서 고객사를 먼저 만드세요." />
@@ -113,7 +116,8 @@ export function OpsSetupView({ context, openTab }: WorkViewProps) {
     );
   }
 
-  const projectList = projects.data ?? [];
+  const projectList = setupContext.data?.projects ?? [];
+  const memberList = setupContext.data?.members ?? [];
   const dsList = datasets.data ?? [];
   const asList = assignments.data ?? [];
   const typeList = contentTypes.data ?? [];
@@ -128,7 +132,7 @@ export function OpsSetupView({ context, openTab }: WorkViewProps) {
       )}
       <div className={styles.setupGrid}>
         <SetupStepsPanel
-          steps={setupSteps(customer, projectList, members.data ?? [])}
+          steps={setupSteps(customer, projectList, memberList)}
           onInviteAdmin={() => setDialog({ kind: "invite", mode: "admin" })}
           onCreateProject={() => setDialog({ kind: "project" })}
           onInviteMember={() => setDialog({ kind: "invite", mode: "member" })}
@@ -149,7 +153,7 @@ export function OpsSetupView({ context, openTab }: WorkViewProps) {
       <OpsOutboxPanel customer={customer} />
       <SendingPanel
         projects={projectList}
-        loading={projects.isPending}
+        loading={setupContext.isPending}
         inactive={!customer.active}
         onEdit={(project) => setDialog({ kind: "sending", project })}
       />
@@ -165,7 +169,7 @@ export function OpsSetupView({ context, openTab }: WorkViewProps) {
         open={dialog?.kind === "project"}
         onClose={close}
         customer={customer}
-        users={(members.data ?? []).map((m) => m.user)}
+        users={memberList.map((m) => m.user)}
       />
       <SeedUserDialog
         open={dialog?.kind === "invite"}

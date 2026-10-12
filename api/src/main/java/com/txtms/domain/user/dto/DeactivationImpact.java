@@ -11,7 +11,10 @@ import com.txtms.domain.request.dto.response.RequestSummary;
  * deactivation). {@code requesting}: the user's own requests in progress (block it). {@code leadProjects}: projects
  * the user leads (go to the substitute). {@code lastApproverProjects}: approval projects whose only active approver
  * is the user (block it). {@code lastAdmin}: the user is the customer's last active admin (blocks it).
+ * {@code substitutes}: usable substitute candidates (active, accepted users other than the target holding a reviewer
+ * role in some project); a requester conflict is checked when deactivating.
  */
 public record DeactivationImpact(List<RequestSummary> reviewing, List<RequestSummary> requesting,
-        List<ProjectResponse> leadProjects, List<ProjectResponse> lastApproverProjects, boolean lastAdmin) {
+        List<ProjectResponse> leadProjects, List<ProjectResponse> lastApproverProjects, boolean lastAdmin,
+        List<MemberResponse> substitutes) {
 }

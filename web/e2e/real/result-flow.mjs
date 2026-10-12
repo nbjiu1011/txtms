@@ -248,12 +248,15 @@ await step("archive: filters (campaign, type, status, completion date, reset)", 
   await f.getByRole("button", { name: "초기화" }).click();
   await expect(f.getByLabel("캠페인")).toHaveValue("");
   await expect(lines().first()).toBeVisible();
-  const more = m().getByRole("button", { name: "더 보기" });
-  if (await more.isVisible()) {
-    const before = await lines().count();
-    await more.click();
-    await expect.poll(() => lines().count()).toBeGreaterThan(before);
-    log(`더 보기: ${before} → ${await lines().count()} lines`);
+  const next = m().getByRole("button", { name: "다음" });
+  if (await next.isVisible()) {
+    const first = await lines().first().textContent();
+    await next.click();
+    await expect(m().getByText(/^2 \/ \d+$/)).toBeVisible();
+    await expect.poll(() => lines().first().textContent()).not.toBe(first);
+    await m().getByRole("button", { name: "이전" }).click();
+    await expect(m().getByText(/^1 \/ \d+$/)).toBeVisible();
+    log("archive pager: page 2 and back");
   } else log(`one page of lines (${await lines().count()})`);
 });
 

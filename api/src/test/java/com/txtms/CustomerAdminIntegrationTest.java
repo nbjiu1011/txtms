@@ -123,7 +123,7 @@ class CustomerAdminIntegrationTest extends IntegrationTestBase {
     }
 
     private JsonNode member(Login admin, long customerId, long userId) throws Exception {
-        for (JsonNode m : getJson(admin, "/api/customers/" + customerId + "/members")) {
+        for (JsonNode m : getJson(admin, "/api/customers/" + customerId + "/members?size=100").path("content")) {
             if (m.path("user").path("id").asLong() == userId) {
                 return m;
             }
@@ -362,6 +362,11 @@ class CustomerAdminIntegrationTest extends IntegrationTestBase {
         assertThat(impact.path("requesting")).isEmpty();
         assertThat(impact.path("leadProjects")).isEmpty();
         assertThat(impact.path("lastAdmin").asBoolean()).isFalse();
+        // substitute candidates: usable reviewers other than the target (requesters excluded)
+        List<Long> substitutes = new ArrayList<>();
+        impact.path("substitutes").forEach(m -> substitutes.add(m.path("user").path("id").asLong()));
+        assertThat(substitutes).contains(leadId, rev2).doesNotContain(reviewerId, userId(t.requester()), requester2);
+        assertThat(impact.path("substitutes").get(0).has("projects")).as("Member shape").isTrue();
         JsonNode reqImpact = getJson(admin, base + "/users/" + userId(t.requester()) + "/deactivation-impact");
         assertThat(reqImpact.path("requesting").get(0).path("id").asString()).isEqualTo(id);
 
@@ -493,6 +498,20 @@ class CustomerAdminIntegrationTest extends IntegrationTestBase {
         assertThat(counts).containsExactly(Map.entry(t.projectId(), 1L), Map.entry(second, 0L));
         jdbc.update("UPDATE requests SET status = 'APPROVAL_WAITING' WHERE id = ?", completed);
         assertThat(getJson(admin, base + "/projects").get(0).path("activeRequestCount").asLong()).isEqualTo(2);
+
+        // 프로젝트 관리 list: the same counts, paged
+        JsonNode managed = getJson(admin, base + "/projects/manage");
+        assertThat(managed.path("page").path("totalElements").asLong()).isEqualTo(2);
+        assertThat(managed.path("page").path("size").asInt()).isEqualTo(20);
+        assertThat(managed.path("content").get(0).path("activeRequestCount").asLong()).isEqualTo(2);
+        assertThat(managed.path("content").get(1).path("id").asLong()).isEqualTo(second);
+        JsonNode secondPage = getJson(admin, base + "/projects/manage?page=1&size=1");
+        assertThat(secondPage.path("content")).hasSize(1);
+        assertThat(secondPage.path("content").get(0).path("activeRequestCount").asLong()).isZero();
+        assertThat(expect(403, req, get(base + "/projects/manage"), null).path("message").asString())
+                .isEqualTo("고객사 관리자 권한이 필요합니다");
+        expect(403, login(JUNG_OPERATOR), get(base + "/projects/manage"), null);
+        expect(404, login(KANG_ADMIN), get(base + "/projects/manage"), null);
 
         // members and operators get the list without the key; single projects and writes never carry it
         for (Login other : List.of(req, login(t.lead()), login(JUNG_OPERATOR))) {

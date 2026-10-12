@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useViewIntent } from "@/shared/lib";
-import { Button, Empty, Icon, Page, PageHeader, Panel, SubTabs } from "@/shared/ui";
+import { LIST_PAGE_SIZE, useClampPage, useListPage, useViewIntent } from "@/shared/lib";
+import { Button, Empty, Icon, Page, PageHeader, Pager, Panel, SubTabs } from "@/shared/ui";
 import { useCustomerMembers, type DeactivationImpact, type Member } from "@/entities/user";
 import {
   ChangeEmailDialog,
@@ -30,7 +30,9 @@ type Dialog =
 /** `users` tab — 사용자·권한 관리 (reference `vUsers` + J; 운영 지원 접근 is Phase 2, 접근·변경 기록 instead). */
 export function AdminUsersView({ context }: WorkViewProps) {
   const { customer, customerId, projects, projectId } = context;
-  const members = useCustomerMembers(customerId);
+  const [page, setPage] = useListPage(String(customerId));
+  const members = useCustomerMembers(customerId, page, LIST_PAGE_SIZE);
+  useClampPage(page, members.isPlaceholderData ? undefined : members.data?.page.totalPages, setPage);
   const actions = useMemberActions(customerId ?? -1);
   const [sub, setSub] = useState<Sub>("users");
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -44,7 +46,7 @@ export function AdminUsersView({ context }: WorkViewProps) {
   const close = () => setDialog(null);
 
   if (!customer || customerId === null) return null;
-  const list = members.data ?? [];
+  const list = members.data?.content ?? [];
 
   return (
     <>
@@ -81,6 +83,7 @@ export function AdminUsersView({ context }: WorkViewProps) {
                 action={<Button onClick={() => void members.refetch()}>다시 시도</Button>}
               />
             ) : (
+              <>
               <UsersTable
                 members={list}
                 projects={projects}
@@ -94,6 +97,8 @@ export function AdminUsersView({ context }: WorkViewProps) {
                   if (impact) setDialog({ kind: "deactivate", member, impact });
                 }}
               />
+              <Pager page={page} totalPages={members.data.page.totalPages} onPage={setPage} />
+              </>
             )}
           </Panel>
         )}
@@ -128,7 +133,6 @@ export function AdminUsersView({ context }: WorkViewProps) {
         customerId={customerId}
         member={dialog?.kind === "deactivate" ? dialog.member : null}
         impact={dialog?.kind === "deactivate" ? dialog.impact : null}
-        members={list}
       />
     </>
   );

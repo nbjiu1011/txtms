@@ -18,6 +18,7 @@ export type {
   SampleRequest,
   SampleRequestCreate,
   SampleResetResult,
+  SetupContext,
   SetupLog,
   SetupProjectCreate,
 } from "./model/types";
@@ -38,11 +39,14 @@ export {
   useDatasets,
   useOpsAuditLogs,
   useOpsContentTypes,
+  useOpsCustomer,
   useOpsCustomerMembers,
+  useOpsCustomerOptions,
   useOpsCustomerProjects,
   useOpsCustomers,
   useOpsDashboard,
   useOpsOutbox,
+  useOpsSetupContext,
   useSampleOverview,
   useSetupLogs,
 } from "./api/ops-queries";

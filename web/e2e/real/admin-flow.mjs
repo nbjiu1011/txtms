@@ -74,7 +74,7 @@ await step("사용자 초대: external domain needs a second click, then the inv
   await toastSeen(admin, "초대 링크를 생성했습니다. 사용자 관리의 발송 대기함에서 확인하세요");
   await expect(d).toBeHidden();
   await expect(m().getByRole("cell", { name: new RegExp(`${INVITEE} · 초대 대기`) })).toBeVisible();
-  const members = await apiAs(ADMIN, "GET", "/customers/1/members");
+  const members = (await apiAs(ADMIN, "GET", "/customers/1/members?size=100")).content;
   inviteeId = members.find((x) => x.user.email === INVITEE).user.id;
 });
 

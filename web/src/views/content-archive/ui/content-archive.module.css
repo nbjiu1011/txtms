@@ -63,11 +63,3 @@ div.qField {
   gap: 8px;
   flex-wrap: wrap;
 }
-
-/* next page */
-.more {
-  display: flex;
-  justify-content: center;
-  padding: 12px 18px;
-  border-top: 1px solid var(--line);
-}

@@ -95,6 +95,7 @@
 }
 .personaMeta {
   font-size: 12px;
+  font-weight: 400;
   color: var(--faint);
 }
 

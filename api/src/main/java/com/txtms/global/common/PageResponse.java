@@ -15,6 +15,13 @@ public record PageResponse<T>(List<T> content, PageMeta page) {
                 new PageMeta(page.getNumber(), page.getSize(), page.getTotalElements(), page.getTotalPages()));
     }
 
+    /** Contract page of a database page whose rows are converted together (batched lookups). */
+    public static <S, T> PageResponse<T> batch(org.springframework.data.domain.Page<S> page,
+            Function<List<S>, List<T>> mapper) {
+        return new PageResponse<>(mapper.apply(page.getContent()),
+                new PageMeta(page.getNumber(), page.getSize(), page.getTotalElements(), page.getTotalPages()));
+    }
+
     /** Pages an in-memory, already sorted list. */
     public static <S, T> PageResponse<T> slice(List<S> all, PageQuery query, Function<List<S>, List<T>> mapper) {
         int from = (int) Math.min((long) query.page() * query.size(), all.size());

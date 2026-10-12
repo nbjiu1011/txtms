@@ -34,3 +34,11 @@
   color: var(--sub);
   margin: 0 0 12px;
 }
+.tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.kv {
+  margin: 0;
+}

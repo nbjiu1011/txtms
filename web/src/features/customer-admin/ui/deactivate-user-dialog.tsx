@@ -9,7 +9,6 @@ import {
   deactivationProblem,
   handoverRequests,
   needsSubstitute,
-  substituteCandidates,
 } from "../model/deactivation";
 import { invalidateUserData } from "../model/invalidate";
 import { useServerError } from "@/shared/ui";
@@ -22,7 +21,6 @@ export interface DeactivateUserDialogProps {
   member: Member | null;
   /** Loaded before opening (a request in 확인 요청·승인 대기 refuses with a toast instead). */
   impact: DeactivationImpact | null;
-  members: Member[];
 }
 
 /** `{이름} 비활성화` (reference `deact` + J:212): impact, substitute and handover, server refusal details. */
@@ -36,14 +34,14 @@ function DeactivateBody({
   customerId,
   member,
   impact,
-  members,
 }: DeactivateUserDialogProps & { member: Member; impact: DeactivationImpact }) {
   const id = useId();
   const client = useQueryClient();
   const [substituteId, setSubstituteId] = useState("");
   const [handover, setHandover] = useState("");
   const server = useServerError("비활성화하지 못했습니다");
-  const candidates = substituteCandidates(members, member.user.id);
+  // candidates come from the server (the user list is paged): usable reviewers other than this user
+  const candidates = impact.substitutes;
   const handing = needsSubstitute(impact);
   const approvalWaiting = impact.reviewing.filter((r) => r.status === "APPROVAL_WAITING");
   const ids = (list: { id: string }[]) => list.map((r) => r.id).join(", ") || "없음";

@@ -97,9 +97,18 @@ public record AppProperties(
     public record Correction(Duration ruleTimeout, int maxRules, DataSize maxFileSize) {
     }
 
-    public record Demo(boolean enabled, String defaultPassword) {
+    /**
+     * Demo mode ({@code enabled}: demo seed, demo accounts may log in) and one-click persona login
+     * ({@code personaLoginEnabled}: persona list, demo-login and demo sessions with the persona switcher). Persona
+     * login needs demo mode as well; without it every user logs in with email and password.
+     */
+    public record Demo(boolean enabled, String defaultPassword, boolean personaLoginEnabled) {
         public boolean hasDefaultPassword() {
             return defaultPassword != null && !defaultPassword.isBlank();
+        }
+
+        public boolean personaLoginAvailable() {
+            return enabled && personaLoginEnabled;
         }
     }
 }

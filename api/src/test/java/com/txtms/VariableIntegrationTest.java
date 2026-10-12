@@ -165,6 +165,22 @@ class VariableIntegrationTest extends IntegrationTestBase {
         expect(404, login(MOON_REQUESTER), get(base + "?includeDeleted=true"), null);
         expect(404, login(JUNG_OPERATOR), get(base + "?includeDeleted=true"), null);
 
+        // 변수 관리 list: the includeDeleted rows, paged, same filters and access
+        JsonNode managed = getJson(admin, base + "/manage");
+        assertThat(managed.path("content").toString()).isEqualTo(all.toString());
+        assertThat(managed.path("page").path("totalElements").asLong()).isEqualTo(3);
+        assertThat(managed.path("page").path("size").asInt()).isEqualTo(20);
+        JsonNode lastPage = getJson(admin, base + "/manage?page=1&size=2");
+        assertThat(keys(lastPage.path("content"))).containsExactly("beta");
+        assertThat(lastPage.path("page").path("totalPages").asInt()).isEqualTo(2);
+        assertThat(keys(getJson(admin, base + "/manage?q=bet").path("content"))).containsExactly("beta");
+        assertThat(keys(getJson(admin, base + "/manage?active=true").path("content")))
+                .containsExactly("customer_name", "alpha");
+        assertThat(expect(403, req, get(base + "/manage"), null).path("message").asString())
+                .isEqualTo("고객사 관리자 권한이 필요합니다");
+        expect(404, login(KANG_ADMIN), get(base + "/manage"), null);
+        expect(404, login(JUNG_OPERATOR), get(base + "/manage"), null);
+
         // project change log: every variable (deleted included), newest first, with the actor's name
         JsonNode log = getJson(admin, logUrl);
         List<String> entries = new ArrayList<>();

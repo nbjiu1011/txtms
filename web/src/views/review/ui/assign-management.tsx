@@ -1,9 +1,9 @@
 "use client";
 
-import { Button, Empty, ListItem, Panel, PanelBody, PanelHeader } from "@/shared/ui";
+import { LIST_PAGE_SIZE, useClampPage, useListPage } from "@/shared/lib";
+import { Button, Empty, ListItem, Pager, Panel, PanelBody, PanelHeader } from "@/shared/ui";
 import { useWorkload } from "@/entities/dashboard";
 import {
-  REQUEST_LIST_PAGE_SIZE,
   RequestStatusChip,
   useRequests,
   type RequestListView,
@@ -50,10 +50,13 @@ interface QueuePanelProps {
   onAssign?: (id: string) => void;
 }
 
+/** One queue, 20 per page (the header counts the whole queue). */
 function QueuePanel({ title, view, projectId, users, onOpen, onAssign }: QueuePanelProps) {
-  const list = useRequests({ projectId, view, page: 0, size: REQUEST_LIST_PAGE_SIZE });
+  const [page, setPage] = useListPage(`${projectId}:${view}`);
+  const list = useRequests({ projectId, view, page, size: LIST_PAGE_SIZE });
+  useClampPage(page, list.isPlaceholderData ? undefined : list.data?.page.totalPages, setPage);
   const rows: RequestSummary[] = list.isError ? [] : (list.data?.content ?? []);
-  const total = list.data?.page.totalElements ?? rows.length;
+  const total = list.data?.page.totalElements ?? 0;
   return (
     <Panel aria-label={title} aria-busy={list.isFetching}>
       <PanelHeader title={title} note={`${total}건`} />
@@ -96,6 +99,9 @@ function QueuePanel({ title, view, projectId, users, onOpen, onAssign }: QueuePa
           />
         ))
       )}
+      {list.data && !list.isError ? (
+        <Pager page={page} totalPages={list.data.page.totalPages} onPage={setPage} />
+      ) : null}
     </Panel>
   );
 }

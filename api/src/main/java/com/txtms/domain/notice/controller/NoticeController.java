@@ -1,7 +1,5 @@
 package com.txtms.domain.notice.controller;
 
-import java.util.List;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +15,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.txtms.domain.notice.dto.NoticeBody;
 import com.txtms.domain.notice.dto.NoticeResponse;
 import com.txtms.domain.notice.service.NoticeService;
+import com.txtms.global.common.PageQuery;
+import com.txtms.global.common.PageResponse;
 import com.txtms.global.security.AuthUser;
 
 @RestController
@@ -31,14 +31,16 @@ public class NoticeController {
 
     /** Notices visible to the caller within the customer (withdrawn excluded), newest first. */
     @GetMapping("/notices")
-    public List<NoticeResponse> list(@AuthenticationPrincipal AuthUser auth, @RequestParam long customerId) {
-        return notices.list(auth, customerId);
+    public PageResponse<NoticeResponse> list(@AuthenticationPrincipal AuthUser auth, @RequestParam long customerId,
+            @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer size) {
+        return notices.list(auth, customerId, PageQuery.of(page, size));
     }
 
     /** Customer admin: every notice of the customer, withdrawn ones included. */
     @GetMapping("/customers/{customerId}/notices/manage")
-    public List<NoticeResponse> manage(@AuthenticationPrincipal AuthUser auth, @PathVariable long customerId) {
-        return notices.manage(auth, customerId);
+    public PageResponse<NoticeResponse> manage(@AuthenticationPrincipal AuthUser auth, @PathVariable long customerId,
+            @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer size) {
+        return notices.manage(auth, customerId, PageQuery.of(page, size));
     }
 
     @PostMapping("/customers/{customerId}/notices")

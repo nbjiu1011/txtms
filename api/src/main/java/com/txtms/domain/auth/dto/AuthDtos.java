@@ -49,7 +49,15 @@ public final class AuthDtos {
     }
 
     public record UpdateMeRequest(
-            @NotBlank(message = "이름을 입력하세요") @Size(max = 100, message = "이름은 100자 이하로 입력하세요") String name,
+            @NotBlank(message = "이름을 입력하세요") @Size(max = 50, message = "이름은 50자 이하로 입력하세요") String name,
             @Size(max = 100, message = "소속은 100자 이하로 입력하세요") String dept) {
+    }
+
+    /** Self-service password change. The 1,000-character caps only keep huge input away from the hash check. */
+    public record ChangePasswordRequest(
+            @NotBlank(message = "현재 비밀번호를 입력하세요") @Size(max = 1000, message = "현재 비밀번호가 일치하지 않습니다")
+            String currentPassword,
+            @NotBlank(message = "새 비밀번호를 입력하세요") @Size(max = 1000, message = "비밀번호는 72바이트 이하여야 합니다")
+            String newPassword) {
     }
 }

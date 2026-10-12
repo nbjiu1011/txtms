@@ -17,7 +17,7 @@ import {
   Tag,
 } from "@/shared/ui";
 import { useOpsDashboard, type OpsCustomer } from "@/entities/ops";
-import { CreateCustomerDialog, continueToSetup, openTodo, requestOpsIntent } from "@/features/ops-admin";
+import { CreateCustomerDialog, continueToSetup, openTodo } from "@/features/ops-admin";
 import type { WorkViewProps } from "@/widgets/app-shell";
 import styles from "./ops-home.module.css";
 
@@ -76,10 +76,7 @@ export function OpsHomeView({ me, openTab }: WorkViewProps) {
   }
 
   const { kpis, todos, customers, recentAudit } = dashboard.data;
-  const openCustomer = (c: OpsCustomer) => {
-    requestOpsIntent("opsCustomers", { customerId: c.id });
-    openTab({ route: "opsCustomers", params: {} });
-  };
+  const openCustomer = (c: OpsCustomer) => openTab({ route: "opsCustomer", params: { id: String(c.id) } });
 
   return (
     <Page>

@@ -20,6 +20,7 @@ export const ROUTE_KEYS = [
   "adminCustomer",
   "adminNotices",
   "opsCustomers",
+  "opsCustomer",
   "opsSetup",
   "opsStandards",
   "profile",
@@ -123,6 +124,14 @@ export const ROUTES: Record<RouteKey, RouteDef> = {
     access: "ops",
     enabled: true,
   },
+  opsCustomer: {
+    key: "opsCustomer",
+    title: "고객사 상세",
+    icon: null,
+    group: null,
+    access: "ops",
+    enabled: true,
+  },
   opsSetup: { key: "opsSetup", title: "초기 설정·시드", icon: "seed", group: "ops", access: "ops", enabled: true },
   opsStandards: {
     key: "opsStandards",
@@ -154,7 +163,7 @@ export const ADMIN_MENU: readonly RouteKey[] = [
 export const OPS_MENU: readonly RouteKey[] = ["opsCustomers", "opsSetup", "opsStandards"];
 
 export interface TabParams {
-  /** Request id (`REQ-2610-121`) for `request` / `content`. */
+  /** Request id (`REQ-2610-121`) for `request` / `content`; numeric customer id for `opsCustomer`. */
   id?: string;
   /** Content key (`C1`) for `content`. */
   key?: string;
@@ -213,6 +222,9 @@ export function pathToTab(pathname: string): TabRef | null {
   if (staticRoute) return { route: staticRoute, params: {} };
 
   const parts = path.split("/").filter(Boolean);
+  if (parts[0] === "ops" && parts[1] === "customers" && parts.length === 3) {
+    return isCustomerId(parts[2]) ? { route: "opsCustomer", params: { id: parts[2] } } : null;
+  }
   if (parts[0] !== "requests") return null;
   if (parts.length === 2) {
     const id = safeDecode(parts[1]);
@@ -226,8 +238,14 @@ export function pathToTab(pathname: string): TabRef | null {
   return null;
 }
 
+/** Customer ids in paths and persisted tabs are positive integers. */
+function isCustomerId(value: unknown): value is string {
+  return typeof value === "string" && /^[1-9]\d{0,17}$/.test(value);
+}
+
 /** Builds the pathname for a tab reference. */
 export function tabToPath(tab: TabRef): string {
+  if (tab.route === "opsCustomer") return `/ops/customers/${tab.params.id ?? ""}`;
   if (tab.route === "request") {
     return `/requests/${encodeURIComponent(tab.params.id ?? "")}`;
   }
@@ -237,8 +255,9 @@ export function tabToPath(tab: TabRef): string {
   return STATIC_PATHS[tab.route] ?? "/";
 }
 
-/** Identity used for tab reuse: one tab per request, per request content, or per menu route. */
+/** Identity used for tab reuse: one tab per request, per request content, per customer, or per menu route. */
 export function tabIdentity(tab: TabRef): string {
+  if (tab.route === "opsCustomer") return `opsCustomer:${tab.params.id ?? ""}`;
   if (tab.route === "request") return `request:${tab.params.id ?? ""}`;
   if (tab.route === "content") return `content:${tab.params.id ?? ""}:${tab.params.key ?? ""}`;
   return tab.route;
@@ -256,6 +275,7 @@ export function isValidTabRef(value: unknown): value is TabRef {
   const params = (ref.params ?? {}) as TabParams;
   if (typeof params !== "object") return false;
   if (ref.route === "request") return typeof params.id === "string" && params.id.length > 0;
+  if (ref.route === "opsCustomer") return isCustomerId(params.id);
   if (ref.route === "content") {
     return typeof params.id === "string" && params.id.length > 0 && typeof params.key === "string" && params.key.length > 0;
   }

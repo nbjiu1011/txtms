@@ -31,20 +31,6 @@ export function blockingItems(impact: DeactivationImpact): { label: string; valu
 }
 
 /**
- * Substitute candidates (reference): same customer, active (not pending), not the user, reviewer in
- * some project.
- */
-export function substituteCandidates(members: Member[], userId: number): Member[] {
-  return members.filter(
-    (m) =>
-      m.user.active &&
-      !m.pending &&
-      m.user.id !== userId &&
-      m.projects.some((p) => p.roles.includes("REVIEWER")),
-  );
-}
-
-/**
  * Checks at 비활성화 in the reference order: a requester of a handed-over request (or of its project)
  * cannot substitute, the last approver blocks, then the required fields.
  */

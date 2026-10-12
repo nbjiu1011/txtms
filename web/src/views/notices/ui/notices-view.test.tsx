@@ -26,10 +26,14 @@ const notice = (id: number, patch: Partial<Notice>): Notice => ({
 
 function setup(me: Partial<Me>) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
-  client.setQueryData(noticeKeys.visible(1), [
+  const notices = [
     notice(1, {}),
     notice(2, { scope: "PROJECT", projectId: 1, edited: true, createdAt: "2026-10-03T02:00:00Z" }),
-  ]);
+  ];
+  client.setQueryData(noticeKeys.visible(1, 0, 20), {
+    content: notices,
+    page: { number: 0, size: 20, totalElements: notices.length, totalPages: 1 },
+  });
   client.setQueryData(userKeys.byCustomer(1), [{ id: 11, name: "강민호" } as UserSummary]);
   const openTab = vi.fn();
   const props: WorkViewProps = {

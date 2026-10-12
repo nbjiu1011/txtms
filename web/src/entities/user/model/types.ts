@@ -42,4 +42,6 @@ export interface DeactivationImpact {
   leadProjects: Project[];
   lastApproverProjects: Project[];
   lastAdmin: boolean;
+  /** Usable substitutes: active, accepted users other than the target holding a reviewer role (contract §15). */
+  substitutes: Member[];
 }
