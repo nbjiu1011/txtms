@@ -4,6 +4,8 @@ import type { NextConfig } from "next";
 const apiOrigin = (process.env.API_ORIGIN ?? "http://localhost:4245").replace(/\/+$/, "");
 
 const nextConfig: NextConfig = {
+  // The Docker image runs the self-contained server (`.next/standalone`); local `next start` keeps the default output.
+  output: process.env.NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
   // The dev server may also be opened through the public domain behind the reverse proxy.
   allowedDevOrigins: ["txtms.tagoplus.co.kr"],
   cacheComponents: true,

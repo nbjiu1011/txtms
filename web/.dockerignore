@@ -1,0 +1,20 @@
+# Keep the build context to what `next build` needs. Test files are left out so a test-only commit
+# reuses the cached image.
+node_modules
+.next
+out
+coverage
+e2e
+test-results
+playwright-report
+blob-report
+*.tsbuildinfo
+**/*.test.ts
+**/*.test.tsx
+vitest.config.ts
+vitest.setup.ts
+playwright.config.ts
+.env*
+*.md
+Dockerfile
+.dockerignore

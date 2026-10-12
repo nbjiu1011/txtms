@@ -1,0 +1,65 @@
+# txtms — deployment stack (api + web)
+#
+# Run by the CI job from this directory; deploy/.env is written by the job from the GitLab
+# File variable ENV_FILE. No database container: the API uses the MariaDB server in DB_URL.
+#
+# Ports are bound to 127.0.0.1 only. The host Apache terminates TLS for the public domains and
+# proxies here (deploy/apache) — publishing on 0.0.0.0 would open a plain-HTTP path around it.
+
+name: ${COMPOSE_PROJECT_NAME:-txtms}
+
+# The default json-file driver never rotates; without limits the logs eventually fill the disk.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
+services:
+  api:
+    build:
+      context: ../api
+    image: ${COMPOSE_PROJECT_NAME:-txtms}-api:latest
+    restart: unless-stopped
+    logging: *logging
+    # The JVM sizes its heap from this limit (MaxRAMPercentage=75).
+    mem_limit: ${API_MEM_LIMIT:-1g}
+    # Spring Boot shuts down gracefully (30 s per phase); give it time before SIGKILL.
+    stop_grace_period: 40s
+    # Every key of deploy/.env reaches the API, so a new setting only needs to be added to ENV_FILE.
+    env_file: .env
+    environment:
+      # Fixed by the image layout; not taken from ENV_FILE.
+      SERVER_PORT: "4245"
+      STORAGE_ROOT: /app/storage
+      TZ: ${TZ:-Asia/Seoul}
+    # Lets DB_URL point at a database on this same host (jdbc:mariadb://host.docker.internal:3306/...).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "127.0.0.1:${API_PORT:-4245}:4245"
+    volumes:
+      # Uploaded attachments. A named volume survives redeploys; inside the image they would be lost.
+      - storage:/app/storage
+
+  web:
+    build:
+      context: ../web
+    image: ${COMPOSE_PROJECT_NAME:-txtms}-web:latest
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: ${WEB_MEM_LIMIT:-768m}
+    stop_grace_period: 20s
+    environment:
+      # Keep the Node heap below the container limit, or the kernel kills it without a stack trace.
+      # (`:---` is the `:-` default operator followed by the option's `--`.)
+      NODE_OPTIONS: ${WEB_NODE_OPTIONS:---max-old-space-size=512}
+      TZ: ${TZ:-Asia/Seoul}
+    ports:
+      - "127.0.0.1:${WEB_PORT:-4246}:4246"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  storage:

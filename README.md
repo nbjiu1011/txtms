@@ -6,17 +6,15 @@
 
 | 디렉터리 | 내용 |
 |---|---|
-| `api/` | REST API — Spring Boot, Java 21, MySQL 8 |
+| `api/` | REST API — Spring Boot, Java 21, MariaDB 10.11 |
 | `web/` | 웹 앱 — Next.js(App Router), React, TypeScript |
+| `deploy/` | 서버 배포 (Docker Compose, Apache, GitLab CI/CD) |
 | `docs/` | 기획 문서 |
 | `tx-tms-prototype.html`, `tx-tms-plan-v01.js` | 화면 프로토타입 (참고용) |
 
 ## 로컬 실행
 
-1. DB 기동 (프로젝트 전용 MySQL 8, 127.0.0.1:3317)
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File api/scripts/dev-db.ps1 start
-   ```
+1. DB 연결 정보를 `api/.env`에 적습니다 (`api/.env.example` 참고). 로컬 MariaDB가 필요하면 `api/README.md`를 참고하세요.
 2. API
    ```bash
    cd api && ./gradlew bootRun
@@ -36,10 +34,9 @@
 | API | 4245 | https://txtms-api.tagoplus.co.kr |
 | 웹 | 4246 | https://txtms.tagoplus.co.kr |
 
-서버 배포 시 환경 변수:
+## 배포
 
-- API: `api/.env.example` 참고. `WEB_BASE_URL=https://txtms.tagoplus.co.kr`, `CORS_ALLOWED_ORIGINS=https://txtms.tagoplus.co.kr`, `REFRESH_COOKIE_SECURE=true`, 데모 모드는 `dev` 프로필에서만 켜집니다.
-- 웹: `API_ORIGIN=http://127.0.0.1:4245` (같은 서버의 API로 `/api` 요청을 전달), `npm run build && npm run start` (포트 4246).
+`dev` 브랜치는 개발 서버(112.160.125.11)에, `main` 브랜치는 운영 서버에 GitLab CI/CD로 배포합니다. 서버 세팅과 환경 변수(`ENV_FILE`)는 [`deploy/README.md`](deploy/README.md)를 참고하세요.
 
 ## 외부 연동 (운영 배포 전 교체 필요)
 

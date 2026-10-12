@@ -1,0 +1,13 @@
+# Only the Gradle files and src/main reach the image (see Dockerfile).
+.gradle
+build
+bin
+out
+.env
+.localdb
+storage
+scripts
+src/test
+*.md
+Dockerfile
+.dockerignore
