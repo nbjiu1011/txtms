@@ -151,9 +151,9 @@ class RequestReadIntegrationTest extends IntegrationTestBase {
         JsonNode r103 = getJson(kim, "/api/requests/REQ-2609-103");
         assertThat(r103.path("round").asInt()).isEqualTo(2);
         assertThat(r103.path("contentVersions").get(0).asInt()).isEqualTo(2);
-        JsonNode card = r103.path("contents").get(0).path("payload").path("cards").get(0);
-        assertThat(card.path("imageKey").isNull()).isTrue();
-        assertThat(card.path("buttonName").asString()).isEqualTo("혜택 자세히 보기");
+        assertThat(r103.path("type").asString()).isEqualTo("ALIMTALK");
+        JsonNode button = r103.path("contents").get(0).path("payload").path("buttons").get(0);
+        assertThat(button.path("name").asString()).isEqualTo("혜택 자세히 보기");
 
         JsonNode r107 = getJson(kim, "/api/requests/REQ-2609-107");
         assertThat(r107.path("recallRequested").asBoolean()).isTrue();
@@ -191,13 +191,13 @@ class RequestReadIntegrationTest extends IntegrationTestBase {
                 "문안 수정", "검수 완료");
         JsonNode edit = history.get(6);
         assertThat(edit.path("contentKey").asString()).isEqualTo("C1");
-        assertThat(edit.path("contentTitle").asString()).isEqualTo("리뉴얼 소개 캐러셀");
+        assertThat(edit.path("contentTitle").asString()).isEqualTo("리뉴얼 혜택 안내");
         assertThat(edit.path("round").asInt()).isEqualTo(2);
 
         JsonNode v2 = getJson(kim, "/api/requests/REQ-2609-103/contents/C1/versions/2");
         assertThat(v2.path("version").asInt()).isEqualTo(2);
         assertThat(v2.path("createdBy").asLong()).isEqualTo(userId(PARK_REVIEWER));
-        assertThat(v2.path("payload").path("cards")).hasSize(2);
+        assertThat(v2.path("payload").path("templateCode").asString()).isEqualTo("HB_EVT_03");
         getAs(kim, "/api/requests/REQ-2609-103/contents/C1/versions/9").andExpect(status().isNotFound());
         getAs(login(MOON_REQUESTER), "/api/requests/REQ-2609-103/history").andExpect(status().isNotFound());
     }

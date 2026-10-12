@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +18,7 @@ import com.txtms.domain.user.dto.UserSummary;
 import com.txtms.domain.user.entity.User;
 import com.txtms.domain.user.repository.UserRepository;
 import com.txtms.global.exception.BusinessException;
+import com.txtms.global.exception.ErrorCode;
 
 @Service
 @Transactional(readOnly = true)
@@ -40,6 +42,20 @@ public class UserService {
 
     public Optional<User> findByEmail(String email) {
         return email == null ? Optional.empty() : repository.findByEmail(email.trim().toLowerCase());
+    }
+
+    /**
+     * Changes the sign-in email and writes it at once, so an address taken by another account in the meantime fails
+     * here as {@code DUPLICATE} (unique key) instead of at commit.
+     */
+    @Transactional
+    public void changeEmail(User user, String email, java.time.Instant now, String duplicateMessage) {
+        user.changeEmail(email, now);
+        try {
+            repository.flush();
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(ErrorCode.DUPLICATE, duplicateMessage);
+        }
     }
 
     /** Persists a new account (invitation). */

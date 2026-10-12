@@ -10,8 +10,8 @@ import { CorrectionCard } from "./correction-card";
 import { SuggestionDialog, type SuggestionTarget } from "./suggestion-dialog";
 import styles from "./correction.module.css";
 
-export const EXCLUDED_NOTE =
-  "첨부파일이 있는 자유입력형은 교정 실행·결과가 비활성화되며 전체 검사에서 제외됩니다. 첨부파일을 모두 제거하면 다시 사용할 수 있습니다.";
+/** Shown for a content with attachments: correction checks the text entered in TMS, never the files. */
+export const FILES_NOTE = "첨부파일 내용은 교정 대상이 아닙니다. 입력한 문안만 검사합니다.";
 export const STALE_NOTE = "최신 내용과 불일치 · 문안, 변수 또는 연결값이 바뀌었습니다. 다시 검사하세요.";
 
 export interface CorrectionPanelProps {
@@ -67,7 +67,7 @@ export function CorrectionPanel({ requestId, correction, currentKey, canSuggest 
         <Button
           size="sm"
           aria-disabled={missing || undefined}
-          disabled={!current || current.excluded || correction.checking !== null}
+          disabled={!current || correction.checking !== null}
           onClick={() => void correction.checkOne(currentKey)}
         >
           {correction.checking === "one" ? "검사 중" : "이 콘텐츠 검사"}
@@ -79,7 +79,7 @@ export function CorrectionPanel({ requestId, correction, currentKey, canSuggest 
             disabled={correction.checking !== null}
             onClick={() => void correction.checkAll()}
           >
-            {correction.checking === "all" ? "검사 중" : `전체 검사 ${correction.checkableCount}건`}
+            {correction.checking === "all" ? "검사 중" : `전체 검사 ${correction.contentCount}건`}
           </Button>
         ) : null}
       </div>
@@ -93,20 +93,12 @@ export function CorrectionPanel({ requestId, correction, currentKey, canSuggest 
         <br />
         교정 실행은 검수 요청·완료 조건이 아닙니다.
       </p>
+      {current?.hasFiles ? <ReadOnlyBox className={styles.note}>{FILES_NOTE}</ReadOnlyBox> : null}
     </div>
   );
 
-  if (current?.excluded && !current.run?.excluded) {
-    return (
-      <>
-        {head}
-        <ReadOnlyBox className={styles.note}>{EXCLUDED_NOTE}</ReadOnlyBox>
-      </>
-    );
-  }
-
   const bulkRows = (correction.bulk ?? []).map((key) => correction.row(key)).filter((r): r is CorrectionRow => r !== null);
-  const bulkRuns = bulkRows.flatMap((r) => (r.run && !r.excluded ? [r.run] : []));
+  const bulkRuns = bulkRows.flatMap((r) => (r.run ? [r.run] : []));
   const counts = countRuns(bulkRuns);
 
   return (
@@ -116,13 +108,6 @@ export function CorrectionPanel({ requestId, correction, currentKey, canSuggest 
         <>
           {bulkRows.map((row) => {
             const key = row.content.key;
-            if (row.excluded) {
-              return (
-                <p key={key} className={styles.excludedRow}>
-                  {key} · 첨부파일로 제외
-                </p>
-              );
-            }
             const open = !collapsed.has(key);
             return (
               <section key={key} className={styles.group} aria-label={`${key} 교정 결과`}>
@@ -178,7 +163,7 @@ export function CorrectionPanel({ requestId, correction, currentKey, canSuggest 
             </Button>
           </div>
         </>
-      ) : current?.run && !current.excluded ? (
+      ) : current?.run ? (
         <>
           <div className={styles.lbl}>
             {currentKey} · {current.content.title}
@@ -186,8 +171,6 @@ export function CorrectionPanel({ requestId, correction, currentKey, canSuggest 
           {stale(current)}
           {cards(current, current.run)}
         </>
-      ) : current?.excluded ? (
-        <p className={styles.excludedRow}>{currentKey} · 첨부파일로 제외</p>
       ) : (
         <div className={styles.empty}>아직 검사하지 않았습니다.</div>
       )}

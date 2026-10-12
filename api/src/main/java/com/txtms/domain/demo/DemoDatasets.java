@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -19,9 +20,9 @@ import com.txtms.domain.correction.service.DatasetXlsxReader;
  * <ul>
  * <li>Every content type gets one dataset: the client sample dataset ({@code docs/교정엔진 샘플 데이터셋.xlsx}, copied to
  * {@code resources/demo/correction-sample-dataset.xlsx}; it is not type specific, so all 48 rows go to every type)
- * followed by the prototype rules: the common ones (P1–P6) and the type's own (alimtalk P7–P8, SMS P9, RCS P10,
- * free-form P11).</li>
- * <li>Assignments: 한빛카드 all four types (confirmed); 도담생명 alimtalk (confirmed), SMS and RCS (not confirmed);
+ * followed by the prototype rules: the common ones (P1–P6) and the type's own (alimtalk P7–P8, SMS P9, free-form
+ * P11). RCS is deferred from Phase 1 (client decision 2026-10-12): no RCS dataset, rule or assignment.</li>
+ * <li>Assignments: 한빛카드 all three types (confirmed); 도담생명 alimtalk (confirmed), SMS (not confirmed);
  * 도담생명 free-form is left unassigned to demonstrate {@code DATASET_NOT_ASSIGNED}.</li>
  * </ul>
  */
@@ -36,14 +37,16 @@ public final class DemoDatasets {
     public static final String HANBIT = "hanbitcard.co.kr";
     public static final String DODAM = "dodamlife.com";
 
+    /** Content types with a demo dataset: the Phase 1 types. */
+    public static final List<ContentType> TYPES = Arrays.stream(ContentType.values()).filter(ContentType::offered)
+            .toList();
+
     public static final List<PlannedAssignment> ASSIGNMENTS = List.of(
             new PlannedAssignment(HANBIT, ContentType.ALIMTALK, true),
             new PlannedAssignment(HANBIT, ContentType.SMS, true),
-            new PlannedAssignment(HANBIT, ContentType.RCS, true),
             new PlannedAssignment(HANBIT, ContentType.FREEFORM, true),
             new PlannedAssignment(DODAM, ContentType.ALIMTALK, true),
-            new PlannedAssignment(DODAM, ContentType.SMS, false),
-            new PlannedAssignment(DODAM, ContentType.RCS, false));
+            new PlannedAssignment(DODAM, ContentType.SMS, false));
 
     private static final String SPACING = "띄어쓰기";
 
@@ -66,8 +69,6 @@ public final class DemoDatasets {
                             "고객이 주어가 되도록 씁니다. 회사가 베푸는 표현 대신 고객이 받는 표현을 씁니다.")),
             ContentType.SMS, List.of(
                     rule("P9", "무료수신거부", "무료 수신거부", SPACING, "광고 문자의 수신거부 안내는 '무료 수신거부'로 띄어 씁니다.")),
-            ContentType.RCS, List.of(
-                    rule("P10", "자세히보기", "자세히 보기", SPACING, "'보기'는 앞말과 띄어 씁니다. 예) 자세히 보기")),
             ContentType.FREEFORM, List.of(
                     rule("P11", "하였습니다", "했습니다", "간결한 표현", "'하였습니다'보다 짧은 '했습니다'를 씁니다.")));
 
@@ -79,7 +80,7 @@ public final class DemoDatasets {
         List<DatasetRuleValidator.Row> rows = new ArrayList<>(sampleRows());
         int n = 1000;
         List<CorrectionRule> extra = new ArrayList<>(COMMON);
-        extra.addAll(OWN.get(type));
+        extra.addAll(OWN.getOrDefault(type, List.of()));
         for (CorrectionRule r : extra) {
             rows.add(new DatasetRuleValidator.Row(n++, r.ruleId(), r.originalExpr(), r.recommendedExpr(),
                     r.originalPattern(), r.recommendedPattern(), r.descriptionLabel(), r.description()));

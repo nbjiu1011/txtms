@@ -23,6 +23,17 @@ class OutboxMaskingTest {
     }
 
     @Test
+    void emailChangeLinksAreMaskedLikeInvitations() {
+        String change = "김서연님, TX TMS 로그인 이메일을 이 주소로 바꾸는 요청이 접수되었습니다.\n"
+                + "http://localhost:4246/email-change/Qw-9_Er8Ty7";
+        OutboxMasking.Shown shown = OutboxMasking.show(change, false);
+        assertThat(shown.masked()).isTrue();
+        assertThat(shown.body()).endsWith("http://localhost:4246/email-change/••••\n링크는 수신자에게만 전달됩니다")
+                .doesNotContain("Qw-9_Er8Ty7");
+        assertThat(OutboxMasking.show(change, true)).isEqualTo(new OutboxMasking.Shown(change, false));
+    }
+
+    @Test
     void mailsWithoutTokenLinksAndRevealedListingsStayAsTheyAre() {
         String reminder = "납기 임박 재통지 3/3: 10월 포인트 적립 이벤트 알림톡";
         assertThat(OutboxMasking.show(reminder, false)).isEqualTo(new OutboxMasking.Shown(reminder, false));

@@ -20,6 +20,7 @@ function page(request: RequestDetail = request088U1): RequestPage {
     users: { get: () => undefined, name: (id) => (id === 4 ? "최민아" : "-"), ready: true },
     variableValues: new Map(),
     mockEnabled: true,
+    channelSpec: null,
   };
 }
 

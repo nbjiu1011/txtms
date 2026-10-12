@@ -10,6 +10,8 @@ import styles from "./workflow.module.css";
 export const SAVE_BEFORE_SUBMIT_FAILED = "저장 실패: 3회 재시도했습니다. 수동 저장을 실행하세요.";
 const MISSING_TITLE = "검수를 요청하려면 다음 항목을 채우세요";
 const CORRECTION_NOTE = "텍스트 교정 결과는 필요하지 않습니다.";
+const WARNINGS_TITLE = "채널 규격 확인";
+const WARNINGS_NOTE = "규격 초과는 안내일 뿐 검수 요청을 막지 않습니다.";
 
 export interface SubmitRequestDialogProps {
   open: boolean;
@@ -35,6 +37,24 @@ interface Missing {
   target: "info" | "contents";
 }
 
+/** Channel spec warnings of the pre-check (§17.3): listed, never blocking. */
+function SpecWarnings({ items }: { items: string[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div className={styles.warnings}>
+      <span className={styles.lbl}>
+        {WARNINGS_TITLE} ({items.length}건)
+      </span>
+      <ul className={styles.missing} aria-label={WARNINGS_TITLE}>
+        {items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+      <p className={styles.note}>{WARNINGS_NOTE}</p>
+    </div>
+  );
+}
+
 function newIdempotencyKey(): string {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
@@ -56,12 +76,16 @@ function checkUnavailable(error: unknown): boolean {
 export function SubmitRequestDialog(props: SubmitRequestDialogProps) {
   const { open, onClose, request, projectName, leadName } = props;
   const [missing, setMissing] = useState<Missing | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
   const [key, setKey] = useState(newIdempotencyKey);
   const [confirming, setConfirming] = useState(false);
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);
-    if (open) setKey(newIdempotencyKey());
+    if (open) {
+      setKey(newIdempotencyKey());
+      setWarnings([]);
+    }
     if (!open) setConfirming(false);
   }
   const handlers = useRef(props);
@@ -88,6 +112,7 @@ export function SubmitRequestDialog(props: SubmitRequestDialogProps) {
       try {
         const check = await requestApi.submitCheck(p.request.id);
         if (cancelled) return;
+        setWarnings(check.warnings ?? []);
         if (check.ok) setConfirming(true);
         else {
           showMissing(check.details, check.fieldErrors);
@@ -145,6 +170,7 @@ export function SubmitRequestDialog(props: SubmitRequestDialogProps) {
           <p className={styles.small}>회수 승인 후 다시 요청하므로 검수 차수가 {request.nextSubmitRound}차로 올라갑니다.</p>
         ) : null}
         <p className={styles.note}>텍스트 교정은 선택 사항입니다. {CORRECTION_NOTE}</p>
+        <SpecWarnings items={warnings} />
       </Modal>
       <Modal
         open={missing !== null}
@@ -155,12 +181,13 @@ export function SubmitRequestDialog(props: SubmitRequestDialogProps) {
           if (missing) props.onShowMissing(missing.target);
         }}
       >
-        <ul className={styles.missing}>
+        <ul className={styles.missing} aria-label="채울 항목">
           {missing?.items.map((item) => (
             <li key={item}>{item}</li>
           ))}
         </ul>
         <p className={styles.note}>{CORRECTION_NOTE}</p>
+        <SpecWarnings items={warnings} />
       </Modal>
     </>
   );

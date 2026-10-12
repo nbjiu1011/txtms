@@ -60,15 +60,17 @@ app:
     login-lock-duration: 15m
     password-reset-ttl: 1h
     invitation-ttl: 7d
+    # Email change confirmation link mailed to the new address.
+    email-change-ttl: 24h
   lock:
     ttl: 30m
     # Releases idle locks every minute and writes "편집 잠금 자동 해제".
     release-job-enabled: true
   audit:
     retention:
-      # Daily deletion of access/export audit records older than `days` (client agreement 17: off until confirmed).
-      enabled: false
-      days: 1095
+      # Daily deletion of access/export audit records written more than `years` (KST calendar) ago — agreed 2026-10-08.
+      enabled: true
+      years: 3
       cron: "0 30 3 * * *"
   reminder:
     # Re-notification of unfinished work: 24h apart, at most 3 per request and user.
@@ -99,15 +101,22 @@ app:
     # TODO(stub): local disk until object storage is connected. Relative paths resolve from the working directory.
     local-root: ${STORAGE_ROOT:storage}
   content:
+    # Server-protection caps (LIMIT_EXCEEDED on save), separate from the channel specification below.
     max-contents-per-request: 1000
     max-text-length: 10000
-    max-buttons: 5
+    max-buttons: 20
     max-cards: 5
     max-info-text-length: 2000
-    # Submit limits (planning proposal values, client agreement 03/08 pending).
-    alimtalk-body-max: 1000
-    button-name-max: 14
-    sms-bytes-max: 2000
+  channel-spec:
+    # Channel limits (client confirmation 01, 2026-10-12): warnings only, never block saving or submitting.
+    alimtalk:
+      body-max-chars: 1000
+      buttons-max: 5
+      button-name-max-chars: 14
+    sms:
+      sms-max-bytes: 90
+      lms-max-bytes: 2000
+      encoding: EUC-KR
   bulk:
     max-rows: 1000
     max-file-size: 20MB

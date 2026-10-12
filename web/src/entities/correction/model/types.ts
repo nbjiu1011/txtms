@@ -25,8 +25,6 @@ export interface CorrectionResult {
   checkedAt: string;
   datasetLabel: string;
   variablesRevision: number;
-  /** true for a free-form content with attachments (not checked). */
-  excluded: boolean;
   groups: CorrectionGroup[];
 }
 
@@ -43,7 +41,6 @@ export interface CorrectionDataset {
 export interface CorrectionCheckItem {
   contentKey: string;
   payload: ContentPayload;
-  hasFiles: boolean;
 }
 
 /** `POST …/corrections/events` — history only; the text change happens in the edit buffer. */

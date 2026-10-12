@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { http, queryKeys, type Page } from "@/shared/api";
 import type {
+  ChannelSpec,
   ContentLockState,
   ContentType,
   ContentTypeSetting,
@@ -135,6 +136,15 @@ export function useContentTypes() {
     queryKey: queryKeys.list("content-types", {}),
     queryFn: () => http.get<ContentTypeSetting[]>("/content-types"),
     staleTime: 10 * 60_000,
+  });
+}
+
+/** Channel spec (`GET /api/channel-specs`, §17.3): configuration values, rarely change. */
+export function useChannelSpecs() {
+  return useQuery({
+    queryKey: queryKeys.detail("channel-specs", "current"),
+    queryFn: () => http.get<ChannelSpec>("/channel-specs"),
+    staleTime: 60 * 60_000,
   });
 }
 

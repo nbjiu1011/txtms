@@ -15,6 +15,7 @@ export type {
   BulkCommitRow,
   BundleVariable,
   ChangeAssignmentBody,
+  ChannelSpec,
   CoReviewer,
   CompletionBundle,
   Content,
@@ -64,6 +65,8 @@ export type {
 } from "./model/types";
 export {
   CONTENT_TYPES,
+  OFFERED_CONTENT_TYPES,
+  isOfferedType,
   FILE_SCAN_STATUSES,
   FILE_UNITS,
   FINAL_STATUSES,
@@ -89,6 +92,7 @@ export {
   fetchRequests,
   requestFilePaths,
   requestKeys,
+  useChannelSpecs,
   useContentTypes,
   useContentVersion,
   useRequestDetail,
@@ -103,14 +107,23 @@ export {
 export { locksDiffer } from "./model/locks";
 export {
   SMS_CUSTOMER_CENTER_LINE,
-  SMS_MAX_BYTES,
   SMS_OPT_OUT_LINE,
-  SMS_SHORT_MAX_BYTES,
-  isShortSms,
+  eucKrEncodable,
   smsBytes,
   smsFullText,
   textBytes,
+  textChars,
+  unsupportedChars,
 } from "./model/sms";
+export {
+  CHANNEL_SPEC_NOTICE,
+  checkAlimtalk,
+  checkSms,
+  formatCount,
+  peak,
+  smsKind,
+} from "./model/channel-spec";
+export type { AlimtalkCheck, Measure, SmsCheck, SmsKind } from "./model/channel-spec";
 export { bundleVariableValues, completedCopyText, messageBodyText } from "./model/bundle";
 export {
   archiveKeys,
@@ -152,7 +165,7 @@ export {
 } from "./api/request-mutations";
 export {
   BLANK_CARD,
-  MAX_ALIMTALK_BUTTONS,
+  MAX_ALIMTALK_BUTTONS_STORED,
   MAX_RCS_CARDS,
   MIN_RCS_CARDS,
   addAlimtalkButton,

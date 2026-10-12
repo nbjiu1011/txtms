@@ -5,8 +5,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Daily retention run (KST cron {@code app.audit.retention.cron}). Off by default: the retention period is not
- * confirmed yet (client agreement 17); enable with {@code app.audit.retention.enabled=true}.
+ * Daily retention run (KST cron {@code app.audit.retention.cron}); on by default since the 3-year period was agreed
+ * (2026-10-08), switch off with {@code app.audit.retention.enabled=false}.
  */
 @Component
 @ConditionalOnProperty(prefix = "app.audit.retention", name = "enabled", havingValue = "true")

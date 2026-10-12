@@ -713,11 +713,11 @@ class ConformanceAuditIntegrationTest extends IntegrationTestBase {
             assertThat(result.getResponse().getStatus()).as(e[0] + " " + e[1]).isIn(401, 404);
         }
         // mock management is Phase 2: the operator switch changes "active" only
-        boolean mockBefore = jdbc.queryForObject("SELECT mock_enabled FROM content_types WHERE type = 'RCS'",
+        boolean mockBefore = jdbc.queryForObject("SELECT mock_enabled FROM content_types WHERE type = 'SMS'",
                 Boolean.class);
-        boolean activeBefore = jdbc.queryForObject("SELECT active FROM content_types WHERE type = 'RCS'",
+        boolean activeBefore = jdbc.queryForObject("SELECT active FROM content_types WHERE type = 'SMS'",
                 Boolean.class);
-        JsonNode type = expect(200, operator, patch("/api/ops/content-types/RCS"), Map.of("active", activeBefore,
+        JsonNode type = expect(200, operator, patch("/api/ops/content-types/SMS"), Map.of("active", activeBefore,
                 "mockEnabled", !mockBefore));
         assertThat(type.path("mockEnabled").asBoolean()).isEqualTo(mockBefore);
         // the writing guide is read-only

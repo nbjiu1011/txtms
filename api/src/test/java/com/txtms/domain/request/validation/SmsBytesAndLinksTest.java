@@ -22,6 +22,26 @@ class SmsBytesAndLinksTest {
     }
 
     @Test
+    void eucKrRepresentableCharactersAreKsX1001() {
+        // the same strings are checked by the web counter (sms.test.ts) so both sides agree
+        assertThat(SmsBytes.unsupported("abc 123 한글 가나다 ㄱ ① ※ € ® 漢字\n")).isEmpty();
+        assertThat(SmsBytes.unsupported("똠방각하 😀 똠 뷁")).containsExactly("똠", "😀", "뷁");
+        assertThat(SmsBytes.bytes("똠😀")).isEqualTo(4);
+        assertThat(SmsBytes.unsupported(null)).isEmpty();
+        assertThat(SmsBytes.encodable('A')).isTrue();
+        assertThat(SmsBytes.encodable('한')).isTrue();
+        assertThat(SmsBytes.encodable('똠')).isFalse();
+        assertThat(SmsBytes.encodable(0xE000)).isFalse();
+        assertThat(SmsBytes.encodable("😀".codePointAt(0))).isFalse();
+    }
+
+    @Test
+    void channelSpecCountsCodePoints() {
+        assertThat(ChannelSpecCheck.chars("a 😀\n가")).isEqualTo(5);
+        assertThat(ChannelSpecCheck.chars(null)).isZero();
+    }
+
+    @Test
     void noticeLinesAreAppendedOnTheirOwnLine() {
         // "\n고객센터 1588-0000" = 1 + 8 + 1 + 9 = 19, "\n무료 수신거부 080-000-0000" = 27
         assertThat(SmsBytes.smsBytes("", true, false, CC, OPT)).isEqualTo(19);

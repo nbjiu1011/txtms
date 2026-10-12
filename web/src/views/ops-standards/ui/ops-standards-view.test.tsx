@@ -108,7 +108,7 @@ afterEach(() => {
 });
 
 describe("유효 데이터셋 배정 matrix", () => {
-  it("shows one select per customer × type with versions, confirmation state and stopped types", () => {
+  it("shows one select per customer × Phase 1 type with versions and confirmation state (no RCS)", () => {
     setup();
     expect(cell("한빛카드 알림톡 데이터셋").value).toBe("1");
     expect(within(cell("한빛카드 알림톡 데이터셋")).getAllByRole("option").map((o) => o.textContent)).toEqual([
@@ -119,8 +119,9 @@ describe("유효 데이터셋 배정 matrix", () => {
     expect(screen.getAllByText("10월 2일 확인 정우진").length).toBe(2);
     expect(screen.getByRole("button", { name: "한빛카드 문자 확인 처리" })).toBeTruthy();
     expect(cell("도담생명 문자 데이터셋").value).toBe("");
-    expect(cell("한빛카드 RCS 데이터셋").disabled).toBe(true);
-    expect(cell("한빛카드 RCS 데이터셋").title).toBe("사용하지 않는 유형입니다");
+    // RCS is deferred from Phase 1: no column even though the API row exists in the fixture
+    expect(screen.queryByLabelText("한빛카드 RCS 데이터셋")).toBeNull();
+    expect(screen.queryByRole("columnheader", { name: "RCS" })).toBeNull();
     expect(screen.getByText("미배정 2개")).toBeTruthy();
     expect(screen.getByText("배정 완료")).toBeTruthy();
   });
@@ -171,7 +172,7 @@ describe("유효 데이터셋 배정 matrix", () => {
     expect(screen.getByRole("heading", { name: "도담생명 텍스트 교정에 실제 적용되는 기준" })).toBeTruthy();
     expect(screen.getByText("알림톡 v2 규칙 5개")).toBeTruthy();
     expect(screen.getByText("문자 미배정")).toBeTruthy();
-    expect(screen.getByText("유형 미사용")).toBeTruthy();
+    expect(screen.queryByText(/RCS/)).toBeNull();
   });
 });
 

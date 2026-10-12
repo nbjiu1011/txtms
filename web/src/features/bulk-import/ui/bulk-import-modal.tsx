@@ -38,7 +38,8 @@ function message(error: unknown, fallback: string): string {
 
 /**
  * XLSX 대량 등록 (알림톡·문자 drafts): template download, server preview with per-row errors
- * (error rows cannot be selected), then the selected rows become new contents.
+ * (error rows cannot be selected) and channel spec warnings (shown, the row stays selectable), then
+ * the selected rows become new contents.
  */
 export function BulkImportModal({ open, onClose, requestId, type, onApplied }: BulkImportModalProps) {
   const [rows, setRows] = useState<BulkImportRow[] | null>(null);
@@ -127,6 +128,7 @@ export function BulkImportModal({ open, onClose, requestId, type, onApplied }: B
         <>
           <div className={styles.summary}>
             전체 {summary.total}행, 반영 가능 {summary.ok}행, 제외 {summary.excluded}행
+            {summary.warned > 0 ? `, 규격 경고 ${summary.warned}행 (반영 가능)` : ""}
           </div>
           <Panel>
             <Table>
@@ -164,6 +166,9 @@ export function BulkImportModal({ open, onClose, requestId, type, onApplied }: B
                       ) : (
                         "반영 가능"
                       )}
+                      {row.warnings.length ? (
+                        <span className={styles.warning}>주의: {row.warnings.join(", ")}</span>
+                      ) : null}
                     </td>
                   </tr>
                 ))}

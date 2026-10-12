@@ -21,6 +21,7 @@ public record AppProperties(
         Attachment attachment,
         Storage storage,
         Content content,
+        ChannelSpec channelSpec,
         Bulk bulk,
         Sms sms,
         Correction correction,
@@ -38,7 +39,8 @@ public record AppProperties(
             int loginMaxFailures,
             Duration loginLockDuration,
             Duration passwordResetTtl,
-            Duration invitationTtl) {
+            Duration invitationTtl,
+            Duration emailChangeTtl) {
     }
 
     /** Edit lock idle time and the switch of the automatic release job. */
@@ -46,12 +48,12 @@ public record AppProperties(
     }
 
     /**
-     * Access/export audit records (요청 조회, 파일 다운로드, 완료본 반출, 첨부 반출) are deleted {@code days} after they were
-     * written by a daily job ({@code cron}, KST) that runs only when {@code enabled} (client agreement 17 pending).
+     * Access/export audit records (요청 조회, 파일 다운로드, 완료본 반출, 첨부 반출) are deleted {@code years} calendar years
+     * (KST) after they were written by a daily job ({@code cron}, KST) when {@code enabled} (3 years, agreed 2026-10-08).
      */
     public record Audit(Retention retention) {
 
-        public record Retention(boolean enabled, int days, String cron) {
+        public record Retention(boolean enabled, int years, String cron) {
         }
     }
 
@@ -77,10 +79,25 @@ public record AppProperties(
     }
 
     /**
-     * Server-protection caps checked on every draft save, and the submit limits of the content types.
+     * Server-protection caps checked on every draft save ({@code LIMIT_EXCEEDED}). They guard against abuse and are
+     * separate from the channel specification ({@link ChannelSpec}), which only warns.
      */
     public record Content(int maxContentsPerRequest, int maxTextLength, int maxButtons, int maxCards,
-            int maxInfoTextLength, int alimtalkBodyMax, int buttonNameMax, int smsBytesMax) {
+            int maxInfoTextLength) {
+    }
+
+    /**
+     * Channel specification shown by {@code GET /api/channel-specs} and used for warnings only (never blocks).
+     * SMS bytes include the notice lines; {@code encoding} is reported to clients, and the counting itself is
+     * implemented for EUC-KR (KS X 1001) only.
+     */
+    public record ChannelSpec(Alimtalk alimtalk, Sms sms) {
+
+        public record Alimtalk(int bodyMaxChars, int buttonsMax, int buttonNameMaxChars) {
+        }
+
+        public record Sms(int smsMaxBytes, int lmsMaxBytes, String encoding) {
+        }
     }
 
     /** XLSX bulk registration limits. */

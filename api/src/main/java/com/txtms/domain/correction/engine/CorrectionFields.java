@@ -10,8 +10,9 @@ import tools.jackson.databind.JsonNode;
 /**
  * Text fields of a ContentPayload that text correction checks, in display order, keyed by their payload path
  * (contract §3.4): alimtalk {@code body}, {@code buttons.{i}.name} (links are not checked); SMS {@code body};
- * RCS {@code cards.{i}.title}, {@code cards.{i}.body}; free-form {@code title}, {@code text}. A free-form content
- * with attachments is excluded as a whole (actions.md §6.8).
+ * RCS {@code cards.{i}.title}, {@code cards.{i}.body}; free-form {@code title}, {@code text}. Only the text entered
+ * in TMS is checked: a free-form content's attachments are never read, and having them does not exclude the
+ * content (client decision 2026-10-12).
  */
 public final class CorrectionFields {
 
@@ -20,10 +21,6 @@ public final class CorrectionFields {
     }
 
     private CorrectionFields() {
-    }
-
-    public static boolean excluded(ContentType type, boolean hasFiles) {
-        return type == ContentType.FREEFORM && hasFiles;
     }
 
     public static List<Field> of(ContentType type, JsonNode payload) {

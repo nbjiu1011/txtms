@@ -184,7 +184,7 @@ class CorrectionIntegrationTest extends IntegrationTestBase {
         assertThat(result.path("contentKey").asString()).isEqualTo("C1");
         assertThat(result.path("datasetLabel").asString()).isEqualTo(label);
         assertThat(result.path("variablesRevision").asInt()).isEqualTo(0);
-        assertThat(result.path("excluded").asBoolean()).isFalse();
+        assertThat(result.has("excluded")).isFalse();
         assertThat(result.path("checkedAt").asString()).isNotEmpty();
         JsonNode groups = result.path("groups");
         assertThat(groups).hasSize(4);
@@ -294,7 +294,7 @@ class CorrectionIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void freeFormWithAttachmentsIsExcluded() throws Exception {
+    void freeFormWithAttachmentsChecksTheEnteredTextOnly() throws Exception {
         Tenant t = newTenant();
         Login operator = login(JUNG_OPERATOR);
         Login req = login(t.requester());
@@ -306,20 +306,17 @@ class CorrectionIntegrationTest extends IntegrationTestBase {
         Map<String, Object> payload = Map.of("title", "안내", "text", "변경하였습니다");
         JsonNode plain = expect(200, req, post("/api/requests/" + id + "/corrections/check"),
                 check("C1", payload, false)).path("results").get(0);
-        assertThat(plain.path("excluded").asBoolean()).isFalse();
         assertThat(plain.path("groups").get(0).path("id").asString()).isEqualTo("text:2:7");
-        JsonNode withFiles = expect(200, req, post("/api/requests/" + id + "/corrections/check"),
-                check("C1", payload, true)).path("results").get(0);
-        assertThat(withFiles.path("excluded").asBoolean()).isTrue();
-        assertThat(withFiles.path("groups")).isEmpty();
-        // a stored attachment excludes the content even when the buffer says otherwise
+        // attachments do not exclude the content: the entered title and text are checked (a former hasFiles key
+        // is ignored), the attachment itself is never read
         assertThat(upload(req, "/api/requests/" + id + "/contents/C1/files", "a.pdf",
                 RequestAuthoringIntegrationTest.PDF, null).getResponse().getStatus()).isEqualTo(201);
-        assertThat(expect(200, req, post("/api/requests/" + id + "/corrections/check"), check("C1", payload, false))
-                .path("results").get(0).path("excluded").asBoolean()).isTrue();
-        assertThat(expect(400, req, post("/api/requests/" + id + "/corrections/events"), Map.of("contentKey", "C1",
-                "action", "APPLY", "field", "text", "before", "하였습니다", "after", "했습니다")).path("message")
-                .asString()).isEqualTo("첨부파일이 있는 자유입력형은 교정을 적용할 수 없습니다");
+        JsonNode withFiles = expect(200, req, post("/api/requests/" + id + "/corrections/check"),
+                check("C1", payload, true)).path("results").get(0);
+        assertThat(withFiles.has("excluded")).isFalse();
+        assertThat(withFiles.path("groups").toString()).isEqualTo(plain.path("groups").toString());
+        expect(204, req, post("/api/requests/" + id + "/corrections/events"), Map.of("contentKey", "C1",
+                "action", "APPLY", "field", "text", "before", "하였습니다", "after", "했습니다"));
     }
 
     @Test
@@ -331,13 +328,13 @@ class CorrectionIntegrationTest extends IntegrationTestBase {
         for (JsonNode a : getJson(operator, "/api/ops/dataset-assignments")) {
             byKey.put(a.path("customerId").asLong() + ":" + a.path("type").asString(), a);
         }
-        for (String type : List.of("ALIMTALK", "SMS", "RCS", "FREEFORM")) {
+        for (String type : List.of("ALIMTALK", "SMS", "FREEFORM")) {
             assertThat(byKey.get(hanbit + ":" + type).path("checkedAt").isNull()).as(type).isFalse();
         }
         assertThat(byKey.get(dodam + ":ALIMTALK").path("checkedAt").isNull()).isFalse();
         assertThat(byKey.get(dodam + ":SMS").path("checkedAt").isNull()).isTrue();
-        assertThat(byKey.get(dodam + ":RCS").path("checkedAt").isNull()).isTrue();
-        assertThat(byKey).doesNotContainKeys(dodam + ":FREEFORM", hanbit + ":COMMON", dodam + ":COMMON");
+        assertThat(byKey).doesNotContainKeys(dodam + ":FREEFORM", hanbit + ":COMMON", dodam + ":COMMON",
+                hanbit + ":RCS", dodam + ":RCS");
         long alimtalk = byKey.get(hanbit + ":ALIMTALK").path("datasetId").asLong();
         JsonNode rules = getJson(operator, "/api/ops/datasets/" + alimtalk).path("rules");
         assertThat(rules).hasSize(56);
@@ -391,7 +388,7 @@ class CorrectionIntegrationTest extends IntegrationTestBase {
         expect(200, req, patch("/api/requests/" + id), Map.of("title", "안내", "hopeDueDate", "2026-12-20",
                 "purpose", "p", "target", "t", "background", "b"));
         JsonNode ok = expect(200, req, post("/api/requests/" + id + "/submit-check"), null);
-        assertThat(ok.toString()).isEqualTo("{\"ok\":true,\"details\":[],\"fieldErrors\":[]}");
+        assertThat(ok.toString()).isEqualTo("{\"ok\":true,\"details\":[],\"fieldErrors\":[],\"warnings\":[]}");
         expect(200, req, post("/api/requests/" + id + "/submit"),
                 Map.of("rowVersion", getJson(req, "/api/requests/" + id).path("rowVersion").asLong()));
         expect(409, req, post("/api/requests/" + id + "/submit-check"), null);

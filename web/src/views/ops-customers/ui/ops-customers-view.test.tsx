@@ -54,6 +54,7 @@ const member = (id: number, name: string, patch: Partial<Member> = {}): Member =
   admin: false,
   projects: [],
   invitationExpiresAt: null,
+  pendingEmail: null,
   ...patch,
 });
 

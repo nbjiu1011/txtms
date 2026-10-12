@@ -9,6 +9,13 @@
   padding-left: 18px;
   line-height: 1.9;
 }
+/* channel spec warnings of the submit pre-check (never blocking) */
+.warnings {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px dashed var(--s-wait);
+  border-radius: var(--r-md);
+}
 /* reference `div.lbl` group labels inside modals */
 .lbl {
   display: block;

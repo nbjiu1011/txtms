@@ -24,10 +24,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.txtms.domain.contenttype.entity.ContentType;
-import com.txtms.domain.contenttype.entity.ContentTypeSetting;
-import com.txtms.domain.contenttype.entity.WritingGuide;
-import com.txtms.domain.contenttype.repository.ContentTypeSettingRepository;
-import com.txtms.domain.contenttype.repository.WritingGuideRepository;
 import com.txtms.domain.correction.engine.CorrectionRule;
 import com.txtms.domain.customer.entity.Customer;
 import com.txtms.domain.customer.entity.NotifyChannel;
@@ -120,8 +116,6 @@ public class DemoDataSeeder implements ApplicationRunner {
     private final CustomerRepository customers;
     private final UserRepository users;
     private final ProjectRepository projects;
-    private final ContentTypeSettingRepository contentTypes;
-    private final WritingGuideRepository guides;
     private final RequestRepository requests;
     private final ContentRepository contents;
     private final ContentVersionRepository contentVersions;
@@ -141,8 +135,7 @@ public class DemoDataSeeder implements ApplicationRunner {
     private final AppProperties properties;
 
     public DemoDataSeeder(CustomerRepository customers, UserRepository users, ProjectRepository projects,
-            ContentTypeSettingRepository contentTypes, WritingGuideRepository guides, RequestRepository requests,
-            ContentRepository contents, ContentVersionRepository contentVersions, ContentFileRepository files,
+            RequestRepository requests, ContentRepository contents, ContentVersionRepository contentVersions, ContentFileRepository files,
             ContentFileVersionRepository fileVersions, RequestOpinionRepository opinions, RequestAskRepository asks,
             RequestHistoryRepository history, CompletionBundleRepository bundles,
             CompletionBundleItemRepository bundleItems, NotificationRepository notifications,
@@ -151,8 +144,6 @@ public class DemoDataSeeder implements ApplicationRunner {
         this.customers = customers;
         this.users = users;
         this.projects = projects;
-        this.contentTypes = contentTypes;
-        this.guides = guides;
         this.requests = requests;
         this.contents = contents;
         this.contentVersions = contentVersions;
@@ -307,7 +298,6 @@ public class DemoDataSeeder implements ApplicationRunner {
         void run() {
             seedCustomersAndUsers();
             seedProjects();
-            seedContentTypes();
             seedVariables();
             seedDatasets();
             seedNotices();
@@ -390,35 +380,6 @@ public class DemoDataSeeder implements ApplicationRunner {
             p.put("p3", projects.save(p3));
         }
 
-        void seedContentTypes() {
-            contentTypes.save(new ContentTypeSetting(ContentType.ALIMTALK, true, true, 1, now));
-            contentTypes.save(new ContentTypeSetting(ContentType.SMS, true, true, 2, now));
-            contentTypes.save(new ContentTypeSetting(ContentType.RCS, true, true, 3, now));
-            contentTypes.save(new ContentTypeSetting(ContentType.FREEFORM, true, false, 4, now));
-
-            guide(ContentType.ALIMTALK,
-                    "정보성 메시지만 발송합니다. 승인된 템플릿의 고정 문구는 바꾸지 않고, 변수 위치만 채웁니다.\n버튼명은 동작을 그대로 설명합니다.",
-                    List.of(List.of("클릭하세요", "버튼을 눌러 확인하세요"), List.of("혜택을 드립니다", "혜택을 받으실 수 있습니다")),
-                    List.of("템플릿 고정 문구 변경 없음", "변수 표기 #{변수명} 확인", "버튼 링크 도메인 확인", "개인정보 노출 여부"));
-            guide(ContentType.SMS,
-                    "광고성 문자는 첫머리에 (광고)를 표기하고 수신거부 안내를 포함합니다. 발신번호는 등록된 번호만 사용합니다.",
-                    List.of(List.of("금일", "오늘"), List.of("익일", "다음 날")),
-                    List.of("(광고) 표기", "무료 수신거부 번호", "발신번호 등록 여부", "90바이트 초과 시 장문 전환 확인"));
-            guide(ContentType.RCS, "카드마다 한 가지 메시지만 전달합니다. 이미지에는 반드시 설명을 입력합니다.",
-                    List.of(List.of("자세히보기", "자세히 보기")),
-                    List.of("이미지 설명 입력", "카드별 버튼 링크", "카드 순서와 흐름"));
-            guide(ContentType.FREEFORM, "문서 파일은 실제 검수할 범위를 먼저 적습니다. 수정본은 새 버전으로 올립니다.",
-                    List.of(List.of("하였습니다", "했습니다")),
-                    List.of("검수 범위 입력", "파일 버전 확인"));
-        }
-
-        void guide(ContentType type, String principles, List<List<String>> good, List<String> checklist) {
-            List<Map<String, Object>> expressions = good.stream()
-                    .map(pair -> ordered("avoid", pair.get(0), "prefer", pair.get(1)))
-                    .toList();
-            guides.save(new WritingGuide(type, principles, write(expressions), write(checklist), now));
-        }
-
         // ------------------------------------------------------------------ variables / datasets
 
         void seedVariables() {
@@ -464,10 +425,10 @@ public class DemoDataSeeder implements ApplicationRunner {
             varsByProject.computeIfAbsent(projectId, k -> new ArrayList<>()).add(snapshot);
         }
 
-        /** One dataset v1 per content type and the planned assignments ({@link DemoDatasets}). */
+        /** One dataset v1 per Phase 1 content type and the planned assignments ({@link DemoDatasets}). */
         void seedDatasets() {
             Map<ContentType, Long> byType = new HashMap<>();
-            for (ContentType type : ContentType.values()) {
+            for (ContentType type : DemoDatasets.TYPES) {
                 byType.put(type, dataset(type.name(), 1, -50, DemoDatasets.rules(type)));
             }
             Map<String, String> customerKeys = Map.of(DemoDatasets.HANBIT, "c1", DemoDatasets.DODAM, "c2");
@@ -524,7 +485,7 @@ public class DemoDataSeeder implements ApplicationRunner {
             notify("u2", at(0, 9, 0), NotificationKind.RECALL, "REQ-2609-107",
                     "김서연님이 회수를 요청했습니다. 승인 또는 거절이 필요합니다.", false, false, "u1");
             notify("u4", at(-3, 17, 0), NotificationKind.APPROVAL, "REQ-2609-103",
-                    "승인 대기 요청이 있습니다: 프리미엄 카드 리뉴얼 RCS", true, false, "u3");
+                    "승인 대기 요청이 있습니다: 프리미엄 카드 리뉴얼 안내", true, false, "u3");
             notify("u6", at(0, 8, 0), NotificationKind.DUE, "REQ-2609-113", "확정 납기가 지났습니다: 카드 분실 신고 안내 개편",
                     false, true, null);
             notify("u8", at(-1, 15, 0), NotificationKind.ASSIGN, "REQ-2609-112", "신규 검수 요청이 배정을 기다립니다.",
@@ -572,15 +533,14 @@ public class DemoDataSeeder implements ApplicationRunner {
             r102.content("카드사 앱 유도", sms("1588-0000",
                     "(광고)[한빛카드] 한빛카드 앱에서 해외 결제 내역을 확인하시고 수수료 면제 혜택을 받아보세요.", false, false));
 
-            RequestSeed r103 = new RequestSeed(103, "p1", "프리미엄 카드 리뉴얼 RCS", ContentType.RCS,
+            RequestSeed r103 = new RequestSeed(103, "p1", "프리미엄 카드 리뉴얼 안내", ContentType.ALIMTALK,
                     RequestStatus.APPROVAL_WAITING, "u1", at(-9), at(-9, 10, 0), day(3))
                     .info("리뉴얼 카드 혜택 소개", "프리미엄 카드 보유 고객", "10월 리뉴얼 출시", "프리미엄 리뉴얼")
                     .reviewers("u2", "u3").primary("u3").round(2);
-            r103.content("리뉴얼 소개 캐러셀", rcs(
-                    card("새로워진 프리미엄", "연회비는 그대로, 공항 라운지 이용 횟수는 두 배로 늘었습니다.", "프리미엄 카드 실물 이미지",
-                            "혜택 자세히 보기", "https://hanbitcard.co.kr/premium"),
-                    card("해외 결제 적립", "해외 가맹점 결제 시 결제 금액의 2%를 포인트로 적립해 드립니다.", "해외 결제 적립 안내 그래픽",
-                            "적립 조건 보기", "https://hanbitcard.co.kr/premium/point"))).extraVersion("u2", at(-4, 13, 0));
+            r103.content("리뉴얼 혜택 안내", alimtalk("HB_EVT_03",
+                    "#{customer_name}님, 프리미엄 카드가 새로워졌습니다. 연회비는 그대로, 공항 라운지 이용 횟수는 두 배로 늘었습니다."
+                            + " 해외 가맹점 결제 시 결제 금액의 2%를 포인트로 적립해 드립니다.",
+                    button("혜택 자세히 보기", "https://hanbitcard.co.kr/premium"))).extraVersion("u2", at(-4, 13, 0));
 
             RequestSeed r104 = new RequestSeed(104, "p1", "추석 연휴 고객센터 운영 안내", ContentType.SMS,
                     RequestStatus.WAITING, "u1", at(-1, 9, 0), at(-1, 10, 0), day(1))
@@ -678,7 +638,7 @@ public class DemoDataSeeder implements ApplicationRunner {
             hist(r103, at(-5, 10, 0), "u4", "수정 요청",
                     "사유: 라운지 이용 횟수 표기 근거 필요\n위치: 카드 1 본문\n기대 내용: 정확한 횟수(연 4회→8회)로 표기", null, 1);
             hist(r103, at(-5, 10, 1), "u4", "재검수 시작", "승인자 수정 요청으로 2차 검수 시작", null, 2);
-            hist(r103, at(-4, 13, 0), "u2", "문안 수정", "v1 → v2  카드 1 본문 수정", "C1", 2);
+            hist(r103, at(-4, 13, 0), "u2", "문안 수정", "v1 → v2  본문 수정", "C1", 2);
             hist(r103, at(-3, 17, 0), "u3", "검수 완료", "주담당 검수 완료, 승인 대기로 전환", null, 2);
 
             hist(r107, at(0, 9, 0), "u1", "회수 요청", "법무팀 최종본이 변경되어 파일을 교체하려 합니다.", null, 1);
@@ -816,22 +776,6 @@ public class DemoDataSeeder implements ApplicationRunner {
 
         Map<String, Object> sms(String sender, String body, boolean customerCenter, boolean optOut) {
             return ordered("sender", sender, "body", body, "customerCenter", customerCenter, "optOut", optOut);
-        }
-
-        @SafeVarargs
-        final Map<String, Object> rcs(Map<String, Object>... cards) {
-            return ordered("cards", List.of(cards));
-        }
-
-        Map<String, Object> card(String title, String body, String imageAlt, String buttonName, String buttonLink) {
-            Map<String, Object> card = new LinkedHashMap<>();
-            card.put("title", title);
-            card.put("body", body);
-            card.put("imageKey", null);
-            card.put("imageAlt", imageAlt);
-            card.put("buttonName", buttonName);
-            card.put("buttonLink", buttonLink);
-            return card;
         }
 
         Map<String, Object> freeform(String title, String text) {

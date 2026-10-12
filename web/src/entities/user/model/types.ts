@@ -24,6 +24,11 @@ export interface Member {
   admin: boolean;
   projects: MemberProject[];
   invitationExpiresAt: string | null;
+  /**
+   * New address of an email change awaiting confirmation by its recipient (null when none). The API always sends
+   * the key; it is optional here only so fixtures written before it stay valid.
+   */
+  pendingEmail: string | null;
 }
 
 /** `POST /api/customers/{id}/invitations` body. */

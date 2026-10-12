@@ -100,11 +100,10 @@ public class BundleExportService {
     public Export exportXlsx(AuthUser auth, String id) {
         return tx.execute(status -> {
             Scope s = finalScope(auth, id);
-            Map<String, String> values = CompletionBundles.values(s.bundle().getVariablesSnapshot(), json);
             List<List<String>> rows = new ArrayList<>();
             for (CompletionBundleItem item : s.items()) {
                 rows.add(BundleSheet.row(s.request().request().getType(), item.getContentKey(), item.getTitle(),
-                        item.getVersion(), json.readTree(item.getPayload()), values, s.bundle().getStatus(),
+                        item.getVersion(), json.readTree(item.getPayload()), s.bundle().getStatus(),
                         s.bundle().getCompletedAt()));
             }
             byte[] bytes = BundleSheet.workbook(rows);

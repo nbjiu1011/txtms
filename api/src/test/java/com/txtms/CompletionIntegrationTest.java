@@ -286,10 +286,10 @@ class CompletionIntegrationTest extends IntegrationTestBase {
             assertThat(c1.getCell(3).getStringCellValue()).isEqualTo("#{customer_name}님 포인트 안내");
             assertThat(c1.getCell(4).getStringCellValue()).isEqualTo("자세히\n참여");
             assertThat(c1.getCell(5).getStringCellValue()).isEqualTo("https://a.kr\nhttps://b.kr");
-            assertThat(c1.getCell(6).getStringCellValue()).isEqualTo("customer_name=홍길동");
+            assertThat(c1.getCell(6).getStringCellValue()).isEqualTo("customer_name");
             assertThat(c1.getCell(7).getStringCellValue()).isEqualTo("v1");
             assertThat(c1.getCell(8).getStringCellValue()).isEqualTo("검수 완료");
-            assertThat(c1.getCell(9).getStringCellValue()).matches("\\d{4}-\\d{2}-\\d{2} \\(KST\\)");
+            assertThat(c1.getCell(9).getStringCellValue()).matches("\\d{4}-\\d{2}-\\d{2}");
             assertThat(sheet.getRow(2).getCell(6).getStringCellValue()).isEmpty();
             assertThat(sheet.getRow(2).getCell(7).getStringCellValue()).isEqualTo("v3");
         }

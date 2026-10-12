@@ -59,7 +59,7 @@ public class DemoDatasetRefresher implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         Long operator = users.findByEmail(DEMO_OPERATOR).map(User::getId).orElse(null);
         Map<ContentType, Dataset> latest = new EnumMap<>(ContentType.class);
-        for (ContentType type : ContentType.values()) {
+        for (ContentType type : DemoDatasets.TYPES) {
             List<CorrectionRule> seed = DemoDatasets.rules(type);
             DatasetScope scope = DatasetScope.of(type);
             Optional<Dataset> current = datasets.latest(scope).filter(d -> datasets.rules(d.getId()).equals(seed));
@@ -76,7 +76,8 @@ public class DemoDatasetRefresher implements ApplicationRunner {
             if (datasets.findAssignment(id, DatasetScope.COMMON).isPresent()) {
                 datasets.unassign(operator, id, DatasetScope.COMMON);
             }
-            for (ContentType type : ContentType.values()) {
+            // Phase 1 types only: an RCS assignment left from before the deferral stays for existing RCS requests
+            for (ContentType type : DemoDatasets.TYPES) {
                 Optional<DemoDatasets.PlannedAssignment> plan = DemoDatasets.ASSIGNMENTS.stream()
                         .filter(a -> a.customerDomain().equals(customer.getDomain()) && a.type() == type)
                         .findFirst();

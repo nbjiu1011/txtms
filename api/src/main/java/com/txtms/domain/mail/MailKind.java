@@ -4,6 +4,7 @@ package com.txtms.domain.mail;
 public enum MailKind {
     INVITATION,
     PASSWORD_RESET,
+    EMAIL_CHANGE,
     REMINDER,
     OTHER
 }

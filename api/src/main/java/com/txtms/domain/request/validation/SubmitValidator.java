@@ -15,17 +15,17 @@ import tools.jackson.databind.JsonNode;
 /**
  * Submit validation (also used at review completion later). Produces the missing-item list in the order and wording
  * of the screen: common request fields and required content fields first ({@code "{key} {title}: item"}), then the
- * registration, limit, link, variable and attachment rules ({@code "{key}: item"}). Duplicates are dropped and a
- * rule is not repeated for the same cause (an empty template is reported once as missing, not also as unregistered).
- * Text correction results are never required.
+ * registration, link, variable and attachment rules ({@code "{key}: item"}). Duplicates are dropped and a rule is not
+ * repeated for the same cause (an empty template is reported once as missing, not also as unregistered). Channel
+ * specification overruns (Alimtalk length/buttons, SMS/LMS bytes, EUC-KR characters) are only {@code warnings}
+ * ({@code "{key} {title}: item"}) and never fail the validation. Text correction results are never required.
  */
 public final class SubmitValidator {
 
     public static final String SUMMARY = "검수를 요청하려면 다음 항목을 채우세요";
 
-    /** Limits and constants used by the rules. */
-    public record Limits(int alimtalkBodyMax, int buttonsMax, int buttonNameMax, int smsBytesMax, int filesMax,
-            long filesTotalBytesMax, String customerCenterLine, String optOutLine) {
+    /** Attachment limits used by the rules. */
+    public record Limits(int filesMax, long filesTotalBytesMax) {
     }
 
     public record Input(
@@ -46,21 +46,26 @@ public final class SubmitValidator {
     public record FileInput(String name, Integer totalAmount, Integer reviewAmount, long sizeBytes, boolean scanSafe) {
     }
 
-    public record Result(List<String> details, List<ErrorResponse.FieldErrorItem> fieldErrors) {
+    /** {@code warnings}: channel specification notes, independent of {@link #ok()}. */
+    public record Result(List<String> details, List<ErrorResponse.FieldErrorItem> fieldErrors,
+            List<String> warnings) {
         public boolean ok() {
             return details.isEmpty();
         }
     }
 
     private final Limits limits;
+    private final ChannelSpecCheck channelSpec;
 
-    public SubmitValidator(Limits limits) {
+    public SubmitValidator(Limits limits, ChannelSpecCheck channelSpec) {
         this.limits = limits;
+        this.channelSpec = channelSpec;
     }
 
     public Result validate(Input in) {
         Set<String> list = new LinkedHashSet<>();
         List<ErrorResponse.FieldErrorItem> fields = new ArrayList<>();
+        List<String> warnings = new ArrayList<>();
 
         // --- common request information
         RequestInfo info = in.info();
@@ -131,7 +136,7 @@ public final class SubmitValidator {
             }
         }
 
-        // --- registration, limits, links, variables, attachments
+        // --- registration, links, variables, attachments
         if (!in.projectActive()) {
             list.add("사용 중인 프로젝트에서 검수를 요청하세요");
         }
@@ -146,16 +151,7 @@ public final class SubmitValidator {
                     if (!blank(f, "templateCode") && !in.templateCodes().contains(str(f, "templateCode"))) {
                         list.add(label + ": 등록된 승인 템플릿");
                     }
-                    if (str(f, "body").length() > limits.alimtalkBodyMax()) {
-                        list.add(label + ": 본문 최대 " + String.format("%,d", limits.alimtalkBodyMax()) + "자");
-                    }
-                    if (f.path("buttons").size() > limits.buttonsMax()) {
-                        list.add(label + ": 버튼 최대 " + limits.buttonsMax() + "개");
-                    }
                     for (JsonNode b : f.path("buttons")) {
-                        if (str(b, "name").length() > limits.buttonNameMax()) {
-                            list.add(label + ": 버튼명 최대 " + limits.buttonNameMax() + "자");
-                        }
                         if (!blank(b, "link") && !Links.valid(str(b, "link"), in.variables())) {
                             list.add(label + ": HTTP/HTTPS 버튼 링크");
                         }
@@ -164,12 +160,6 @@ public final class SubmitValidator {
                 case SMS -> {
                     if (!blank(f, "sender") && !in.senders().contains(str(f, "sender"))) {
                         list.add(label + ": 등록된 발신번호");
-                    }
-                    int bytes = SmsBytes.smsBytes(str(f, "body"), f.path("customerCenter").asBoolean(false),
-                            f.path("optOut").asBoolean(false), limits.customerCenterLine(), limits.optOutLine());
-                    if (bytes > limits.smsBytesMax()) {
-                        list.add(label + ": LMS 최대 " + String.format("%,d", limits.smsBytesMax())
-                                + "바이트 (안내 포함)");
                     }
                 }
                 case RCS -> {
@@ -192,6 +182,9 @@ public final class SubmitValidator {
                 case FREEFORM -> {
                     // text is free; files are checked below for every type
                 }
+            }
+            for (String warning : channelSpec.warnings(in.type(), f)) {
+                warnings.add(c.key() + " " + c.title() + ": " + warning);
             }
             for (String key : variableKeys(f)) {
                 if (!in.variables().containsKey(key)) {
@@ -218,7 +211,7 @@ public final class SubmitValidator {
         if (scanPending) {
             list.add("첨부파일 업로드·검사가 끝난 후 요청하세요");
         }
-        return new Result(List.copyOf(list), List.copyOf(fields));
+        return new Result(List.copyOf(list), List.copyOf(fields), List.copyOf(warnings));
     }
 
     /** Variable keys used anywhere in the payload's text values, in order. */

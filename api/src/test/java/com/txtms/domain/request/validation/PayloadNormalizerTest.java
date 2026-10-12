@@ -15,7 +15,7 @@ import tools.jackson.databind.json.JsonMapper;
 class PayloadNormalizerTest {
 
     private final JsonMapper json = JsonMapper.builder().build();
-    private final PayloadNormalizer normalizer = new PayloadNormalizer(new PayloadNormalizer.Caps(10_000, 5, 5));
+    private final PayloadNormalizer normalizer = new PayloadNormalizer(new PayloadNormalizer.Caps(10_000, 20, 5));
 
     private JsonNode tree(String s) {
         return json.readTree(s);
@@ -74,10 +74,14 @@ class PayloadNormalizerTest {
                 ErrorCode.LIMIT_EXCEEDED, "payload.body");
         assertThat(normalizer.normalize(ContentType.SMS, tree("{\"body\":\"" + "가".repeat(10_000) + "\"}"))
                 .path("body").asString()).hasSize(10_000);
-        assertCode(() -> normalizer.normalize(ContentType.ALIMTALK,
-                tree("{\"buttons\":[{},{},{},{},{},{}]}")), ErrorCode.LIMIT_EXCEEDED, "payload.buttons");
-        assertThat(normalizer.normalize(ContentType.ALIMTALK, tree("{\"buttons\":[{},{},{},{},{}]}"))
-                .path("buttons")).hasSize(5);
+        // the button cap (20) is an abuse guard above the channel spec (5 buttons only warns)
+        String twenty = "{\"buttons\":[" + String.join(",", java.util.Collections.nCopies(20, "{}")) + "]}";
+        String twentyOne = "{\"buttons\":[" + String.join(",", java.util.Collections.nCopies(21, "{}")) + "]}";
+        assertThat(normalizer.normalize(ContentType.ALIMTALK, tree(twenty)).path("buttons")).hasSize(20);
+        assertThat(normalizer.normalize(ContentType.ALIMTALK, tree("{\"buttons\":[{},{},{},{},{},{}]}"))
+                .path("buttons")).hasSize(6);
+        assertCode(() -> normalizer.normalize(ContentType.ALIMTALK, tree(twentyOne)), ErrorCode.LIMIT_EXCEEDED,
+                "payload.buttons");
         assertCode(() -> normalizer.normalize(ContentType.RCS, tree("{\"cards\":[{},{},{},{},{},{}]}")),
                 ErrorCode.LIMIT_EXCEEDED, "payload.cards");
         assertThat(normalizer.normalize(ContentType.RCS, tree("{\"cards\":[]}")).path("cards")).isEmpty();

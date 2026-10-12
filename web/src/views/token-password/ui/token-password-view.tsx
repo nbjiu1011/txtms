@@ -14,6 +14,8 @@ export const INVALID_LINK_MESSAGE = "유효하지 않거나 만료된 링크입�
 const TITLE: Record<AuthTokenKind, string> = {
   INVITATION: "초대 수락",
   PASSWORD_RESET: "비밀번호 재설정",
+  // an email change link opens its own page; the title only completes the map
+  EMAIL_CHANGE: "이메일 변경 확인",
 };
 
 export interface TokenPasswordViewProps {
@@ -35,7 +37,8 @@ export function TokenPasswordView({ kind, token }: TokenPasswordViewProps) {
   });
 
   const resolvedKind = info.data?.kind ?? kind;
-  const valid = info.data?.valid === true;
+  // an email change link sets no password (it has its own page)
+  const valid = info.data?.valid === true && info.data.kind !== "EMAIL_CHANGE";
   const loading = token === null || info.isPending;
 
   // An invalid link answers 200 `{ valid: false }`; an error means the check itself failed.

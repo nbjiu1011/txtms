@@ -43,13 +43,6 @@ class CorrectionFieldsTest {
     }
 
     @Test
-    void freeFormWithFilesIsExcluded() {
-        assertThat(CorrectionFields.excluded(ContentType.FREEFORM, true)).isTrue();
-        assertThat(CorrectionFields.excluded(ContentType.FREEFORM, false)).isFalse();
-        assertThat(CorrectionFields.excluded(ContentType.ALIMTALK, true)).isFalse();
-    }
-
-    @Test
     void eventFieldKeys() {
         assertThat(CorrectionFields.validKey(ContentType.ALIMTALK, "body")).isTrue();
         assertThat(CorrectionFields.validKey(ContentType.ALIMTALK, "buttons.4.name")).isTrue();
@@ -69,7 +62,10 @@ class CorrectionFieldsTest {
         assertThat(alimtalk.getFirst().ruleId()).isEqualTo("1");
         assertThat(alimtalk.stream().map(CorrectionRule::ruleId)).contains("P1", "P7", "P8").doesNotContain("P9");
         assertThat(DemoDatasets.rules(ContentType.SMS)).hasSize(55).anyMatch(r -> r.ruleId().equals("P9"));
-        assertThat(DemoDatasets.rules(ContentType.RCS)).anyMatch(r -> r.ruleId().equals("P10"));
+        // RCS is deferred from Phase 1: no demo dataset type, no RCS rule
+        assertThat(DemoDatasets.TYPES).containsExactly(ContentType.ALIMTALK, ContentType.SMS, ContentType.FREEFORM);
+        assertThat(DemoDatasets.ASSIGNMENTS).noneMatch(a -> a.type() == ContentType.RCS);
+        assertThat(DemoDatasets.rules(ContentType.RCS)).noneMatch(r -> r.ruleId().equals("P10"));
         assertThat(DemoDatasets.rules(ContentType.FREEFORM)).anyMatch(r -> r.ruleId().equals("P11"));
 
         // demo request REQ-2609-101 C1 shows results

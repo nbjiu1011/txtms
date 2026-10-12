@@ -32,8 +32,9 @@ public class ContentTypeService {
         this.clock = clock;
     }
 
+    /** Phase 1 content types in display order (RCS is deferred and never listed). */
     public List<ContentTypeResponse> contentTypes() {
-        return settings.findAllByOrderBySortOrderAsc().stream()
+        return offered().stream()
                 .map(s -> new ContentTypeResponse(s.getType(), s.isActive(), s.isMockEnabled()))
                 .toList();
     }
@@ -45,6 +46,9 @@ public class ContentTypeService {
      */
     @Transactional
     public ContentTypeResponse setActive(ContentType type, boolean active, long actorId) {
+        if (!type.offered()) {
+            throw BusinessException.notFound(); // deferred types are not managed
+        }
         ContentTypeSetting s = settings.findById(type).orElseThrow(BusinessException::notFound);
         if (s.isActive() != active) {
             s.changeActive(active, actorId, clock.instant());
@@ -56,18 +60,21 @@ public class ContentTypeService {
 
     /** Content types in use (display order). */
     public java.util.List<ContentType> activeTypes() {
-        return settings.findAllByOrderBySortOrderAsc().stream().filter(ContentTypeSetting::isActive)
-                .map(ContentTypeSetting::getType).toList();
+        return offered().stream().filter(ContentTypeSetting::isActive).map(ContentTypeSetting::getType).toList();
     }
 
+    /** In use for new contents: offered in Phase 1 and switched on by the operator. */
     public boolean isActive(ContentType type) {
-        return type != null && settings.findById(type).map(s -> s.isActive()).orElse(false);
+        return type != null && type.offered() && settings.findById(type).map(s -> s.isActive()).orElse(false);
     }
 
     /** First active type in display order (default type of a new request). */
     public java.util.Optional<ContentType> firstActive() {
-        return settings.findAllByOrderBySortOrderAsc().stream().filter(s -> s.isActive()).map(s -> s.getType())
-                .findFirst();
+        return activeTypes().stream().findFirst();
+    }
+
+    private List<ContentTypeSetting> offered() {
+        return settings.findAllByOrderBySortOrderAsc().stream().filter(s -> s.getType().offered()).toList();
     }
 
     /** Korean label used in history details. */
@@ -81,6 +88,9 @@ public class ContentTypeService {
     }
 
     public GuideResponse guide(ContentType type) {
+        if (!type.offered()) {
+            throw BusinessException.notFound();
+        }
         WritingGuide g = guides.findById(type).orElseThrow(BusinessException::notFound);
         return new GuideResponse(g.getType(), g.getPrinciples(), g.getGoodExpressions(), g.getChecklist());
     }

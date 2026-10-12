@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useLayoutEffect } from "react";
+import { useCallback, useEffect, useRef, useState, useLayoutEffect } from "react";
 import { isApiError } from "@/shared/api";
 import { toast } from "@/shared/ui";
 import { correctionApi, type CorrectionCheckItem } from "@/entities/correction";
@@ -11,7 +11,7 @@ import {
   type ContentPayload,
   type ContentType,
 } from "@/entities/request";
-import { isExcluded, isStale, payloadSnapshot } from "./freshness";
+import { isStale, payloadSnapshot } from "./freshness";
 import { handoffKey, useCorrectionHandoff, type CorrectionHandoff } from "./handoff";
 import {
   commitReplacement,
@@ -73,23 +73,22 @@ export interface UseCorrectionOptions {
   adoptFor?: string;
 }
 
-/** Row of the panel: a checked content, an excluded one, or one without a result yet. */
+/** Row of the panel: a checked content or one without a result yet. */
 export interface CorrectionRow {
   content: CorrectionContent;
-  excluded: boolean;
+  /** The content has attachments (checked anyway: only the entered text, never the files). */
+  hasFiles: boolean;
   run: CorrectionRun | null;
   stale: boolean;
 }
 
 export interface CorrectionController {
   checking: "one" | "all" | null;
-  /** Full-check mode: content keys of the last 전체 검사 (excluded ones included). */
+  /** Full-check mode: content keys of the last 전체 검사. */
   bulk: readonly string[] | null;
   row: (key: string) => CorrectionRow | null;
-  /** Contents of the request. */
+  /** Contents of the request (전체 검사 checks all of them). */
   contentCount: number;
-  /** Contents 전체 검사 sends (not excluded). */
-  checkableCount: number;
   checkOne: (key: string) => Promise<void>;
   checkAll: () => Promise<void>;
   closeBulk: () => void;
@@ -129,27 +128,6 @@ export function useCorrection(options: UseCorrectionOptions): CorrectionControll
   });
   const busy = useRef(false);
 
-  const fileCount = useCallback((key: string) => contents.find((c) => c.key === key)?.fileCount ?? 0, [contents]);
-
-  // Attachments added: the results of that content are dropped (they do not come back when the
-  // attachments are removed again). Adjusted during render when the set of excluded contents changes.
-  const excludedKeys = contents
-    .filter((c) => isExcluded(type, c.fileCount))
-    .map((c) => c.key)
-    .join("\u0000");
-  const [seenExcluded, setSeenExcluded] = useState(excludedKeys);
-  if (seenExcluded !== excludedKeys) {
-    setSeenExcluded(excludedKeys);
-    const drop = excludedKeys.split("\u0000").filter((key) => key && key in state.runs);
-    if (drop.length) {
-      setState((s) => {
-        const runs = { ...s.runs };
-        for (const key of drop) delete runs[key];
-        return { ...s, runs };
-      });
-    }
-  }
-
   // A result handed over by another tab (content tab of `adoptFor`): adopt it, then show the card's
   // expression and clear the hand-over.
   const adoptFor = options.adoptFor;
@@ -180,10 +158,10 @@ export function useCorrection(options: UseCorrectionOptions): CorrectionControll
     const snapshots = new Map<string, string>();
     for (const key of keys) {
       const payload = ed.payloadOf(key);
-      if (payload === null || isExcluded(type, fileCount(key))) continue;
+      if (payload === null) continue;
       const normalized = normalizePayload(type, payload);
       snapshots.set(key, payloadSnapshot(type, normalized));
-      items.push({ contentKey: key, payload: normalized, hasFiles: fileCount(key) > 0 });
+      items.push({ contentKey: key, payload: normalized });
     }
     if (items.length === 0) {
       if (bulk) setState((s) => ({ ...s, bulk: keys }));
@@ -268,19 +246,15 @@ export function useCorrection(options: UseCorrectionOptions): CorrectionControll
   const row = (key: string): CorrectionRow | null => {
     const content = contents.find((c) => c.key === key);
     if (!content) return null;
-    const excluded = isExcluded(type, content.fileCount);
-    const run = excluded ? null : (state.runs[key] ?? null);
-    return { content, excluded: excluded || !!run?.excluded, run, stale: run ? staleOf(run, key) : false };
+    const run = state.runs[key] ?? null;
+    return { content, hasFiles: content.fileCount > 0, run, stale: run ? staleOf(run, key) : false };
   };
-
-  const checkableCount = useMemo(() => contents.filter((c) => !isExcluded(type, c.fileCount)).length, [contents, type]);
 
   return {
     checking,
     bulk: state.bulk,
     row,
     contentCount: contents.length,
-    checkableCount,
     checkOne: (key) => runCheck([key], false),
     checkAll: () => runCheck(contents.map((c) => c.key), true),
     closeBulk: () => setState((s) => ({ ...s, bulk: null })),
@@ -291,6 +265,6 @@ export function useCorrection(options: UseCorrectionOptions): CorrectionControll
       const group = run?.groups.find((g) => g.id === groupId);
       if (run && group) options.onReveal(targetOf(key, group), run);
     },
-    canEdit: (key) => editor.canEdit(key) && !isExcluded(type, fileCount(key)),
+    canEdit: (key) => editor.canEdit(key),
   };
 }

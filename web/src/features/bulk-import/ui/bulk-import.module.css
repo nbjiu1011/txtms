@@ -26,6 +26,13 @@
 .error {
   color: var(--danger);
 }
+/* channel spec warning: a separate line in the wait tone, labelled "주의" (not color only) */
+.warning {
+  display: block;
+  margin-top: 2px;
+  color: var(--s-wait);
+  font-weight: 500;
+}
 .hidden {
   display: none;
 }

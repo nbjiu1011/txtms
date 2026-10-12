@@ -36,6 +36,7 @@ const member = (id: number, roles: Member["projects"], patch: Partial<Member> = 
   admin: false,
   projects: roles,
   invitationExpiresAt: null,
+  pendingEmail: null,
   ...patch,
 });
 
@@ -142,6 +143,48 @@ describe("ChangeEmailDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "저장" }));
     await waitFor(() => expect(change).toHaveBeenCalledTimes(2));
     expect(change.mock.calls[1][3]).toBe(true);
+  });
+
+  it("tells that an accepted user's change waits for the link mailed to the new address", async () => {
+    const change = vi.spyOn(memberApi, "changeEmail").mockResolvedValue(member(7, [], { pendingEmail: "n@x.kr" }));
+    const onClose = vi.fn();
+    wrap(<ChangeEmailDialog open onClose={onClose} customer={customer} member={member(7, [])} />);
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "new7@hanbitcard.co.kr" } });
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    await waitFor(() => expect(change).toHaveBeenCalledWith(1, 7, "new7@hanbitcard.co.kr", false));
+    await waitFor(() => expect(lastToast()).toBe("새 주소로 확인 메일을 보냈습니다. 사용자가 확인하면 변경됩니다"));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("keeps the pending user's immediate change without the confirmation wording", async () => {
+    const pending = member(8, [], { pending: true });
+    const change = vi.spyOn(memberApi, "changeEmail").mockResolvedValue(pending);
+    const onClose = vi.fn();
+    wrap(<ChangeEmailDialog open onClose={onClose} customer={customer} member={pending} />);
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "new8@hanbitcard.co.kr" } });
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    await waitFor(() => expect(change).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(lastToast()).not.toBe("새 주소로 확인 메일을 보냈습니다. 사용자가 확인하면 변경됩니다");
+  });
+
+  it("shows the change awaiting confirmation and cancels it with the current address", async () => {
+    const waiting = member(9, [], { pendingEmail: "nine@hanbitcard.co.kr" });
+    const change = vi.spyOn(memberApi, "changeEmail").mockResolvedValue(member(9, []));
+    wrap(<ChangeEmailDialog open onClose={vi.fn()} customer={customer} member={waiting} />);
+    expect(screen.getByText(/변경 확인 대기: nine@hanbitcard.co.kr/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    await waitFor(() => expect(change).toHaveBeenCalledWith(1, 9, "u9@hanbitcard.co.kr", false));
+    await waitFor(() => expect(lastToast()).toBe("대기 중인 이메일 변경을 취소했습니다"));
+  });
+
+  it("does not call the API for the current address without a waiting change", async () => {
+    const change = vi.spyOn(memberApi, "changeEmail").mockResolvedValue(member(7, []));
+    const onClose = vi.fn();
+    wrap(<ChangeEmailDialog open onClose={onClose} customer={customer} member={member(7, [])} />);
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(change).not.toHaveBeenCalled();
   });
 });
 

@@ -4,9 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Row;
@@ -31,21 +29,15 @@ public final class BundleSheet {
     }
 
     /**
-     * One export row. The body keeps variable tokens; the variable column lists the variables the content uses as
-     * {@code key=value} lines with the values frozen at completion (keys missing from the bundle are left out).
+     * One export row. The body keeps variable tokens; the variable column lists the variable keys the content uses,
+     * one per line in order of first use (client decision 2026-10-12, contract §17.6).
      */
     public static List<String> row(ContentType type, String contentKey, String title, int version, JsonNode payload,
-            Map<String, String> frozenValues, RequestStatus status, Instant completedAt) {
-        List<String> variables = new ArrayList<>();
-        for (String key : ContentTexts.variableKeys(payload)) {
-            if (frozenValues.containsKey(key)) {
-                variables.add(key + "=" + frozenValues.get(key));
-            }
-        }
+            RequestStatus status, Instant completedAt) {
         return List.of(contentKey, ContentTypeService.label(type), title == null ? "" : title,
                 ContentTexts.body(type, payload), ContentTexts.buttonNames(type, payload),
-                ContentTexts.buttonLinks(type, payload), String.join("\n", variables), "v" + version,
-                CompletionBundles.statusLabel(status), CompletionBundles.completedDate(completedAt));
+                ContentTexts.buttonLinks(type, payload), String.join("\n", ContentTexts.variableKeys(payload)),
+                "v" + version, CompletionBundles.statusLabel(status), CompletionBundles.completedDate(completedAt));
     }
 
     /**

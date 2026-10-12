@@ -2,19 +2,25 @@ import { describe, expect, it } from "vitest";
 import type { BulkImportRow } from "@/entities/request";
 import { initialSelection, previewCells, previewSummary, selectedRows, toggleRow } from "./selection";
 
-const row = (rowNumber: number, errors: string[] = []): BulkImportRow => ({
+const row = (rowNumber: number, errors: string[] = [], warnings: string[] = []): BulkImportRow => ({
   rowNumber,
   title: `대량 등록 ${rowNumber}행`,
   payload: { templateCode: "HB_POINT_01", body: `본문 ${rowNumber}`, buttons: [{ name: "보기", link: "https://x.kr" }] },
   errors,
+  warnings,
 });
 
-const rows = [row(2), row(3, ["승인 템플릿 없음"]), row(5), row(6, ["본문 없음", "링크는 http 또는 https"])];
+const rows = [
+  row(2),
+  row(3, ["승인 템플릿 없음"], ["본문 1,000자 초과 (1,001자)"]),
+  row(5, [], ["본문 1,000자 초과 (1,001자)"]),
+  row(6, ["본문 없음", "링크는 http 또는 https"]),
+];
 
 describe("bulk preview selection", () => {
-  it("selects the error-free rows first", () => {
+  it("selects the error-free rows first, rows with only warnings included", () => {
     expect([...initialSelection(rows)]).toEqual([2, 5]);
-    expect(previewSummary(rows)).toEqual({ total: 4, ok: 2, excluded: 2 });
+    expect(previewSummary(rows)).toEqual({ total: 4, ok: 2, excluded: 2, warned: 1 });
   });
 
   it("toggles valid rows and never selects error rows", () => {
@@ -35,7 +41,7 @@ describe("bulk preview selection", () => {
   it("rebuilds sheet cells from the payload", () => {
     expect(previewCells("ALIMTALK", rows[0])).toEqual(["HB_POINT_01", "본문 2", "보기", "https://x.kr"]);
     const sms: BulkImportRow = {
-      rowNumber: 2, title: "t", errors: [],
+      rowNumber: 2, title: "t", errors: [], warnings: [],
       payload: { sender: "1588-0000", body: "b", customerCenter: false, optOut: true },
     };
     expect(previewCells("SMS", sms)).toEqual(["1588-0000", "b", "Y"]);

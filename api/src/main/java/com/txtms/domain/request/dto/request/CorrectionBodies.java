@@ -10,11 +10,14 @@ public final class CorrectionBodies {
     private CorrectionBodies() {
     }
 
-    /** {@code { contents: [{ contentKey, payload, hasFiles }] }} — the editing buffer of each content to check. */
+    /**
+     * {@code { contents: [{ contentKey, payload }] }} — the editing buffer of each content to check (a former
+     * {@code hasFiles} key is ignored: attachments no longer exclude a content, contract §16.1).
+     */
     public record CheckBody(List<CheckItem> contents) {
     }
 
-    public record CheckItem(String contentKey, JsonNode payload, Boolean hasFiles) {
+    public record CheckItem(String contentKey, JsonNode payload) {
     }
 
     /** {@code { contentKey, action: "APPLY"|"RESTORE", field, before, after, ruleId? }} (ruleId: contract §14.4). */

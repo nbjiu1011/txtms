@@ -1,7 +1,8 @@
 import { ReadOnlyBox } from "@/shared/ui";
 import { normalizePayload } from "../model/payload";
-import { isShortSms, smsBytes, smsFullText } from "../model/sms";
-import type { AlimtalkPayload, ContentPayload, ContentType, RcsPayload, SmsPayload } from "../model/types";
+import { checkSms } from "../model/channel-spec";
+import { smsFullText } from "../model/sms";
+import type { AlimtalkPayload, ChannelSpec, ContentPayload, ContentType, RcsPayload, SmsPayload } from "../model/types";
 import { RequestImage } from "./request-image";
 import { VariableText } from "./variable-text";
 import styles from "./content-mockup.module.css";
@@ -18,6 +19,8 @@ export interface ContentMockupProps {
   values?: ReadonlyMap<string, string>;
   /** Request of the contents: RCS card images are loaded from it (omit to show only the alt text). */
   requestId?: string;
+  /** SMS channel spec: labels the SMS bubble SMS/LMS by its bytes (no label while unknown). */
+  smsSpec?: ChannelSpec["sms"] | null;
 }
 
 const NOTE = "표시 형태 확인용 화면입니다. 채널 등록, 심사 통과, 발송 성공을 확인하지 않습니다.";
@@ -64,12 +67,14 @@ function Alimtalk({ payload, customerName, templateName, values }: ContentMockup
   );
 }
 
-function Sms({ payload, values }: ContentMockupProps & { payload: SmsPayload }) {
-  const bytes = smsBytes(payload);
+function Sms({ payload, values, smsSpec }: ContentMockupProps & { payload: SmsPayload }) {
+  // the bubble shows the variable-applied text; LMS here is an expected conversion, not a type change
+  const kind = checkSms(payload, smsSpec ?? null, values).kind;
   return (
     <div className={`${styles.phoneIn} ${styles.sms}`}>
       <div className={styles.topT}>
-        {payload.sender || "발신번호 미선택"} {isShortSms(bytes) ? "SMS" : "LMS"}
+        {payload.sender || "발신번호 미선택"}
+        {kind ? ` ${kind === "SMS" ? "SMS" : "LMS"}` : ""}
       </div>
       <div className={styles.bubble}>
         <VariableText text={smsFullText(payload)} values={values} />

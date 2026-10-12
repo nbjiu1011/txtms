@@ -30,11 +30,9 @@ import com.txtms.domain.request.dto.response.CorrectionResponses.DatasetInfo;
 import com.txtms.domain.request.dto.response.CorrectionResponses.Group;
 import com.txtms.domain.request.dto.response.CorrectionResponses.Option;
 import com.txtms.domain.request.entity.Content;
-import com.txtms.domain.request.entity.ContentFile;
 import com.txtms.domain.request.entity.RequestStatus;
 import com.txtms.domain.request.policy.Actor;
 import com.txtms.domain.request.policy.RequestAction;
-import com.txtms.domain.request.repository.ContentFileRepository;
 import com.txtms.domain.request.service.RequestWriteSupport.Ctx;
 import com.txtms.domain.request.validation.PayloadNormalizer;
 import com.txtms.domain.user.service.UserService;
@@ -64,13 +62,11 @@ public class RequestCorrectionService {
     static final int RULE_IDS_MAX = 50;
     static final int RULE_ID_MAX = 50;
     static final int SUGGESTED_EXPR_MAX = 200;
-    static final String FILES_EXCLUDED = "첨부파일이 있는 자유입력형은 교정을 적용할 수 없습니다";
 
     private final RequestQueryService queries;
     private final RequestWriteSupport support;
     private final UserService userService;
     private final ProjectAccess projectAccess;
-    private final ContentFileRepository files;
     private final PayloadNormalizer normalizer;
     private final DatasetService datasets;
     private final CorrectionSuggestionService suggestions;
@@ -79,14 +75,12 @@ public class RequestCorrectionService {
     private final Duration lockTtl;
 
     public RequestCorrectionService(RequestQueryService queries, RequestWriteSupport support,
-            UserService userService, ProjectAccess projectAccess, ContentFileRepository files,
-            PayloadNormalizer normalizer, DatasetService datasets, CorrectionSuggestionService suggestions,
-            Clock clock, AppProperties properties) {
+            UserService userService, ProjectAccess projectAccess, PayloadNormalizer normalizer,
+            DatasetService datasets, CorrectionSuggestionService suggestions, Clock clock, AppProperties properties) {
         this.queries = queries;
         this.support = support;
         this.userService = userService;
         this.projectAccess = projectAccess;
-        this.files = files;
         this.normalizer = normalizer;
         this.datasets = datasets;
         this.suggestions = suggestions;
@@ -99,7 +93,7 @@ public class RequestCorrectionService {
 
     /**
      * Checks the given contents (their editing buffers) with the effective dataset of the request's customer and
-     * type. A free-form content with attachments (in the buffer or stored) is {@code excluded}. Nothing is stored.
+     * type. Only the entered text is checked (a free-form content's attachments are not read). Nothing is stored.
      */
     @Transactional(readOnly = true)
     public CheckResponse check(AuthUser auth, String id, CheckBody body) {
@@ -140,20 +134,13 @@ public class RequestCorrectionService {
             payloads.add(normalized(type, item, prefix));
         }
 
-        Set<Long> withFiles = new HashSet<>();
-        if (type == ContentType.FREEFORM) {
-            files.findByContentIdInAndDeletedFalseOrderBySortOrderAsc(targets.stream().map(Content::getId).toList())
-                    .stream().map(ContentFile::getContentId).forEach(withFiles::add);
-        }
         int variablesRevision = projectAccess.requireProject(s.project().projectId()).getVariablesRevision();
         Instant now = clock.instant();
         List<CorrectionResult> results = new ArrayList<>(targets.size());
         for (int i = 0; i < targets.size(); i++) {
             Content c = targets.get(i);
-            boolean hasFiles = Boolean.TRUE.equals(items.get(i).hasFiles()) || withFiles.contains(c.getId());
-            boolean excluded = CorrectionFields.excluded(type, hasFiles);
-            List<Group> groups = excluded ? List.of() : groups(dataset.engine(), type, payloads.get(i));
-            results.add(new CorrectionResult(c.getKey(), now, dataset.label(), variablesRevision, excluded, groups));
+            results.add(new CorrectionResult(c.getKey(), now, dataset.label(), variablesRevision,
+                    groups(dataset.engine(), type, payloads.get(i))));
         }
         return new CheckResponse(results);
     }
@@ -215,10 +202,6 @@ public class RequestCorrectionService {
         String before = spanText(body.before(), "before");
         String after = spanText(body.after(), "after");
         String ruleId = optionalRuleId(body.ruleId());
-        if (type == ContentType.FREEFORM
-                && !files.findByContentIdAndDeletedFalseOrderBySortOrderAsc(c.getId()).isEmpty()) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED, FILES_EXCLUDED);
-        }
         requireNotLockedByOther(ctx, c);
         support.log(ctx.request(), ctx.userId(), action,
                 body.field() + ": " + before + " → " + after + (ruleId == null ? "" : " (" + ruleId + ")"), c);

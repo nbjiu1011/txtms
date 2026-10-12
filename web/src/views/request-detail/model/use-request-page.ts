@@ -4,7 +4,14 @@ import { useMemo } from "react";
 import { isApiError } from "@/shared/api";
 import { useCustomers, type Customer } from "@/entities/customer";
 import { useProject, type Project } from "@/entities/project";
-import { useContentTypes, useRequestDetail, useRequestLockWatch, type RequestDetail } from "@/entities/request";
+import {
+  useChannelSpecs,
+  useContentTypes,
+  useRequestDetail,
+  useRequestLockWatch,
+  type ChannelSpec,
+  type RequestDetail,
+} from "@/entities/request";
 import { useUserDirectory, type UserDirectory } from "@/entities/user";
 import { useProjectVariables } from "@/entities/variable";
 
@@ -24,6 +31,8 @@ export interface RequestPage {
   /** Values for `#{key}` substitution: completion snapshot when final, else project variables. */
   variableValues: ReadonlyMap<string, string>;
   mockEnabled: boolean;
+  /** Channel spec for counters and the mockup label (`null` while loading). */
+  channelSpec: ChannelSpec | null;
 }
 
 /** Loads a request with everything its screen displays (project, customer, users, variables). */
@@ -38,6 +47,7 @@ export function useRequestPage(id: string): RequestPageState {
   const final = !!request?.bundle;
   const variables = useProjectVariables(request?.projectId ?? null, !!request && !final);
   const types = useContentTypes();
+  const channelSpec = useChannelSpecs();
 
   const variableValues = useMemo(() => {
     if (request?.bundle) return new Map(request.bundle.variables.map((v) => [v.key, v.value]));
@@ -62,6 +72,7 @@ export function useRequestPage(id: string): RequestPageState {
       users,
       variableValues,
       mockEnabled: typeSetting ? typeSetting.mockEnabled : request.type !== "FREEFORM",
+      channelSpec: channelSpec.data ?? null,
     },
   };
 }

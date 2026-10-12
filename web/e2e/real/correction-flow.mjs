@@ -5,7 +5,7 @@
  * sample-dataset phrases (1:N swap / restore, overlapping results, description-only, card → editor
  * selection, stale banner, 전체 검사 with the bottom bar, 건의하기); 박지훈 on REQ-2609-101 (edit lock +
  * revision buffer → 수정본 저장, the seed text is put back through the API afterwards); 김서연 read-only on
- * REQ-2609-101; a 자유입력형 with an attachment (results dropped, excluded from 전체 검사); 문지아 (customer
+ * REQ-2609-101; a 자유입력형 with an attachment (its entered text is still checked, files never); 문지아 (customer
  * 2, no 자유입력형 dataset) gets the server's "not assigned" message. Screenshots: e2e/real/out.
  */
 import { join } from "node:path";
@@ -264,7 +264,7 @@ try {
 
 /* ---------- 4. 자유입력형 with an attachment ---------- */
 let freeform = "";
-await step("자유입력형: results are dropped once a file is attached; the content is excluded", async () => {
+await step("자유입력형: attaching a file keeps the result and the entered text stays checkable", async () => {
   const created = await apiAs(U.requester, "POST", "/requests", { projectId: 1, type: "FREEFORM" });
   freeform = created.id;
   await apiAs(U.requester, "PATCH", `/requests/${freeform}`, { title: `M4 자유입력 ${stamp}` });
@@ -275,24 +275,26 @@ await step("자유입력형: results are dropped once a file is attached; the co
   await panel(u1).getByRole("button", { name: "이 콘텐츠 검사" }).click();
   await expect(card(u1, "할수")).toBeVisible();
   await main(u1).getByLabel("첨부파일 선택").setInputFiles([join(FILES, "notes.txt")]);
-  await expect(panel(u1).getByText(/첨부파일이 있는 자유입력형은 교정 실행·결과가 비활성화되며/)).toBeVisible({ timeout: 15_000 });
-  await expect(panel(u1).getByRole("button", { name: "이 콘텐츠 검사" })).toBeDisabled();
-  await shot(u1, "freeform-excluded");
+  await expect(panel(u1).getByText("첨부파일 내용은 교정 대상이 아닙니다. 입력한 문안만 검사합니다.")).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(card(u1, "할수")).toBeVisible();
+  await expect(panel(u1).getByRole("button", { name: "이 콘텐츠 검사" })).toBeEnabled();
+  await shot(u1, "freeform-with-file");
 });
-await step("자유입력형: 전체 검사 1건 lists C1 as excluded", async () => {
-  await panel(u1).getByRole("button", { name: "전체 검사 1건" }).click();
-  // the current content is excluded → only the note; switch to C2 to see the grouped result
+await step("자유입력형: 전체 검사 2건 checks both contents, the one with a file included", async () => {
+  await panel(u1).getByRole("button", { name: "전체 검사 2건" }).click();
+  await expect(panel(u1).getByRole("button", { name: /C1 · / })).toBeVisible();
   await item(u1, "본문만").click();
-  await expect(panel(u1).getByText("C1 · 첨부파일로 제외")).toBeVisible();
   await expect(card(u1, "수령인")).toBeVisible();
   await shot(u1, "freeform-bulk");
 });
-await step("removing the attachment does not bring the old result back", async () => {
+await step("removing the attachment hides the files note", async () => {
   await item(u1, "C1").click();
   await main(u1).getByRole("button", { name: "notes.txt 삭제" }).click();
-  await toastSeen(u1, "첨부파일이 없어 텍스트 교정을 다시 쓸 수 있습니다");
+  await toastSeen(u1, "첨부파일을 삭제했습니다");
   await panel(u1).getByRole("button", { name: "교정 완료" }).click();
-  await expect(panel(u1).getByText("아직 검사하지 않았습니다.")).toBeVisible();
+  await expect(panel(u1).getByText("첨부파일 내용은 교정 대상이 아닙니다. 입력한 문안만 검사합니다.")).toBeHidden();
   await expect(panel(u1).getByRole("button", { name: "이 콘텐츠 검사" })).toBeEnabled();
 });
 

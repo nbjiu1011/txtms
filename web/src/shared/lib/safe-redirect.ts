@@ -4,6 +4,6 @@
  */
 export function safeNextPath(value: string | null | undefined, fallback = "/"): string {
   if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) return fallback;
-  if (/^\/(login|invite|reset)(\/|$|\?)/.test(value)) return fallback;
+  if (/^\/(login|invite|reset|email-change)(\/|$|\?)/.test(value)) return fallback;
   return value;
 }

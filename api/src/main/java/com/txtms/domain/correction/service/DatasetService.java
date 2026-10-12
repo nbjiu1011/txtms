@@ -130,6 +130,7 @@ public class DatasetService {
         requireOperator(auth);
         Map<Long, Integer> counts = ruleCounts();
         return datasets.findAll().stream()
+                .filter(d -> !d.getScope().deferred())
                 .sorted(Comparator.comparing(Dataset::getScope).thenComparing(Dataset::getVersion,
                         Comparator.reverseOrder()))
                 .map(d -> response(d, counts.getOrDefault(d.getId(), 0)))
@@ -245,6 +246,7 @@ public class DatasetService {
     public List<AssignmentResponse> assignments(AuthUser auth) {
         requireOperator(auth);
         List<DatasetAssignment> all = assignments.findAllByOrderByCustomerIdAscIdAsc().stream()
+                .filter(a -> !a.getType().deferred())
                 .sorted(Comparator.comparing(DatasetAssignment::getCustomerId)
                         .thenComparing(DatasetAssignment::getType))
                 .toList();
@@ -361,19 +363,30 @@ public class DatasetService {
         if (s == DatasetScope.COMMON) {
             throw BusinessException.validation("scope", COMMON_PHASE2);
         }
+        if (s.deferred()) {
+            throw BusinessException.validation("scope", ContentType.RCS_DEFERRED);
+        }
         return s;
     }
 
-    /** Path type of an assignment: a content type; {@code COMMON} is Phase 2, anything else is not a resource. */
+    /**
+     * Path type of an assignment: a Phase 1 content type; {@code COMMON} is Phase 2, RCS is deferred, anything else is
+     * not a resource.
+     */
     private static ContentType typeOf(String type) {
         if (DatasetScope.COMMON.name().equals(type)) {
             throw BusinessException.validation("type", COMMON_PHASE2);
         }
+        ContentType t;
         try {
-            return ContentType.valueOf(type);
+            t = ContentType.valueOf(type);
         } catch (IllegalArgumentException | NullPointerException e) {
             throw BusinessException.notFound();
         }
+        if (!t.offered()) {
+            throw BusinessException.validation("type", ContentType.RCS_DEFERRED);
+        }
+        return t;
     }
 
     private Map<Long, Integer> ruleCounts() {

@@ -12,7 +12,7 @@ import {
   filterClasses,
 } from "@/shared/ui";
 import {
-  CONTENT_TYPES,
+  OFFERED_CONTENT_TYPES,
   CONTENT_TYPE_LABEL,
   EMPTY_REQUEST_FILTERS,
   REQUEST_STATUSES,
@@ -66,7 +66,7 @@ export function RequestFilterBar({ value, onChange, lead, reviewers }: RequestFi
           onChange={(e) => set({ type: e.target.value as ContentType | "" })}
         >
           <option value="">전체</option>
-          {CONTENT_TYPES.map((t) => (
+          {OFFERED_CONTENT_TYPES.map((t) => (
             <option key={t} value={t}>
               {CONTENT_TYPE_LABEL[t]}
             </option>

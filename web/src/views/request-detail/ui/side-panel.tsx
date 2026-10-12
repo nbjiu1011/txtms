@@ -78,6 +78,7 @@ function MockPanel({ page, content }: { page: RequestPage; content: Content }) {
       templateName={page.project?.templates.find((t) => t.code === templateCode)?.name ?? null}
       values={page.variableValues}
       requestId={r.id}
+      smsSpec={page.channelSpec?.sms ?? null}
     />
   );
 }

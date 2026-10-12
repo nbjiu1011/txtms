@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   BLANK_CARD,
-  MAX_ALIMTALK_BUTTONS,
+  MAX_ALIMTALK_BUTTONS_STORED,
   addAlimtalkButton,
   blankPayload,
   getPayloadField,
@@ -19,15 +19,17 @@ const alimtalk = (buttons: number): AlimtalkPayload => ({
 });
 
 describe("alimtalk buttons", () => {
-  it("adds an empty button until the limit of 5", () => {
+  it("adds empty buttons beyond the channel spec (5) up to the storage cap of 20", () => {
     let p = alimtalk(0);
-    for (let i = 0; i < 7; i++) p = addAlimtalkButton(p);
-    expect(p.buttons).toHaveLength(MAX_ALIMTALK_BUTTONS);
+    for (let i = 0; i < 25; i++) p = addAlimtalkButton(p);
+    expect(MAX_ALIMTALK_BUTTONS_STORED).toBe(20);
+    expect(p.buttons).toHaveLength(20);
     expect(p.buttons[0]).toEqual({ name: "", link: "" });
+    expect(addAlimtalkButton(alimtalk(5)).buttons).toHaveLength(6);
   });
 
-  it("returns the same payload at the limit", () => {
-    const full = alimtalk(5);
+  it("returns the same payload at the storage cap", () => {
+    const full = alimtalk(20);
     expect(addAlimtalkButton(full)).toBe(full);
   });
 

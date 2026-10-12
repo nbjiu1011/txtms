@@ -60,6 +60,7 @@ const pendingAdmin: Member = {
   admin: true,
   projects: [],
   invitationExpiresAt: "2026-10-14T05:00:00Z",
+  pendingEmail: null,
 };
 const realCustomer = customer(3, "새봄은행", { approvalEnabled: false, unassignedDatasetTypes: ["SMS", "RCS"] });
 

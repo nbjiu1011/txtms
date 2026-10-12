@@ -23,8 +23,9 @@ class SubmitValidatorTest {
     private static final long MB = 1024 * 1024;
 
     private final JsonMapper json = JsonMapper.builder().build();
-    private final SubmitValidator validator = new SubmitValidator(new SubmitValidator.Limits(1000, 5, 14, 2000, 10,
-            100 * MB, "고객센터 1588-0000", "무료 수신거부 080-000-0000"));
+    private final SubmitValidator validator = new SubmitValidator(new SubmitValidator.Limits(10, 100 * MB),
+            new ChannelSpecCheck(new ChannelSpecCheck.Spec(1000, 5, 14, 90, 2000), "고객센터 1588-0000",
+                    "무료 수신거부 080-000-0000"));
 
     private static final RequestInfo FULL = new RequestInfo("제목", LocalDate.of(2026, 10, 20), "목적", "대상", "배경", null,
             Urgency.NORMAL);
@@ -38,12 +39,16 @@ class SubmitValidatorTest {
         return new ContentInput(key, "콘텐츠 " + key.substring(1), json.readTree(payload), List.of(files));
     }
 
-    private List<String> details(ContentType type, String... payloads) {
+    private SubmitValidator.Result result(ContentType type, String... payloads) {
         List<ContentInput> cs = new java.util.ArrayList<>();
         for (int i = 0; i < payloads.length; i++) {
             cs.add(content("C" + (i + 1), payloads[i]));
         }
-        return validator.validate(input(type, FULL, cs)).details();
+        return validator.validate(input(type, FULL, cs));
+    }
+
+    private List<String> details(ContentType type, String... payloads) {
+        return result(type, payloads).details();
     }
 
     @Test
@@ -75,17 +80,27 @@ class SubmitValidatorTest {
         assertThat(details(ContentType.ALIMTALK, "{\"templateCode\":\"\",\"body\":\" \",\"buttons\":[{\"name\":\"a\","
                 + "\"link\":\"\"}]}"))
                 .containsExactly("C1 콘텐츠 1: 승인 템플릿", "C1 콘텐츠 1: 본문", "C1 콘텐츠 1: 버튼 1 이름과 링크");
+        // channel limits only warn: the registration and link rules still fail, the spec overruns do not
         String longBody = "가".repeat(1001);
-        assertThat(details(ContentType.ALIMTALK, "{\"templateCode\":\"OTHER\",\"body\":\"" + longBody + "\","
-                + "\"buttons\":[{\"name\":\"" + "버".repeat(15) + "\",\"link\":\"ftp://a.kr\"},"
+        SubmitValidator.Result over = result(ContentType.ALIMTALK, "{\"templateCode\":\"OTHER\",\"body\":\""
+                + longBody + "\",\"buttons\":[{\"name\":\"" + "버".repeat(15) + "\",\"link\":\"ftp://a.kr\"},"
                 + "{\"name\":\"b\",\"link\":\"https://a.kr\"},{\"name\":\"c\",\"link\":\"https://a.kr\"},"
                 + "{\"name\":\"d\",\"link\":\"https://a.kr\"},{\"name\":\"e\",\"link\":\"https://a.kr\"},"
-                + "{\"name\":\"f\",\"link\":\"https://a.kr\"}]}"))
-                .containsExactly("C1: 등록된 승인 템플릿", "C1: 본문 최대 1,000자", "C1: 버튼 최대 5개", "C1: 버튼명 최대 14자",
-                        "C1: HTTP/HTTPS 버튼 링크");
+                + "{\"name\":\"f\",\"link\":\"https://a.kr\"}]}");
+        assertThat(over.details()).containsExactly("C1: 등록된 승인 템플릿", "C1: HTTP/HTTPS 버튼 링크");
+        assertThat(over.warnings()).containsExactly("C1 콘텐츠 1: 본문 1,000자 초과 (1,001자)",
+                "C1 콘텐츠 1: 버튼 5개 초과 (6개)", "C1 콘텐츠 1: 버튼명 14자 초과 (" + "버".repeat(15) + ")");
+        // only warnings: still ok
+        SubmitValidator.Result warnedOnly = result(ContentType.ALIMTALK, "{\"templateCode\":\"HB_POINT_01\","
+                + "\"body\":\"" + longBody + "\",\"buttons\":[]}");
+        assertThat(warnedOnly.ok()).isTrue();
+        assertThat(warnedOnly.warnings()).containsExactly("C1 콘텐츠 1: 본문 1,000자 초과 (1,001자)");
         // exactly at the limits
-        assertThat(details(ContentType.ALIMTALK, "{\"templateCode\":\"HB_POINT_01\",\"body\":\"" + "가".repeat(1000)
-                + "\",\"buttons\":[{\"name\":\"" + "버".repeat(14) + "\",\"link\":\"http://a.kr\"}]}")).isEmpty();
+        SubmitValidator.Result atLimit = result(ContentType.ALIMTALK, "{\"templateCode\":\"HB_POINT_01\",\"body\":\""
+                + "가".repeat(1000) + "\",\"buttons\":[{\"name\":\"" + "버".repeat(14)
+                + "\",\"link\":\"http://a.kr\"}]}");
+        assertThat(atLimit.details()).isEmpty();
+        assertThat(atLimit.warnings()).isEmpty();
     }
 
     @Test
@@ -94,12 +109,21 @@ class SubmitValidatorTest {
                 .containsExactly("C1 콘텐츠 1: 발신번호", "C1 콘텐츠 1: 본문");
         assertThat(details(ContentType.SMS, "{\"sender\":\"02-000\",\"body\":\"a\",\"customerCenter\":false,"
                 + "\"optOut\":false}")).containsExactly("C1: 등록된 발신번호");
-        // 1,973 bytes + 27 (opt-out line) = 2,000 → ok; + 19 (customer center) = 2,019 → too long
+        // 1,973 bytes + 27 (opt-out line) = 2,000 → LMS; + 19 (customer center) = 2,019 → over LMS, still ok
         String body = "a".repeat(1973);
-        assertThat(details(ContentType.SMS, "{\"sender\":\"1588-0000\",\"body\":\"" + body + "\","
-                + "\"customerCenter\":false,\"optOut\":true}")).isEmpty();
-        assertThat(details(ContentType.SMS, "{\"sender\":\"1588-0000\",\"body\":\"" + body + "\","
-                + "\"customerCenter\":true,\"optOut\":true}")).containsExactly("C1: LMS 최대 2,000바이트 (안내 포함)");
+        SubmitValidator.Result lms = result(ContentType.SMS, "{\"sender\":\"1588-0000\",\"body\":\"" + body
+                + "\",\"customerCenter\":false,\"optOut\":true}");
+        assertThat(lms.details()).isEmpty();
+        assertThat(lms.warnings()).containsExactly("C1 콘텐츠 1: SMS 90바이트 초과 — LMS 예상 전환 (2,000바이트)");
+        SubmitValidator.Result over = result(ContentType.SMS, "{\"sender\":\"1588-0000\",\"body\":\"" + body
+                + "\",\"customerCenter\":true,\"optOut\":true}");
+        assertThat(over.ok()).isTrue();
+        assertThat(over.warnings()).containsExactly("C1 콘텐츠 1: LMS 2,000바이트 초과 (2,019바이트)");
+        // 90 bytes is a short SMS, characters EUC-KR cannot represent are listed once each
+        SubmitValidator.Result sms = result(ContentType.SMS, "{\"sender\":\"1588-0000\",\"body\":\""
+                + "a".repeat(84) + "똠😀똠\",\"customerCenter\":false,\"optOut\":false}");
+        assertThat(sms.ok()).isTrue();
+        assertThat(sms.warnings()).containsExactly("C1 콘텐츠 1: EUC-KR로 표현할 수 없는 문자: 똠, 😀");
     }
 
     @Test

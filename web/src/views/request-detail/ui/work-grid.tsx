@@ -7,6 +7,7 @@ import { Empty, Modal } from "@/shared/ui";
 import {
   canEditContentByPolicy,
   invalidateRequestViews,
+  isOfferedType,
   readOnlyReason,
   storeRequestDetail,
   type FileMeta,
@@ -178,7 +179,7 @@ export function WorkGrid(props: WorkGridProps) {
           }
           variablesRef={setVarAnchor}
           onCompare={() => setCompareOpen(true)}
-          onGuide={() => setGuideOpen(true)}
+          onGuide={isOfferedType(r.type) ? () => setGuideOpen(true) : undefined}
         />
         <EditorLockBars
           content={content}
@@ -200,6 +201,8 @@ export function WorkGrid(props: WorkGridProps) {
           onPayload={payloadEditor && writable ? (payload) => payloadEditor.setPayload(server, payload) : undefined}
           attachments={attachments}
           images={images}
+          channelSpec={page.channelSpec}
+          values={page.variableValues}
         />
       </section>
       <SidePanel

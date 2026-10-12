@@ -196,9 +196,8 @@ export function useDraftEditing(request: RequestDetail, tabId: string, setDirty:
         .deleteFile(id, content.key, file.id)
         .then(() => {
           session.discardFile(file.id);
-          const left = content.files.filter((f) => f.id !== file.id);
           updateContentFiles(client, id, content.key, (list) => list.filter((f) => f.id !== file.id));
-          if (left.length === 0) toast("첨부파일이 없어 텍스트 교정을 다시 쓸 수 있습니다");
+          toast("첨부파일을 삭제했습니다");
         })
         .catch((error: unknown) => toast(messageOf(error, "파일을 삭제하지 못했습니다")));
     },

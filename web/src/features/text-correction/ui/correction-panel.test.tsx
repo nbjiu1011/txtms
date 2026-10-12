@@ -5,7 +5,7 @@ import type { ContentPayload, ContentType } from "@/entities/request";
 import { ApiError } from "@/shared/api";
 import { useToastStore } from "@/shared/ui";
 import { useCorrection, type CorrectionContent, type CorrectionEditor } from "../model/use-correction";
-import { CorrectionPanel, EXCLUDED_NOTE, STALE_NOTE } from "./correction-panel";
+import { CorrectionPanel, FILES_NOTE, STALE_NOTE } from "./correction-panel";
 
 // The full suite runs files in parallel: give the first check of a cold module more than 1s.
 configure({ asyncUtilTimeout: 5000 });
@@ -42,7 +42,7 @@ function engine(item: CorrectionCheckItem): CorrectionResult {
     const start = body.indexOf(matched);
     return start < 0 ? [] : [{ id: `${field}:${start}:${start + matched.length}`, field, start, end: start + matched.length, matchedText: matched, options }];
   });
-  return { contentKey: item.contentKey, checkedAt: "", datasetLabel: "알림톡 v4", variablesRevision: 1, excluded: false, groups };
+  return { contentKey: item.contentKey, checkedAt: "", datasetLabel: "알림톡 v4", variablesRevision: 1, groups };
 }
 
 interface HarnessProps {
@@ -97,7 +97,7 @@ describe("CorrectionPanel", { timeout: 20_000 }, () => {
     expect(screen.getByText("아직 검사하지 않았습니다.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "이 콘텐츠 검사" }));
     await screen.findByText("할 수");
-    expect(api.check).toHaveBeenCalledWith("REQ-T", [{ contentKey: "C1", payload: alimtalk("참여는 할수 있습니다"), hasFiles: false }]);
+    expect(api.check).toHaveBeenCalledWith("REQ-T", [{ contentKey: "C1", payload: alimtalk("참여는 할수 있습니다") }]);
     const restore = screen.getByRole("button", { name: "할수(으)로 복원" }) as HTMLButtonElement;
     expect(restore.disabled).toBe(true);
 
@@ -150,7 +150,7 @@ describe("CorrectionPanel", { timeout: 20_000 }, () => {
     expect((screen.getByRole("button", { name: "건의하기" }) as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it("전체 검사 groups results per content, lists excluded attachments and closes with 교정 완료", async () => {
+  it("전체 검사 checks every content (attachments included) grouped per content and closes with 교정 완료", async () => {
     render(
       <Harness
         type="FREEFORM"
@@ -161,35 +161,40 @@ describe("CorrectionPanel", { timeout: 20_000 }, () => {
         ]}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "전체 검사 2건" }));
-    await screen.findByText("C2 · 첨부파일로 제외");
-    expect(api.check.mock.calls[0][1].map((i: CorrectionCheckItem) => i.contentKey)).toEqual(["C1", "C3"]);
+    fireEvent.click(screen.getByRole("button", { name: "전체 검사 3건" }));
+    await screen.findByRole("button", { name: /C2 · 둘째/ });
+    expect(api.check.mock.calls[0][1].map((i: CorrectionCheckItem) => i.contentKey)).toEqual(["C1", "C2", "C3"]);
+    expect(api.check.mock.calls[0][1].some((i: CorrectionCheckItem) => "hasFiles" in i)).toBe(false);
     expect(screen.getByRole("button", { name: /C1 · 첫째/ }).textContent).toContain("(2)");
+    expect(screen.getByRole("button", { name: /C2 · 둘째/ }).textContent).toContain("(1)");
     expect(screen.getByText("교정할 표현이 없습니다.")).toBeTruthy();
-    await act(async () => fireEvent.click(screen.getByRole("button", { name: "할 수" })));
+    await act(async () => fireEvent.click(screen.getAllByRole("button", { name: "할 수" })[0]));
     await waitFor(() =>
-      expect((screen.getByText(/교정 적용/).parentElement as HTMLElement).textContent).toBe("콘텐츠 2교정 적용 1교정 결과 2"),
+      expect((screen.getByText(/교정 적용/).parentElement as HTMLElement).textContent).toBe("콘텐츠 3교정 적용 1교정 결과 3"),
     );
     fireEvent.click(screen.getByRole("button", { name: "교정 완료" }));
-    expect(screen.queryByText("C2 · 첨부파일로 제외")).toBeNull();
     expect(screen.getByText("C1 · 첫째")).toBeTruthy();
   });
 
-  it("a 자유입력형 with attachments shows the exclusion note and cannot be checked", () => {
+  it("a 자유입력형 with attachments is checked on its entered text and says the files are not checked", async () => {
     render(<Harness type="FREEFORM" contents={[{ key: "C1", title: "파일", fileCount: 1, payload: { title: "", text: "할수" } }]} />);
-    expect(screen.getByText(EXCLUDED_NOTE)).toBeTruthy();
-    expect((screen.getByRole("button", { name: "이 콘텐츠 검사" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText(FILES_NOTE)).toBeTruthy();
+    const check = screen.getByRole("button", { name: "이 콘텐츠 검사" }) as HTMLButtonElement;
+    expect(check.disabled).toBe(false);
+    fireEvent.click(check);
+    await screen.findByText("할 수");
+    expect(api.check).toHaveBeenCalledWith("REQ-T", [{ contentKey: "C1", payload: { title: "", text: "할수" } }]);
   });
 
-  it("drops results once an attachment is added", async () => {
+  it("keeps results when an attachment is added", async () => {
     const base = { key: "C1", title: "파일", payload: { title: "", text: "할수" } as ContentPayload };
     const { rerender } = render(<Harness type="FREEFORM" contents={[{ ...base, fileCount: 0 }]} />);
+    expect(screen.queryByText(FILES_NOTE)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "이 콘텐츠 검사" }));
     await screen.findByText("할 수");
     rerender(<Harness type="FREEFORM" contents={[{ ...base, fileCount: 1 }]} />);
-    expect(screen.getByText(EXCLUDED_NOTE)).toBeTruthy();
-    rerender(<Harness type="FREEFORM" contents={[{ ...base, fileCount: 0 }]} />);
-    expect(screen.getByText("아직 검사하지 않았습니다.")).toBeTruthy();
+    expect(screen.getByText(FILES_NOTE)).toBeTruthy();
+    expect(screen.getByText("할 수")).toBeTruthy();
   });
 
   it("unassigned dataset: buttons look disabled, a click shows the server message", async () => {

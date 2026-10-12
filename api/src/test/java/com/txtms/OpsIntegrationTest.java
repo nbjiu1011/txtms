@@ -155,7 +155,7 @@ class OpsIntegrationTest extends IntegrationTestBase {
         assertThat(created.path("dueSoonDays").asInt()).isEqualTo(3);
         assertThat(created.path("projectCount").asLong()).isEqualTo(1);
         assertThat(created.path("adminAssigned").asBoolean()).isFalse();
-        assertThat(created.path("unassignedDatasetTypes")).hasSize(4);
+        assertThat(created.path("unassignedDatasetTypes")).hasSize(3); // Phase 1 types (RCS deferred)
         assertThat(created.path("createdBy").asLong()).isEqualTo(operator.userId());
         assertThat(created.path("createdByName").asString()).isEqualTo("정우진");
         assertThat(getJson(operator, "/api/ops/customers/" + cid).path("createdByName").asString())
@@ -203,8 +203,8 @@ class OpsIntegrationTest extends IntegrationTestBase {
             if (t.path("customerId").asLong() == cid && t.path("kind").asString().equals("ASSIGN_DATASETS")) {
                 assertThat(t.path("route").asString()).isEqualTo("opsStandards");
                 assertThat(t.path("sub").asString()).isEqualTo("assign");
-                assertThat(t.path("count").asInt()).isEqualTo(4);
-                assertThat(t.path("label").asString()).isEqualTo("유효 데이터셋 4개 조합 배정");
+                assertThat(t.path("count").asInt()).isEqualTo(3); // Phase 1 types (RCS deferred)
+                assertThat(t.path("label").asString()).isEqualTo("유효 데이터셋 3개 조합 배정");
             }
         }
 

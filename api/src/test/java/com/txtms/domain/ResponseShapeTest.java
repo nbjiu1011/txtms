@@ -90,7 +90,8 @@ class ResponseShapeTest {
     @Test
     void operatorInvitationIsAMemberPlusTheMailId() {
         MemberResponse member = new MemberResponse(new UserSummary(9, "손님", null, "guest@a.kr", false, "#6A6F7A"),
-                true, true, List.of(new MemberResponse.ProjectRoles(4, List.of(ProjectRole.REVIEWER), false)), AT);
+                true, true, List.of(new MemberResponse.ProjectRoles(4, List.of(ProjectRole.REVIEWER), false)), AT,
+                null);
         JsonNode invitation = tree(new OpsInvitation(member, 31));
         assertThat(invitation.path("mailId").asLong()).isEqualTo(31);
         assertThat(invitation.has("member")).isFalse();
@@ -101,6 +102,23 @@ class ResponseShapeTest {
         assertThat(invitation.path("invitationExpiresAt").asString()).isEqualTo("2026-10-07T01:02:03Z");
         // the customer admin's Member has no mailId
         assertThat(tree(member).has("mailId")).isFalse();
+        // pendingEmail is always present (null without a change awaiting confirmation)
+        assertThat(invitation.has("pendingEmail")).isTrue();
+        assertThat(invitation.path("pendingEmail").isNull()).isTrue();
+    }
+
+    @Test
+    void memberCarriesTheEmailAwaitingConfirmation() {
+        MemberResponse member = new MemberResponse(new UserSummary(9, "손님", "팀", "old@a.kr", true, "#6A6F7A"),
+                false, false, List.of(), null, "new@a.kr");
+        JsonNode node = tree(member);
+        assertThat(node.path("user").path("email").asString()).isEqualTo("old@a.kr");
+        assertThat(node.path("pendingEmail").asString()).isEqualTo("new@a.kr");
+        assertThat(node.has("invitationExpiresAt")).isTrue();
+        List<String> keys = new java.util.ArrayList<>();
+        node.propertyNames().forEach(keys::add);
+        assertThat(keys).containsExactly("user", "pending", "admin", "projects", "invitationExpiresAt",
+                "pendingEmail");
     }
 
     @Test

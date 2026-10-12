@@ -119,6 +119,13 @@ public class AuthController {
         return withCookie(authService.completeToken(token, request.name(), request.password()));
     }
 
+    /** Confirms an email change from the link mailed to the new address; every session of the user ends. */
+    @PostMapping("/tokens/{token}/email-change")
+    public ResponseEntity<Void> confirmEmailChange(@PathVariable String token) {
+        authService.confirmEmailChange(token);
+        return ResponseEntity.noContent().build();
+    }
+
     private ResponseEntity<LoginResponse> withCookie(AuthService.LoginResult result) {
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookies.issue(result.refreshToken(), result.remember()).toString())

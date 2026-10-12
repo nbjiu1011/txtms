@@ -18,6 +18,16 @@ export type RequestStatus = (typeof REQUEST_STATUSES)[number];
 export const CONTENT_TYPES = ["ALIMTALK", "SMS", "RCS", "FREEFORM"] as const;
 export type ContentType = (typeof CONTENT_TYPES)[number];
 
+/**
+ * Types offered in Phase 1 (filters, selects, operator tables, guides). RCS is deferred (client decision 2026-10-12)
+ * and only remains so existing RCS requests keep rendering (contract §17.2).
+ */
+export const OFFERED_CONTENT_TYPES = ["ALIMTALK", "SMS", "FREEFORM"] as const satisfies readonly ContentType[];
+
+export function isOfferedType(type: ContentType): boolean {
+  return (OFFERED_CONTENT_TYPES as readonly ContentType[]).includes(type);
+}
+
 export const URGENCIES = ["NORMAL", "URGENT"] as const;
 export type Urgency = (typeof URGENCIES)[number];
 
@@ -356,6 +366,8 @@ export interface SubmitCheck {
   ok: boolean;
   details: string[];
   fieldErrors: { field: string; message: string }[];
+  /** Channel spec notes (§17.3) — independent of `ok`, never block the submission. */
+  warnings: string[];
 }
 
 /** Body keys of the workflow POSTs (§5); `rowVersion` is added by the API call. */
@@ -545,7 +557,10 @@ export interface BulkImportRow {
   rowNumber: number;
   title: string;
   payload: ContentPayload;
+  /** Row errors: the row cannot be added while there are any. */
   errors: string[];
+  /** Channel spec overruns (§17.3): shown, the row can still be added. */
+  warnings: string[];
 }
 
 export interface BulkImportPreview {
@@ -554,6 +569,12 @@ export interface BulkImportPreview {
 }
 
 /* ---------- content types & guides (§2) ---------- */
+
+/** `GET /api/channel-specs` (§17.3): configured channel limits, used for warnings only. */
+export interface ChannelSpec {
+  alimtalk: { bodyMaxChars: number; buttonsMax: number; buttonNameMaxChars: number };
+  sms: { smsMaxBytes: number; lmsMaxBytes: number; encoding: string };
+}
 
 export interface ContentTypeSetting {
   type: ContentType;

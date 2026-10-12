@@ -130,7 +130,8 @@ public class BulkImportService {
             errors.addAll(0, rowValidator.validate(type, payload, rules.templates(), rules.senders(),
                     rules.variables()));
             rows.add(new BulkPreviewResponse.Row(r.rowNumber(), "대량 등록 " + r.rowNumber() + "행",
-                    json.writeValueAsString(payload), List.copyOf(errors)));
+                    json.writeValueAsString(payload), List.copyOf(errors),
+                    List.copyOf(rowValidator.warnings(type, payload))));
         }
         return new BulkPreviewResponse(rows, limits.maxRows());
     }

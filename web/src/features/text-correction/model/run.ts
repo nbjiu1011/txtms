@@ -23,8 +23,6 @@ export interface CorrectionRun {
   checkedAt: string;
   datasetLabel: string;
   variablesRevision: number;
-  /** Server excluded the content (free-form with attachments). */
-  excluded: boolean;
   /** Normalized payload the positions refer to (freshness; updated by every apply/restore). */
   snapshot: string;
   groups: GroupState[];
@@ -48,7 +46,6 @@ export function createRun(result: CorrectionResult, snapshot: string): Correctio
     checkedAt: result.checkedAt,
     datasetLabel: result.datasetLabel,
     variablesRevision: result.variablesRevision,
-    excluded: result.excluded,
     snapshot,
     groups: result.groups.map((g) => ({
       id: g.id,

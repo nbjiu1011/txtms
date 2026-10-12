@@ -65,8 +65,8 @@ class BundleExportRulesTest {
         assertThat(CompletionBundles.statusLabel(RequestStatus.APPROVED)).isEqualTo("승인 완료");
         assertThatThrownBy(() -> CompletionBundles.statusLabel(RequestStatus.IN_REVIEW))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThat(CompletionBundles.completedDate(Instant.parse("2026-10-07T15:00:00Z"))).isEqualTo("2026-10-08 (KST)");
-        assertThat(CompletionBundles.completedDate(DONE)).isEqualTo("2026-10-07 (KST)");
+        assertThat(CompletionBundles.completedDate(Instant.parse("2026-10-07T15:00:00Z"))).isEqualTo("2026-10-08");
+        assertThat(CompletionBundles.completedDate(DONE)).isEqualTo("2026-10-07");
     }
 
     // ------------------------------------------------------------------ text views
@@ -92,30 +92,29 @@ class BundleExportRulesTest {
     // ------------------------------------------------------------------ XLSX rows
 
     @Test
-    void alimtalkRowJoinsButtonsAndListsOnlyUsedVariablesWithFrozenValues() {
+    void alimtalkRowJoinsButtonsAndListsTheUsedVariableKeys() {
         JsonNode p = tree("{\"templateCode\":\"T\",\"body\":\"#{customer_name}님 #{points}P #{customer_name}\","
                 + "\"buttons\":[{\"name\":\"자세히\",\"link\":\"https://a.kr\"},{\"name\":\"참여\",\"link\":\"https://b.kr\"}]}");
-        List<String> row = BundleSheet.row(ContentType.ALIMTALK, "C1", "안내", 2, p, FROZEN, RequestStatus.APPROVED,
-                DONE);
+        List<String> row = BundleSheet.row(ContentType.ALIMTALK, "C1", "안내", 2, p, RequestStatus.APPROVED, DONE);
         assertThat(row).hasSize(10).containsExactly("C1", "알림톡", "안내", "#{customer_name}님 #{points}P #{customer_name}",
-                "자세히\n참여", "https://a.kr\nhttps://b.kr", "customer_name=홍길동\npoints=5,000", "v2", "승인 완료",
-                "2026-10-07 (KST)");
+                "자세히\n참여", "https://a.kr\nhttps://b.kr", "customer_name\npoints", "v2", "승인 완료",
+                "2026-10-07");
     }
 
     @Test
     void rcsRowJoinsCardBodiesAndKeepsOneButtonLinePerCard() {
         JsonNode p = tree("{\"cards\":[{\"title\":\"t1\",\"body\":\"카드1\",\"buttonName\":\"보기\",\"buttonLink\":\"https://a.kr\"},"
                 + "{\"title\":\"t2\",\"body\":\"카드2 #{nope}\",\"buttonName\":\"\",\"buttonLink\":\"\"}]}");
-        List<String> row = BundleSheet.row(ContentType.RCS, "C2", "캐러셀", 1, p, FROZEN,
-                RequestStatus.REVIEW_COMPLETED, DONE);
+        List<String> row = BundleSheet.row(ContentType.RCS, "C2", "캐러셀", 1, p, RequestStatus.REVIEW_COMPLETED,
+                DONE);
         assertThat(row.get(1)).isEqualTo("RCS");
         assertThat(row.get(3)).isEqualTo("카드1\n카드2 #{nope}");
         assertThat(row.get(4)).isEqualTo("보기\n");
         assertThat(row.get(5)).isEqualTo("https://a.kr\n");
-        assertThat(row.get(6)).isEmpty();
+        assertThat(row.get(6)).isEqualTo("nope");
         assertThat(row.get(8)).isEqualTo("검수 완료");
         JsonNode noButtons = tree("{\"cards\":[{\"body\":\"a\"},{\"body\":\"b\"}]}");
-        assertThat(BundleSheet.row(ContentType.RCS, "C3", "", 1, noButtons, FROZEN, RequestStatus.APPROVED, DONE)
+        assertThat(BundleSheet.row(ContentType.RCS, "C3", "", 1, noButtons, RequestStatus.APPROVED, DONE)
                 .get(4)).isEmpty();
     }
 
@@ -123,17 +122,17 @@ class BundleExportRulesTest {
     void smsAndFreeformRowsHaveNoButtons() {
         List<String> sms = BundleSheet.row(ContentType.SMS, "C1", "문자", 1,
                 tree("{\"sender\":\"1588\",\"body\":\"#{points} 적립\",\"customerCenter\":true,\"optOut\":false}"),
-                FROZEN, RequestStatus.APPROVED, DONE);
-        assertThat(sms.subList(1, 7)).containsExactly("문자", "문자", "#{points} 적립", "", "", "points=5,000");
+                RequestStatus.APPROVED, DONE);
+        assertThat(sms.subList(1, 7)).containsExactly("문자", "문자", "#{points} 적립", "", "", "points");
         List<String> free = BundleSheet.row(ContentType.FREEFORM, "C1", "고지", 1,
-                tree("{\"title\":\"고지 제목\",\"text\":\"본문\"}"), Map.of(), RequestStatus.APPROVED, DONE);
+                tree("{\"title\":\"고지 제목\",\"text\":\"본문\"}"), RequestStatus.APPROVED, DONE);
         assertThat(free.get(1)).isEqualTo("자유입력형");
         assertThat(free.get(3)).isEqualTo("본문");
     }
 
     @Test
     void workbookHasTheHeaderAndOneRowPerItem() throws Exception {
-        List<String> row = BundleSheet.row(ContentType.SMS, "C1", "문자", 1, tree("{\"body\":\"본문\"}"), Map.of(),
+        List<String> row = BundleSheet.row(ContentType.SMS, "C1", "문자", 1, tree("{\"body\":\"본문\"}"),
                 RequestStatus.APPROVED, DONE);
         byte[] bytes = BundleSheet.workbook(List.of(row, row));
         try (XSSFWorkbook wb = new XSSFWorkbook(new ByteArrayInputStream(bytes))) {
@@ -177,7 +176,7 @@ class BundleExportRulesTest {
         assertThat(BundleSheet.formulaLike(null)).isFalse();
 
         byte[] bytes = BundleSheet.workbook(List.of(List.of("C1", "알림톡", "=1+1", "-할인 안내", "@이벤트", "",
-                "", "v1", "검수 완료", "2026-10-07 (KST)")));
+                "", "v1", "검수 완료", "2026-10-07")));
         try (XSSFWorkbook wb = new XSSFWorkbook(new ByteArrayInputStream(bytes))) {
             Sheet sheet = wb.getSheetAt(0);
             var row = sheet.getRow(1);

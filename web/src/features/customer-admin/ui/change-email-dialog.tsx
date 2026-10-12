@@ -11,6 +11,10 @@ import { normalizeEmail } from "../model/invite-form";
 import { invalidateUserData } from "../model/invalidate";
 import { useServerError } from "@/shared/ui";
 
+/** An accepted user's new address takes effect only after the user opens the link mailed to it. */
+export const EMAIL_CHANGE_REQUESTED_TOAST = "새 주소로 확인 메일을 보냈습니다. 사용자가 확인하면 변경됩니다";
+export const EMAIL_CHANGE_CANCELLED_TOAST = "대기 중인 이메일 변경을 취소했습니다";
+
 export interface ChangeEmailDialogProps {
   open: boolean;
   onClose: () => void;
@@ -33,12 +37,16 @@ function ChangeEmailBody({ onClose, customer, member }: ChangeEmailDialogProps &
   const value = normalizeEmail(email);
   const external = isExternalEmail(value, customer.domain) && value !== member.user.email.toLowerCase();
 
+  const pendingEmail = member.pending ? null : (member.pendingEmail ?? null);
+  const current = value === member.user.email.toLowerCase();
+
   const submit = async () => {
     if (!isEmailFormat(value)) {
       toast("이메일 형식 또는 중복을 확인하세요");
       return false;
     }
-    if (value === member.user.email.toLowerCase()) return undefined;
+    // the current address changes nothing, except that it cancels a change awaiting confirmation
+    if (current && !pendingEmail) return undefined;
     if (external && confirmedEmail !== value) {
       setConfirmedEmail(value);
       toast(EMAIL_CHANGE_EXTERNAL_TOAST);
@@ -52,6 +60,8 @@ function ChangeEmailBody({ onClose, customer, member }: ChangeEmailDialogProps &
       return server.fail(error);
     }
     await invalidateUserData(client);
+    if (current) toast(EMAIL_CHANGE_CANCELLED_TOAST);
+    else if (!member.pending) toast(EMAIL_CHANGE_REQUESTED_TOAST);
     return undefined;
   };
 
@@ -60,6 +70,11 @@ function ChangeEmailBody({ onClose, customer, member }: ChangeEmailDialogProps &
       <Field label="이메일" required htmlFor={`${id}-email`} error={server.field("email")}>
         <Input id={`${id}-email`} autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} />
       </Field>
+      {pendingEmail ? (
+        <Banner tone="wait">
+          변경 확인 대기: {pendingEmail}. 현재 주소로 저장하면 대기 중인 변경을 취소합니다.
+        </Banner>
+      ) : null}
       {external ? <Banner tone="danger">외부 도메인 이메일입니다. 주소를 확인하세요.</Banner> : null}
       <ErrorDetails message={server.inline.message} items={server.inline.items} />
     </Modal>

@@ -1,4 +1,4 @@
-export { CorrectionPanel, EXCLUDED_NOTE, STALE_NOTE } from "./ui/correction-panel";
+export { CorrectionPanel, FILES_NOTE, STALE_NOTE } from "./ui/correction-panel";
 export type { CorrectionPanelProps } from "./ui/correction-panel";
 export {
   APPLIED_MESSAGE,

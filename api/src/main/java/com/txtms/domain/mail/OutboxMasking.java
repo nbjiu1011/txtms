@@ -4,9 +4,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Hides account tokens in outbox listings (pure). Invitation and password reset mails carry a usable link
- * ({@code {web}/invite/{token}}, {@code {web}/reset/{token}}); anyone who can read the outbox could take over the
- * account with it, so listings show {@code …/invite/••••} plus {@link #NOTE}. The stored mail keeps the full body
+ * Hides account tokens in outbox listings (pure). Invitation, password reset and email change mails carry a usable
+ * link ({@code {web}/invite/{token}}, {@code {web}/reset/{token}}, {@code {web}/email-change/{token}}); anyone who can
+ * read the outbox could take over the account with it, so listings show {@code …/invite/••••} plus {@link #NOTE}. The stored mail keeps the full body
  * for delivery.
  * <p>
  * Who sees full links: a customer admin only in demo mode for a sample customer (the demo invitation flow), the
@@ -17,7 +17,7 @@ public final class OutboxMasking {
     public static final String MASK = "••••";
     public static final String NOTE = "링크는 수신자에게만 전달됩니다";
 
-    private static final Pattern TOKEN_LINK = Pattern.compile("/(invite|reset)/[A-Za-z0-9_-]+");
+    private static final Pattern TOKEN_LINK = Pattern.compile("/(invite|reset|email-change)/[A-Za-z0-9_-]+");
 
     private OutboxMasking() {
     }

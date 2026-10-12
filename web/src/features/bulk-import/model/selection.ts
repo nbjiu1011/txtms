@@ -23,7 +23,10 @@ export const BULK_HEADERS: Partial<Record<ContentType, string[]>> = {
 
 export const BULK_MAX_FILE_BYTES = 20 * 1024 * 1024;
 
-/** Rows without errors are selected at first (reference `parseRows`). */
+/**
+ * Rows without errors are selected at first (reference `parseRows`). Channel spec warnings never
+ * exclude a row (§17.3): a row with only warnings is valid.
+ */
 export function initialSelection(rows: readonly BulkImportRow[]): Set<number> {
   return new Set(rows.filter((r) => r.errors.length === 0).map((r) => r.rowNumber));
 }
@@ -49,7 +52,8 @@ export function selectedRows(rows: readonly BulkImportRow[], selection: Readonly
 
 export function previewSummary(rows: readonly BulkImportRow[]) {
   const excluded = rows.filter((r) => r.errors.length > 0).length;
-  return { total: rows.length, ok: rows.length - excluded, excluded };
+  const warned = rows.filter((r) => r.errors.length === 0 && r.warnings.length > 0).length;
+  return { total: rows.length, ok: rows.length - excluded, excluded, warned };
 }
 
 /** Sheet values of a preview row, rebuilt from the payload the row will become. */

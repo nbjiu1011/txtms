@@ -33,11 +33,6 @@
   color: var(--sub);
   margin: 4px 0 8px;
 }
-.excludedRow {
-  font-size: 13px;
-  color: var(--sub);
-  margin: 6px 0 10px;
-}
 .stale {
   font-size: 12px;
   padding: 8px 10px;

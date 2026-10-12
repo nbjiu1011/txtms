@@ -19,6 +19,11 @@ public enum DatasetScope {
         return valueOf(type.name());
     }
 
+    /** A content type deferred from Phase 1 (RCS): its datasets are neither registered, assigned nor listed. */
+    public boolean deferred() {
+        return this != COMMON && !contentType().offered();
+    }
+
     /** The content type of a type scope, null for {@code COMMON}. */
     public ContentType contentType() {
         return this == COMMON ? null : ContentType.valueOf(name());

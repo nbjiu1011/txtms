@@ -13,9 +13,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.txtms.domain.auth.dto.AuthDtos.DemoPersona;
 import com.txtms.domain.auth.dto.AuthDtos.TokenInfo;
 import com.txtms.domain.auth.dto.MeResponse;
+import com.txtms.domain.auth.entity.EmailChange;
 import com.txtms.domain.auth.entity.PasswordReset;
 import com.txtms.domain.auth.entity.UserInvitation;
 import com.txtms.domain.auth.entity.UserSession;
+import com.txtms.domain.auth.repository.EmailChangeRepository;
 import com.txtms.domain.auth.repository.PasswordResetRepository;
 import com.txtms.domain.auth.repository.UserInvitationRepository;
 import com.txtms.domain.customer.service.CustomerService;
@@ -32,7 +34,10 @@ import com.txtms.global.exception.ErrorCode;
 import com.txtms.global.security.AuthUser;
 import com.txtms.global.security.JwtService;
 
-/** Login (email/password and demo personas), refresh, logout, password reset and invitation acceptance. */
+/**
+ * Login (email/password and demo personas), refresh, logout, password reset, invitation acceptance and email change
+ * confirmation.
+ */
 @Service
 public class AuthService {
 
@@ -40,6 +45,7 @@ public class AuthService {
     public static final String INVALID_LINK_MESSAGE = "유효하지 않은 링크입니다";
     public static final String CURRENT_PASSWORD_MISMATCH_MESSAGE = "현재 비밀번호가 일치하지 않습니다";
     public static final String SAME_PASSWORD_MESSAGE = "현재 비밀번호와 다른 비밀번호를 입력하세요";
+    public static final String EMAIL_INVALID_OR_DUPLICATE_MESSAGE = "이메일 형식 또는 중복을 확인하세요";
 
     private final UserService userService;
     private final CustomerService customerService;
@@ -50,6 +56,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final PasswordResetRepository passwordResets;
     private final UserInvitationRepository invitations;
+    private final EmailChangeRepository emailChanges;
     private final MailSender mailSender;
     private final ContentLockService contentLocks;
     private final Clock clock;
@@ -60,7 +67,8 @@ public class AuthService {
     public AuthService(UserService userService, CustomerService customerService, SessionService sessionService,
             LoginAttemptService loginAttempts, MeService meService, JwtService jwtService,
             PasswordEncoder passwordEncoder, PasswordResetRepository passwordResets,
-            UserInvitationRepository invitations, MailSender mailSender, ContentLockService contentLocks,
+            UserInvitationRepository invitations, EmailChangeRepository emailChanges, MailSender mailSender,
+            ContentLockService contentLocks,
             Clock clock, AppProperties properties, AuditLogService audit) {
         this.userService = userService;
         this.customerService = customerService;
@@ -71,6 +79,7 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
         this.passwordResets = passwordResets;
         this.invitations = invitations;
+        this.emailChanges = emailChanges;
         this.mailSender = mailSender;
         this.contentLocks = contentLocks;
         this.clock = clock;
@@ -241,6 +250,13 @@ public class AuthService {
             return valid ? new TokenInfo(TokenKind.PASSWORD_RESET, true, user.getEmail(), user.getName())
                     : new TokenInfo(TokenKind.PASSWORD_RESET, false, null, null);
         }
+        Optional<EmailChange> change = emailChanges.findByTokenHash(hash);
+        if (change.isPresent()) {
+            User user = userService.find(change.get().getUserId()).orElse(null);
+            boolean valid = user != null && change.get().isUsable(now) && userService.canUseAccount(user);
+            return valid ? new TokenInfo(TokenKind.EMAIL_CHANGE, true, change.get().getNewEmail(), user.getName())
+                    : new TokenInfo(TokenKind.EMAIL_CHANGE, false, null, null);
+        }
         return new TokenInfo(null, false, null, null);
     }
 
@@ -283,6 +299,33 @@ public class AuthService {
         sessionService.revokeAllOf(user.getId());
         loginAttempts.clear(user.getEmail());
         return startSession(user, false);
+    }
+
+    /**
+     * Applies a confirmed email change: the user's sign-in email becomes the new address and every session of the
+     * user ends (sign in again with the new address). The token row is read under a write lock so a link is used
+     * once. An address another account took in the meantime is {@code DUPLICATE}. Audited with the user as actor.
+     */
+    @Transactional
+    public void confirmEmailChange(String token) {
+        Instant now = clock.instant();
+        EmailChange change = emailChanges.lockByTokenHash(OpaqueTokens.hash(token))
+                .filter(c -> c.isUsable(now))
+                .orElseThrow(AuthService::invalidLink);
+        User user = userService.find(change.getUserId())
+                .filter(userService::canUseAccount)
+                .orElseThrow(AuthService::invalidLink);
+        String before = user.getEmail();
+        String after = change.getNewEmail();
+        if (userService.findByEmail(after).filter(u -> !u.getId().equals(user.getId())).isPresent()) {
+            throw new BusinessException(ErrorCode.DUPLICATE, EMAIL_INVALID_OR_DUPLICATE_MESSAGE);
+        }
+        change.markUsed(now);
+        if (!after.equals(before)) {
+            userService.changeEmail(user, after, now, EMAIL_INVALID_OR_DUPLICATE_MESSAGE);
+        }
+        sessionService.revokeAllOf(user.getId());
+        audit.record(user.getId(), user.getCustomerId(), "사용자 이메일 변경", user.getName(), before + " → " + after);
     }
 
     LoginResult startSession(User user, boolean remember) {

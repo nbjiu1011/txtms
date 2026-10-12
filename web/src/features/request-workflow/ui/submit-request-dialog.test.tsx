@@ -8,7 +8,9 @@ import { SubmitRequestDialog, type SubmitRequestDialogProps } from "./submit-req
 const MISSING = {
   details: ["요청 정보: 대상 고객", "C1 콘텐츠 1: 승인 템플릿"],
   fieldErrors: [{ field: "target", message: "대상 고객을(를) 입력하세요" }],
+  warnings: [],
 };
+const WARNINGS = ["C1 콘텐츠 1: 본문 1,000자 초과 (1,001자)", "C1 콘텐츠 1: 버튼 5개 초과 (6개)"];
 
 function setup(overrides: Partial<SubmitRequestDialogProps> = {}) {
   const props: SubmitRequestDialogProps = {
@@ -31,7 +33,7 @@ function setup(overrides: Partial<SubmitRequestDialogProps> = {}) {
 
 /** The pre-check passes (`ok: true`): the confirmation opens. */
 function precheckPasses() {
-  return vi.spyOn(requestApi, "submitCheck").mockResolvedValue({ ok: true, details: [], fieldErrors: [] });
+  return vi.spyOn(requestApi, "submitCheck").mockResolvedValue({ ok: true, details: [], fieldErrors: [], warnings: [] });
 }
 
 /** A server without the pre-check answers 404: the confirmation opens directly (graceful fallback). */
@@ -67,13 +69,39 @@ describe("SubmitRequestDialog", () => {
     view.rerender(<SubmitRequestDialog {...props} open={false} />);
     const missing = await screen.findByRole("dialog", { name: "검수를 요청하려면 다음 항목을 채우세요" });
     expect(within(missing).getAllByRole("listitem").map((li) => li.textContent)).toEqual(MISSING.details);
+    expect(within(missing).queryByRole("list", { name: "채널 규격 확인" })).toBeNull();
     expect(screen.queryByRole("dialog", { name: "검수를 요청할까요?" })).toBeNull();
     expect(props.onInvalid).toHaveBeenCalledWith(MISSING.fieldErrors);
     expect(submit).not.toHaveBeenCalled();
   });
 
+  it("lists channel spec warnings in the confirmation and still submits", async () => {
+    vi.spyOn(requestApi, "submitCheck").mockResolvedValue({ ok: true, details: [], fieldErrors: [], warnings: WARNINGS });
+    const detail = { ...request102U1, status: "WAITING" } as RequestDetail;
+    vi.spyOn(requestApi, "submit").mockResolvedValue(detail);
+    const { props } = setup();
+    const confirm = await screen.findByRole("dialog", { name: "검수를 요청할까요?" });
+    const list = within(confirm).getByRole("list", { name: "채널 규격 확인" });
+    expect(within(list).getAllByRole("listitem").map((li) => li.textContent)).toEqual(WARNINGS);
+    expect(within(confirm).getByText("규격 초과는 안내일 뿐 검수 요청을 막지 않습니다.")).toBeTruthy();
+    fireEvent.click(within(confirm).getByRole("button", { name: "검수 요청" }));
+    await waitFor(() => expect(props.onSubmitted).toHaveBeenCalledWith(detail));
+  });
+
+  it("shows the warnings next to the missing items when the pre-check fails", async () => {
+    vi.spyOn(requestApi, "submitCheck").mockResolvedValue({ ok: false, ...MISSING, warnings: WARNINGS });
+    const { props, view } = setup();
+    await waitFor(() => expect(props.onClose).toHaveBeenCalled());
+    view.rerender(<SubmitRequestDialog {...props} open={false} />);
+    const missing = await screen.findByRole("dialog", { name: "검수를 요청하려면 다음 항목을 채우세요" });
+    const items = within(missing).getByRole("list", { name: "채울 항목" });
+    expect(within(items).getAllByRole("listitem").map((li) => li.textContent)).toEqual(MISSING.details);
+    const warned = within(missing).getByRole("list", { name: "채널 규격 확인" });
+    expect(within(warned).getAllByRole("listitem").map((li) => li.textContent)).toEqual(WARNINGS);
+  });
+
   it("asks for confirmation when the pre-check passes", async () => {
-    vi.spyOn(requestApi, "submitCheck").mockResolvedValue({ ok: true, details: [], fieldErrors: [] });
+    vi.spyOn(requestApi, "submitCheck").mockResolvedValue({ ok: true, details: [], fieldErrors: [], warnings: [] });
     setup();
     expect(await screen.findByRole("dialog", { name: "검수를 요청할까요?" })).toBeTruthy();
   });

@@ -177,9 +177,10 @@ class DashboardIntegrationTest extends IntegrationTestBase {
     void contentTypesAndGuides() throws Exception {
         Login kim = login(KIM_REQUESTER);
         JsonNode types = getJson(kim, "/api/content-types");
-        assertThat(types).hasSize(4);
-        assertThat(types.get(3).path("type").asString()).isEqualTo("FREEFORM");
-        assertThat(types.get(3).path("mockEnabled").asBoolean()).isFalse();
+        // Phase 1 types (RCS deferred)
+        assertThat(types).hasSize(3);
+        assertThat(types.get(2).path("type").asString()).isEqualTo("FREEFORM");
+        assertThat(types.get(2).path("mockEnabled").asBoolean()).isFalse();
         JsonNode guide = getJson(kim, "/api/guides/SMS");
         assertThat(guide.path("goodExpressions").get(0).path("avoid").asString()).isEqualTo("금일");
         assertThat(guide.path("goodExpressions").get(0).path("prefer").asString()).isEqualTo("오늘");

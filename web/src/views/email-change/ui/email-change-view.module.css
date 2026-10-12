@@ -1,0 +1,21 @@
+.title {
+  margin: 0 0 4px;
+  font-size: 20px;
+}
+.lead {
+  margin: 0 0 18px;
+  color: var(--sub);
+}
+.address {
+  display: block;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  font-weight: 600;
+  word-break: break-all;
+}
+.error {
+  margin-bottom: 12px;
+}

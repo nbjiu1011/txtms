@@ -1,8 +1,8 @@
 package com.txtms.global.audit;
 
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -31,14 +31,16 @@ public class AuditLogService {
     private final AuditLogRepository repository;
     private final ActorNames actorNames;
     private final Clock clock;
-    private final int accessRetentionDays;
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+
+    private final int accessRetentionYears;
 
     public AuditLogService(AuditLogRepository repository, ActorNames actorNames, Clock clock,
             AppProperties properties) {
         this.repository = repository;
         this.actorNames = actorNames;
         this.clock = clock;
-        this.accessRetentionDays = properties.audit().retention().days();
+        this.accessRetentionYears = properties.audit().retention().years();
     }
 
     /** Contract AuditLog (§12). {@code actorName}: the actor's current name (null for system actions). */
@@ -62,7 +64,8 @@ public class AuditLogService {
     @Transactional(propagation = Propagation.MANDATORY)
     public AuditLog record(Long actorId, Long customerId, String action, String target, String detail) {
         Instant now = clock.instant();
-        Instant retention = ACCESS_ACTIONS.contains(action) ? now.plus(Duration.ofDays(accessRetentionDays)) : null;
+        Instant retention = ACCESS_ACTIONS.contains(action)
+                ? now.atZone(KST).plusYears(accessRetentionYears).toInstant() : null;
         return repository.save(new AuditLog(now, actorId, customerId, action, target, detail, retention));
     }
 

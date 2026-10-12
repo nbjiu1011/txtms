@@ -20,7 +20,8 @@ export interface EditorToolbarProps {
   /** Anchor of the variable picker popover. */
   variablesRef?: Ref<HTMLButtonElement>;
   onCompare: () => void;
-  onGuide: () => void;
+  /** Opens the writing guide; omitted for a deferred type without a guide (RCS). */
+  onGuide?: () => void;
 }
 
 /** `.ed-top` — title, key/version tag, version compare, save state and editor actions. */
@@ -48,10 +49,12 @@ export function EditorToolbar({ content, draft, revision, variables, variablesRe
       ) : null}
       <span className={styles.sp} />
       {draft && state ? <SaveIndicator state={state.status}>{saveLabel(state)}</SaveIndicator> : null}
-      <Button size="sm" variant="ghost" className={styles.btnIcon} onClick={onGuide}>
-        <Icon name="book" />
-        가이드
-      </Button>
+      {onGuide ? (
+        <Button size="sm" variant="ghost" className={styles.btnIcon} onClick={onGuide}>
+          <Icon name="book" />
+          가이드
+        </Button>
+      ) : null}
       {variables ? (
         <Button
           ref={variablesRef}

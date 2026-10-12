@@ -8,8 +8,11 @@ import type {
   RcsPayload,
 } from "./types";
 
-/** 알림톡 buttons per content. */
-export const MAX_ALIMTALK_BUTTONS = 5;
+/**
+ * 알림톡 buttons the server stores per content (abuse guard, `LIMIT_EXCEEDED` above it). The channel spec
+ * (`buttonsMax`, 5) is only a warning, so more buttons than the spec can be added up to this cap.
+ */
+export const MAX_ALIMTALK_BUTTONS_STORED = 20;
 /** RCS cards per content (card count select 1–5). */
 export const MIN_RCS_CARDS = 1;
 export const MAX_RCS_CARDS = 5;
@@ -91,9 +94,9 @@ export function defaultTextPath(type: ContentType): string {
   return type === "FREEFORM" ? "text" : "body";
 }
 
-/** Adds an empty 알림톡 button (no-op at the limit). */
+/** Adds an empty 알림톡 button (no-op at the storage cap). */
 export function addAlimtalkButton(payload: AlimtalkPayload): AlimtalkPayload {
-  if (payload.buttons.length >= MAX_ALIMTALK_BUTTONS) return payload;
+  if (payload.buttons.length >= MAX_ALIMTALK_BUTTONS_STORED) return payload;
   return { ...payload, buttons: [...payload.buttons, { name: "", link: "" }] };
 }
 

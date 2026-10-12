@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CorrectionResult } from "@/entities/correction";
 import { cardView } from "./card";
-import { isExcluded, isStale, payloadSnapshot } from "./freshness";
+import { isStale, payloadSnapshot } from "./freshness";
 import { commitReplacement, createRun, planApply } from "./run";
 
 const opt = (recommended: string | null, label = "어려운 한자어", description = "설명") => ({
@@ -17,7 +17,6 @@ function run(): ReturnType<typeof createRun> {
     checkedAt: "",
     datasetLabel: "알림톡 v4",
     variablesRevision: 3,
-    excluded: false,
     groups: [
       { id: "body:0:2", field: "body", start: 0, end: 2, matchedText: "할수", options: [opt("할 수", "띄어쓰기", "의존 명사")] },
       {
@@ -96,11 +95,5 @@ describe("freshness (contract §6)", () => {
     expect(isStale({ snapshot: snap, variablesRevision: 3 }, snap, 4)).toBe(true);
     expect(isStale({ snapshot: snap, variablesRevision: 3 }, snap, 2)).toBe(false);
     expect(isStale({ snapshot: snap, variablesRevision: 3 }, snap, null)).toBe(false);
-  });
-
-  it("excludes only 자유입력형 with attachments", () => {
-    expect(isExcluded("FREEFORM", 1)).toBe(true);
-    expect(isExcluded("FREEFORM", 0)).toBe(false);
-    expect(isExcluded("ALIMTALK", 1)).toBe(false);
   });
 });

@@ -11,12 +11,13 @@ export interface AuditLog {
   detail: string;
 }
 
-export const OUTBOX_MAIL_KINDS = ["INVITATION", "PASSWORD_RESET", "REMINDER", "OTHER"] as const;
+export const OUTBOX_MAIL_KINDS = ["INVITATION", "PASSWORD_RESET", "EMAIL_CHANGE", "REMINDER", "OTHER"] as const;
 export type OutboxMailKind = (typeof OUTBOX_MAIL_KINDS)[number];
 
 export const OUTBOX_KIND_LABEL: Record<OutboxMailKind, string> = {
   INVITATION: "초대",
   PASSWORD_RESET: "비밀번호 재설정",
+  EMAIL_CHANGE: "이메일 변경 확인",
   REMINDER: "재통지",
   OTHER: "기타",
 };

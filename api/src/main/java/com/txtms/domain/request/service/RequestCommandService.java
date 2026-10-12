@@ -162,6 +162,7 @@ public class RequestCommandService {
         support.require(ctx, RequestAction.CLONE);
         requireActiveProject(ctx.project());
         Request source = ctx.request();
+        requireOfferedType(source);
         Instant now = support.now();
         Request copy = new Request(idGenerator.next(now), source.getProjectId(), source.getType(), ctx.userId(), now);
         RequestInfo info = source.info();
@@ -197,6 +198,13 @@ public class RequestCommandService {
         return detailOf(auth, copy.getId());
     }
 
+    /** No new content of a deferred type (RCS) through a copy; stopped but offered types keep their type. */
+    private static void requireOfferedType(Request source) {
+        if (!source.getType().offered()) {
+            throw BusinessException.validation("type", ContentType.RCS_DEFERRED);
+        }
+    }
+
     /**
      * Follow-up of a finally completed request (FOLLOW_UP): a new draft linked to the original whose contents are
      * the completion bundle items (all, or the one given) with their frozen title, payload and attachments (the
@@ -208,6 +216,7 @@ public class RequestCommandService {
         support.require(ctx, RequestAction.FOLLOW_UP);
         requireActiveProject(ctx.project());
         Request source = ctx.request();
+        requireOfferedType(source);
         String only = body == null || body.contentKey() == null || body.contentKey().isBlank() ? null
                 : body.contentKey().trim();
         List<CompletionBundleItem> items = bundleItems.findByRequestIdOrderBySortOrderAsc(source.getId()).stream()
@@ -485,7 +494,8 @@ public class RequestCommandService {
 
     /**
      * Submit pre-check (SUBMIT): the same validation as {@link #submit} without a state change or a row version, so
-     * the confirmation dialog can list what is missing first.
+     * the confirmation dialog can list what is missing first, plus the channel specification warnings (never
+     * blocking).
      */
     public SubmitCheck submitCheck(AuthUser auth, String id) {
         Ctx ctx = support.lock(auth, id);
@@ -495,7 +505,7 @@ public class RequestCommandService {
         current.forEach(c -> filesByContent.put(c.getId(),
                 files.findByContentIdAndDeletedFalseOrderBySortOrderAsc(c.getId())));
         SubmitValidator.Result result = submitValidator.validate(validationInput(ctx, current, filesByContent, true));
-        return new SubmitCheck(result.ok(), result.details(), result.fieldErrors());
+        return new SubmitCheck(result.ok(), result.details(), result.fieldErrors(), result.warnings());
     }
 
     private void snapshotOnSubmit(Content c, List<ContentFile> fs, boolean firstSubmit, long userId, Instant now) {

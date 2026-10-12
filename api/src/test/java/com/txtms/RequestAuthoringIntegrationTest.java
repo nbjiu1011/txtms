@@ -332,23 +332,32 @@ class RequestAuthoringIntegrationTest extends IntegrationTestBase {
         expect(200, req, put("/api/requests/" + id + "/contents/C1"), Map.of("payload",
                 Map.of("templateCode", "HB_POINT_01", "body", "본문", "buttons", List.of(Map.of("name", "a",
                         "link", "https://a.kr")))));
+        // more than the channel spec (5 buttons) saves; the abuse cap is 20
+        expect(200, req, put("/api/requests/" + id + "/contents/C1"), Map.of("payload",
+                Map.of("buttons", java.util.Collections.nCopies(6, Map.of()))));
         JsonNode tooMany = expect(400, req, put("/api/requests/" + id + "/contents/C1"), Map.of("payload",
-                Map.of("buttons", List.of(Map.of(), Map.of(), Map.of(), Map.of(), Map.of(), Map.of()))));
+                Map.of("buttons", java.util.Collections.nCopies(21, Map.of()))));
         assertThat(tooMany.path("code").asString()).isEqualTo("LIMIT_EXCEEDED");
+        assertThat(tooMany.path("message").asString()).isEqualTo("버튼은 최대 20개입니다");
 
-        JsonNode changed = expect(200, req, put("/api/requests/" + id + "/type"), Map.of("type", "RCS"));
-        assertThat(changed.path("type").asString()).isEqualTo("RCS");
+        // RCS is deferred from Phase 1 (never active)
+        assertThat(expect(400, req, put("/api/requests/" + id + "/type"), Map.of("type", "RCS")).path("message")
+                .asString()).isEqualTo("사용 중인 유형만 선택할 수 있습니다");
+        JsonNode changed = expect(200, req, put("/api/requests/" + id + "/type"), Map.of("type", "SMS"));
+        assertThat(changed.path("type").asString()).isEqualTo("SMS");
         assertThat(changed.path("contents")).hasSize(1);
         assertThat(changed.path("contents").get(0).path("key").asString()).isEqualTo("C1");
-        assertThat(changed.path("contents").get(0).path("payload").path("cards")).hasSize(1);
+        assertThat(changed.path("contents").get(0).path("payload").has("sender")).isTrue();
         assertThat(history(req, id)).endsWith("유형 변경");
         assertThat(getJson(req, "/api/requests/" + id + "/history").get(2).path("detail").asString())
-                .isEqualTo("RCS");
+                .isEqualTo("문자");
         // the next content continues after C2 even though C2 was removed by the type change
         assertThat(expect(201, req, post("/api/requests/" + id + "/contents"), null).path("key").asString())
                 .isEqualTo("C3");
 
-        // RCS card image: upload, reference from the payload, serve within the request only
+        // RCS card image of an RCS request created before the deferral: upload, reference from the payload, serve
+        // within the request only
+        jdbc.update("UPDATE requests SET content_type = 'RCS' WHERE id = ?", id);
         MvcResult img = upload(req, "/api/requests/" + id + "/contents/C1/images", "card.png", PNG, null);
         assertThat(img.getResponse().getStatus()).as(text(img)).isEqualTo(201);
         String imageKey = read(img).path("imageKey").asString();
@@ -382,8 +391,7 @@ class RequestAuthoringIntegrationTest extends IntegrationTestBase {
                 "body", "가".repeat(990) + " #{customer_name} #{unknown_key}", "customerCenter", true, "optOut", true)));
         long rv = getJson(req, "/api/requests/" + sms).path("rowVersion").asLong();
         assertThat(strings(expect(400, req, post("/api/requests/" + sms + "/submit"), Map.of("rowVersion", rv))
-                .path("details"))).containsExactly("C1: 등록된 발신번호", "C1: LMS 최대 2,000바이트 (안내 포함)",
-                        "C1: 등록되지 않았거나 비활성 변수 unknown_key");
+                .path("details"))).containsExactly("C1: 등록된 발신번호", "C1: 등록되지 않았거나 비활성 변수 unknown_key");
 
         String alim = create(req, t.projectId(), "ALIMTALK").path("id").asString();
         expect(200, req, patch("/api/requests/" + alim), info("알림톡"));
@@ -392,8 +400,7 @@ class RequestAuthoringIntegrationTest extends IntegrationTestBase {
                 "buttons", List.of(Map.of("name", "열네 글자를 넘는 아주 긴 버튼 이름", "link", "javascript:alert(1)")))));
         rv = getJson(req, "/api/requests/" + alim).path("rowVersion").asLong();
         assertThat(strings(expect(400, req, post("/api/requests/" + alim + "/submit"), Map.of("rowVersion", rv))
-                .path("details"))).containsExactly("C1: 등록된 승인 템플릿", "C1: 버튼명 최대 14자",
-                        "C1: HTTP/HTTPS 버튼 링크");
+                .path("details"))).containsExactly("C1: 등록된 승인 템플릿", "C1: HTTP/HTTPS 버튼 링크");
 
         // inactive project blocks submit
         expect(200, req, put("/api/requests/" + alim + "/contents/C1"), Map.of("payload", Map.of(

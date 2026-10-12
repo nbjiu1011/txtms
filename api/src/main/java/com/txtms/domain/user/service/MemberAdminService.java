@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.txtms.domain.auth.service.EmailChangeService;
 import com.txtms.domain.auth.service.InvitationService;
 import com.txtms.domain.customer.entity.Customer;
 import com.txtms.domain.customer.service.CustomerAdminAccess;
@@ -64,16 +65,19 @@ public class MemberAdminService {
     private final ProjectAccess projectAccess;
     private final RequestQueryService requests;
     private final InvitationService invitations;
+    private final EmailChangeService emailChanges;
     private final AuditLogService audit;
     private final Clock clock;
 
     public MemberAdminService(CustomerAdminAccess adminAccess, UserService userService, ProjectAccess projectAccess,
-            RequestQueryService requests, InvitationService invitations, AuditLogService audit, Clock clock) {
+            RequestQueryService requests, InvitationService invitations, EmailChangeService emailChanges,
+            AuditLogService audit, Clock clock) {
         this.adminAccess = adminAccess;
         this.userService = userService;
         this.projectAccess = projectAccess;
         this.requests = requests;
         this.invitations = invitations;
+        this.emailChanges = emailChanges;
         this.audit = audit;
         this.clock = clock;
     }
@@ -108,28 +112,35 @@ public class MemberAdminService {
     /** Candidate substitutes for a deactivation: usable users other than the target holding a reviewer role. */
     List<MemberResponse> substitutesOf(Customer customer, long targetUserId) {
         List<Project> projects = projectAccess.byCustomer(customer.getId());
-        return userService.byCustomer(customer.getId()).stream()
+        List<User> users = userService.byCustomer(customer.getId()).stream()
                 .filter(u -> u.isActive() && !u.isPending() && !u.getId().equals(targetUserId))
                 .filter(u -> projects.stream().anyMatch(p -> p.rolesOf(u.getId()).contains(ProjectRole.REVIEWER)))
                 .limit(LIST_LIMIT)
-                .map(u -> member(customer, u, projects, null))
                 .toList();
+        Map<Long, String> pendingEmails = emailChanges.pendingEmails(users.stream().map(User::getId).toList());
+        return users.stream().map(u -> member(customer, u, projects, null, pendingEmails.get(u.getId()))).toList();
     }
 
     private List<MemberResponse> members(Customer customer, List<User> users) {
         List<Project> projects = projectAccess.byCustomer(customer.getId());
         Map<Long, Instant> expiries = invitations.usableExpiries(
                 users.stream().filter(User::isPending).map(User::getId).toList());
-        return users.stream().map(u -> member(customer, u, projects, expiries.get(u.getId()))).toList();
+        Map<Long, String> pendingEmails = emailChanges.pendingEmails(
+                users.stream().filter(u -> !u.isPending()).map(User::getId).toList());
+        return users.stream()
+                .map(u -> member(customer, u, projects, expiries.get(u.getId()), pendingEmails.get(u.getId())))
+                .toList();
     }
 
     MemberResponse member(Customer customer, User user) {
         Map<Long, Instant> expiries = user.isPending() ? invitations.usableExpiries(List.of(user.getId())) : Map.of();
-        return member(customer, user, projectAccess.byCustomer(customer.getId()), expiries.get(user.getId()));
+        String pendingEmail = user.isPending() ? null : emailChanges.pendingEmail(user.getId());
+        return member(customer, user, projectAccess.byCustomer(customer.getId()), expiries.get(user.getId()),
+                pendingEmail);
     }
 
     private static MemberResponse member(Customer customer, User user, List<Project> projects,
-            Instant invitationExpiresAt) {
+            Instant invitationExpiresAt, String pendingEmail) {
         List<MemberResponse.ProjectRoles> rows = new ArrayList<>();
         for (Project p : projects) {
             Set<ProjectRole> roles = p.rolesOf(user.getId());
@@ -139,7 +150,7 @@ public class MemberAdminService {
             }
         }
         return new MemberResponse(UserService.summary(user), user.isPending(), user.isAdminOf(customer.getId()),
-                rows, user.isPending() ? invitationExpiresAt : null);
+                rows, user.isPending() ? invitationExpiresAt : null, user.isPending() ? null : pendingEmail);
     }
 
     // ------------------------------------------------------------------ roles
@@ -340,7 +351,11 @@ public class MemberAdminService {
         audit.record(admin.userId(), admin.customerId(), "초대 재발급", target.getName(), target.getEmail());
     }
 
-    /** Email change (globally unique). A pending user gets a new invitation link at the new address. */
+    /**
+     * Email change (globally unique). A pending user's email changes at once and a new invitation link goes to the
+     * new address. An accepted user's email changes only when the confirmation link mailed to the new address is used
+     * ({@link EmailChangeService}); sending the current address cancels a change awaiting confirmation.
+     */
     public MemberResponse changeEmail(AuthUser auth, long customerId, long userId, EmailBody body) {
         Admin admin = adminAccess.require(auth, customerId);
         User target = adminAccess.requireCustomerUser(admin, userId);
@@ -350,6 +365,13 @@ public class MemberAdminService {
             throw BusinessException.validation("email", invalid);
         }
         if (email.equals(target.getEmail())) {
+            if (!target.isPending()) {
+                String cancelled = emailChanges.cancel(target);
+                if (cancelled != null) {
+                    audit.record(admin.userId(), admin.customerId(), "사용자 이메일 변경 취소", target.getName(),
+                            cancelled);
+                }
+            }
             return member(admin.customer(), target);
         }
         if (userService.findByEmail(email).isPresent()) {
@@ -357,10 +379,14 @@ public class MemberAdminService {
         }
         requireDomainConfirmed(admin.customer(), email, body.externalDomainConfirmed(), EMAIL_CHANGE_EXTERNAL_DOMAIN);
         String before = target.getEmail();
-        target.changeEmail(email, clock.instant());
-        if (target.isPending()) {
-            invitations.issue(target, admin.userId(), admin.customer().getName());
+        if (!target.isPending()) {
+            emailChanges.request(target, email, admin.userId());
+            audit.record(admin.userId(), admin.customerId(), "사용자 이메일 변경 요청", target.getName(),
+                    before + " → " + email);
+            return member(admin.customer(), target);
         }
+        target.changeEmail(email, clock.instant());
+        invitations.issue(target, admin.userId(), admin.customer().getName());
         audit.record(admin.userId(), admin.customerId(), "사용자 이메일 변경", target.getName(), before + " → " + email);
         return member(admin.customer(), target);
     }

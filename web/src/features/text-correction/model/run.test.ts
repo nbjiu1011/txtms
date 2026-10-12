@@ -31,7 +31,7 @@ function group(field: string, text: string, matched: string, recommended: (strin
 }
 
 function result(groups: CorrectionGroup[]): CorrectionResult {
-  return { contentKey: "C1", checkedAt: "", datasetLabel: "알림톡 v4", variablesRevision: 1, excluded: false, groups };
+  return { contentKey: "C1", checkedAt: "", datasetLabel: "알림톡 v4", variablesRevision: 1, groups };
 }
 
 /** Applies (option index) or restores (null) on the fields and returns the new state. */

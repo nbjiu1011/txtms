@@ -204,6 +204,7 @@ export const AUTH_PATHS = {
   signup: "/signup",
   invite: (token: string) => `/invite/${encodeURIComponent(token)}`,
   reset: (token: string) => `/reset/${encodeURIComponent(token)}`,
+  emailChange: (token: string) => `/email-change/${encodeURIComponent(token)}`,
 } as const;
 
 function safeDecode(segment: string): string | null {

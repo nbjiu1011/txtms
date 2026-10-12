@@ -67,6 +67,12 @@ export function CustomerMembersPanel({ customerId, projectName }: CustomerMember
                           <b>{m.user.name}</b>
                           <br />
                           <span className={styles.smallFaint}>{m.user.email}</span>
+                          {m.pendingEmail ? (
+                            <span className={styles.smallFaint}>
+                              <br />
+                              변경 확인 대기: {m.pendingEmail}
+                            </span>
+                          ) : null}
                         </span>
                       </span>
                     </td>

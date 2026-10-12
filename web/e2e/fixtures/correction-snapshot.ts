@@ -33,7 +33,6 @@ export const CHECK_101: { results: CorrectionResult[] } = {
       "checkedAt": "2026-10-07T05:00:00Z",
       "datasetLabel": "알림톡 v1",
       "variablesRevision": 6,
-      "excluded": false,
       "groups": [
         {
           "id": "body:57:59",
@@ -72,7 +71,6 @@ export const CHECK_101: { results: CorrectionResult[] } = {
       "checkedAt": "2026-10-07T05:00:00Z",
       "datasetLabel": "알림톡 v1",
       "variablesRevision": 6,
-      "excluded": false,
       "groups": []
     },
     {
@@ -80,7 +78,6 @@ export const CHECK_101: { results: CorrectionResult[] } = {
       "checkedAt": "2026-10-07T05:00:00Z",
       "datasetLabel": "알림톡 v1",
       "variablesRevision": 6,
-      "excluded": false,
       "groups": [
         {
           "id": "body:47:55",

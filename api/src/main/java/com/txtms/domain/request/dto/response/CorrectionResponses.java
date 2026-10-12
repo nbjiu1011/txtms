@@ -16,11 +16,10 @@ public final class CorrectionResponses {
     }
 
     /**
-     * Contract §6.1. {@code excluded}: a free-form content with attachments (no groups). {@code variablesRevision}
-     * is the project's revision at check time (freshness).
+     * Contract §6.1. {@code variablesRevision} is the project's revision at check time (freshness).
      */
     public record CorrectionResult(String contentKey, Instant checkedAt, String datasetLabel, int variablesRevision,
-            boolean excluded, List<Group> groups) {
+            List<Group> groups) {
     }
 
     /** Same-span findings (1:N). {@code id} = {@code field:start:end}; indices are UTF-16 code units. */
@@ -35,7 +34,11 @@ public final class CorrectionResponses {
     public record DatasetInfo(boolean assigned, String datasetLabel) {
     }
 
-    /** {@code POST /api/requests/{id}/submit-check}: the submit validation without a state change. */
-    public record SubmitCheck(boolean ok, List<String> details, List<ErrorResponse.FieldErrorItem> fieldErrors) {
+    /**
+     * {@code POST /api/requests/{id}/submit-check}: the submit validation without a state change. {@code warnings}
+     * are channel specification notes and do not affect {@code ok}.
+     */
+    public record SubmitCheck(boolean ok, List<String> details, List<ErrorResponse.FieldErrorItem> fieldErrors,
+            List<String> warnings) {
     }
 }

@@ -2,5 +2,6 @@ package com.txtms.domain.auth.service;
 
 public enum TokenKind {
     INVITATION,
-    PASSWORD_RESET
+    PASSWORD_RESET,
+    EMAIL_CHANGE
 }

@@ -18,8 +18,3 @@ export function isStale(
   if (currentSnapshot !== run.snapshot) return true;
   return variablesRevision !== null && variablesRevision > run.variablesRevision;
 }
-
-/** 자유입력형 with attachments: no check, no results (전체 검사 lists it as excluded). */
-export function isExcluded(type: ContentType, fileCount: number): boolean {
-  return type === "FREEFORM" && fileCount > 0;
-}

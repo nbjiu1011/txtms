@@ -23,4 +23,7 @@ export const authApi = {
   signup: (body: SignupBody) => http.post<AuthSession>("/auth/signup", body, { auth: false }),
   setTokenPassword: (token: string, body: TokenPasswordBody) =>
     http.post<AuthSession>(`/auth/tokens/${encodeURIComponent(token)}/password`, body, { auth: false }),
+  /** Applies an email change from the link mailed to the new address (204; every session of the user ends). */
+  confirmEmailChange: (token: string) =>
+    http.post<void>(`/auth/tokens/${encodeURIComponent(token)}/email-change`, undefined, { auth: false }),
 };

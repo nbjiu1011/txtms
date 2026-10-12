@@ -44,7 +44,7 @@ export function LoginHero() {
         완료합니다
       </h1>
       <p className={styles.lead}>
-        알림톡, 문자, RCS, 자유입력 콘텐츠를 요청 단위로 묶어 배정, 검수, 선택 승인, 완료 보관까지 진행합니다.
+        알림톡, 문자, 자유입력 콘텐츠를 요청 단위로 묶어 배정, 검수, 선택 승인, 완료 보관까지 진행합니다.
       </p>
       <div className={styles.heroProof} aria-hidden="true">
         <div className={`${styles.hpCard} ${styles.hpBack}`}>

@@ -84,12 +84,15 @@ class BulkImportIntegrationTest extends IntegrationTestBase {
         assertThat(rows.get(0).path("rowNumber").asInt()).isEqualTo(2);
         assertThat(rows.get(0).path("title").asString()).isEqualTo("대량 등록 2행");
         assertThat(rows.get(0).path("errors")).isEmpty();
+        assertThat(rows.get(0).path("warnings")).isEmpty();
         assertThat(rows.get(0).path("payload").path("buttons").get(0).path("link").asString()).isEqualTo("http://a.kr/p");
         assertThat(rows.get(1).path("errors").toString())
                 .isEqualTo("[\"승인 템플릿 없음\",\"본문 없음\",\"버튼명과 링크를 함께 입력\"]");
         assertThat(rows.get(2).path("rowNumber").asInt()).isEqualTo(5);
         assertThat(rows.get(2).path("errors").toString()).isEqualTo("[\"미등록 변수 ghost\"]");
-        assertThat(rows.get(3).path("errors").toString()).isEqualTo("[\"본문 1,000자 / 버튼명 14자 초과\"]");
+        // channel spec overruns are warnings, not errors (the row can be added)
+        assertThat(rows.get(3).path("errors")).isEmpty();
+        assertThat(rows.get(3).path("warnings").toString()).isEqualTo("[\"본문 1,000자 초과 (1,001자)\"]");
 
         // structure and file errors reject the whole file
         assertThat(read(upload(req, url, "bad.xlsx", xlsx(new String[] {"발신자", "본문", "수신거부문구포함"}), null))
@@ -111,16 +114,18 @@ class BulkImportIntegrationTest extends IntegrationTestBase {
         assertThat(bad.path("details").get(0).asString())
                 .isEqualTo("대량 등록 3행: 승인 템플릿 없음, 본문 없음, 버튼명과 링크를 함께 입력");
         JsonNode committed = expect(200, req, post("/api/requests/" + id + "/bulk-import/commit"), Map.of("rows",
-                List.of(Map.of("title", "대량 등록 2행", "payload", rows.get(0).path("payload")))));
-        assertThat(committed.path("contents")).hasSize(2);
+                List.of(Map.of("title", "대량 등록 2행", "payload", rows.get(0).path("payload")),
+                        Map.of("title", "대량 등록 6행", "payload", rows.get(3).path("payload")))));
+        assertThat(committed.path("contents")).hasSize(3);
         JsonNode added = committed.path("contents").get(1);
         assertThat(added.path("key").asString()).isEqualTo("C2");
         assertThat(added.path("title").asString()).isEqualTo("대량 등록 2행");
         assertThat(added.path("payload").path("templateCode").asString()).isEqualTo("HB_POINT_01");
+        assertThat(committed.path("contents").get(2).path("payload").path("body").asString()).hasSize(1001);
         List<String> actions = new ArrayList<>();
         getJson(req, "/api/requests/" + id + "/history").forEach(h -> actions.add(h.path("action").asString()
                 + ":" + h.path("detail").asString()));
-        assertThat(actions).endsWith("XLSX 대량 등록:1행 반영");
+        assertThat(actions).endsWith("XLSX 대량 등록:2행 반영");
 
         // not the author: private draft
         expect(403, login(t.requester2()), post("/api/requests/" + id + "/bulk-import/commit"), Map.of("rows",
@@ -144,7 +149,10 @@ class BulkImportIntegrationTest extends IntegrationTestBase {
         assertThat(rows.get(0).path("payload").path("optOut").asBoolean()).isTrue();
         assertThat(rows.get(0).path("payload").path("customerCenter").asBoolean()).isFalse();
         assertThat(rows.get(1).path("errors").toString()).isEqualTo("[\"등록되지 않은 발신번호\",\"수신거부 값은 Y 또는 N\"]");
-        assertThat(rows.get(2).path("errors").toString()).isEqualTo("[\"LMS 2,000바이트 초과\"]");
+        // 1,974 + the opt-out line (27) = 2,001 bytes: a warning only
+        assertThat(rows.get(2).path("errors")).isEmpty();
+        assertThat(rows.get(2).path("warnings").toString()).isEqualTo("[\"LMS 2,000바이트 초과 (2,001바이트)\"]");
+        assertThat(rows.get(0).path("warnings")).isEmpty();
 
         String freeform = expect(201, req, post("/api/requests"), Map.of("projectId", t.projectId(),
                 "type", "FREEFORM")).path("id").asString();

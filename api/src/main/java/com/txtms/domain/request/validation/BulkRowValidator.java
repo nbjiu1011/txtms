@@ -12,7 +12,8 @@ import tools.jackson.databind.JsonNode;
 
 /**
  * Row rules of the XLSX bulk registration (Alimtalk and SMS), applied to the payload a row maps to. One row's errors
- * never fail the whole file. Links follow the same http/https rule as submit, SMS length the same byte rule.
+ * never fail the whole file. Links follow the same http/https rule as submit. Channel specification overruns are
+ * {@link #warnings warnings} (the same rule as submit) and never make a row invalid.
  */
 public final class BulkRowValidator {
 
@@ -20,10 +21,10 @@ public final class BulkRowValidator {
     public static final List<String> ALIMTALK_HEADER = List.of("승인템플릿", "본문", "버튼명", "버튼링크");
     public static final List<String> SMS_HEADER = List.of("발신자", "본문", "수신거부문구포함");
 
-    private final SubmitValidator.Limits limits;
+    private final ChannelSpecCheck channelSpec;
 
-    public BulkRowValidator(SubmitValidator.Limits limits) {
-        this.limits = limits;
+    public BulkRowValidator(ChannelSpecCheck channelSpec) {
+        this.channelSpec = channelSpec;
     }
 
     public static List<String> header(ContentType type) {
@@ -42,7 +43,6 @@ public final class BulkRowValidator {
             if (body.isBlank()) {
                 errors.add("본문 없음");
             }
-            boolean tooLong = body.length() > limits.alimtalkBodyMax();
             for (JsonNode b : payload.path("buttons")) {
                 String name = str(b, "name");
                 String link = str(b, "link");
@@ -52,10 +52,6 @@ public final class BulkRowValidator {
                 if (!link.isBlank() && !Links.valid(link, variables)) {
                     errors.add("링크는 http 또는 https");
                 }
-                tooLong |= name.length() > limits.buttonNameMax();
-            }
-            if (tooLong) {
-                errors.add(String.format("본문 %,d자 / 버튼명 %d자 초과", limits.alimtalkBodyMax(), limits.buttonNameMax()));
             }
         } else if (type == ContentType.SMS) {
             String body = str(payload, "body");
@@ -64,11 +60,6 @@ public final class BulkRowValidator {
             }
             if (body.isBlank()) {
                 errors.add("본문 없음");
-            }
-            int bytes = SmsBytes.smsBytes(body, payload.path("customerCenter").asBoolean(false),
-                    payload.path("optOut").asBoolean(false), limits.customerCenterLine(), limits.optOutLine());
-            if (bytes > limits.smsBytesMax()) {
-                errors.add(String.format("LMS %,d바이트 초과", limits.smsBytesMax()));
             }
         }
         Set<String> missing = new LinkedHashSet<>();
@@ -79,6 +70,11 @@ public final class BulkRowValidator {
         }
         errors.addAll(missing);
         return errors;
+    }
+
+    /** Channel specification warnings of a row (never errors). */
+    public List<String> warnings(ContentType type, JsonNode payload) {
+        return channelSpec.warnings(type, payload);
     }
 
     private static String str(JsonNode node, String key) {

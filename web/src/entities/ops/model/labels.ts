@@ -1,4 +1,4 @@
-import { CONTENT_TYPE_LABEL, CONTENT_TYPES, type ContentType } from "@/entities/request/@x/ops";
+import { CONTENT_TYPE_LABEL, OFFERED_CONTENT_TYPES, type ContentType } from "@/entities/request/@x/ops";
 import type { Dataset, DatasetAssignment, DatasetScope, OpsCustomer } from "./types";
 
 /** Screen label of a dataset scope (`COMMON` 공통 + content type labels). */
@@ -7,7 +7,7 @@ export function datasetScopeLabel(scope: DatasetScope): string {
 }
 
 /** Phase 1 assigns and registers content type datasets only (`COMMON` is Phase 2). */
-export const ASSIGNABLE_TYPES: readonly ContentType[] = CONTENT_TYPES;
+export const ASSIGNABLE_TYPES: readonly ContentType[] = OFFERED_CONTENT_TYPES;
 
 /** Datasets of one scope, newest version first. */
 export function datasetsOf(datasets: Dataset[], scope: DatasetScope): Dataset[] {

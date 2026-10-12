@@ -48,6 +48,12 @@ export function UsersTable(props: UsersTableProps) {
                     <b className={styles.name}>{m.user.name}</b>
                     <br />
                     <span className={styles.email}>{m.user.email}</span>
+                    {m.pendingEmail ? (
+                      <>
+                        <br />
+                        <span className={styles.email}>변경 확인 대기: {m.pendingEmail}</span>
+                      </>
+                    ) : null}
                   </span>
                 </span>
               </td>

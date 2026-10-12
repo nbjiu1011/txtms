@@ -9,6 +9,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -149,8 +150,10 @@ class ReminderIntegrationTest extends IntegrationTestBase {
 
     @Test
     void accessLogRetentionDeletesOnlyOldAccessRecords() {
-        LocalDateTime old = LocalDateTime.ofInstant(Instant.now().minus(Duration.ofDays(1096)), ZoneOffset.UTC);
-        LocalDateTime recent = LocalDateTime.ofInstant(Instant.now().minus(Duration.ofDays(1094)), ZoneOffset.UTC);
+        // three calendar years (KST) back from the service clock, one day either side
+        Instant threeYears = clock.instant().atZone(ZoneId.of("Asia/Seoul")).minusYears(3).toInstant();
+        LocalDateTime old = LocalDateTime.ofInstant(threeYears.minus(Duration.ofDays(1)), ZoneOffset.UTC);
+        LocalDateTime recent = LocalDateTime.ofInstant(threeYears.plus(Duration.ofDays(1)), ZoneOffset.UTC);
         String marker = "retention-" + System.nanoTime();
         jdbc.update("INSERT INTO audit_logs (at, action, target) VALUES (?, '파일 다운로드', ?), (?, '완료본 반출', ?), "
                 + "(?, '첨부 반출', ?), (?, '사용자 초대', ?)", old, marker, recent, marker, old, marker, old, marker);

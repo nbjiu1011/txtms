@@ -17,8 +17,9 @@ import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Strict ContentPayload shape per type (contract §3.4) and the server-protection caps. Drafts in progress are
- * accepted (empty values, missing keys → defaults); unknown keys and wrong value types are rejected. Business limits
- * (1,000 characters, 2,000 bytes, required fields...) are checked at submit by {@link SubmitValidator}.
+ * accepted (empty values, missing keys → defaults); unknown keys and wrong value types are rejected. Required fields
+ * are checked at submit by {@link SubmitValidator}; channel limits (1,000 characters, 5 buttons, 2,000 bytes...) only
+ * warn ({@link ChannelSpecCheck}). The caps here are abuse guards above those limits (e.g. 20 buttons).
  * The result always has the same key order so stored payloads compare by text.
  */
 public final class PayloadNormalizer {

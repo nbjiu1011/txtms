@@ -76,8 +76,8 @@ public final class CompletionBundles {
         };
     }
 
-    /** Completion date of exports: {@code YYYY-MM-DD (KST)}. */
+    /** Completion date of exports: the KST calendar date {@code YYYY-MM-DD}. */
     public static String completedDate(Instant completedAt) {
-        return Kst.dateOf(completedAt) + " (KST)";
+        return Kst.dateOf(completedAt).toString();
     }
 }

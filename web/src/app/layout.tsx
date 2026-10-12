@@ -8,7 +8,7 @@ import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: "TX TMS",
-  description: "알림톡·문자·RCS·자유입력 콘텐츠 검수와 승인",
+  description: "알림톡·문자·자유입력 콘텐츠 검수와 승인",
 };
 
 export const viewport: Viewport = {

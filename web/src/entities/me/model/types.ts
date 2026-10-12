@@ -53,7 +53,7 @@ export interface DemoPersona {
   avatarColor: string;
 }
 
-export type AuthTokenKind = "INVITATION" | "PASSWORD_RESET";
+export type AuthTokenKind = "INVITATION" | "PASSWORD_RESET" | "EMAIL_CHANGE";
 
 export interface AuthTokenInfo {
   kind: AuthTokenKind;
