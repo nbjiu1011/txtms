@@ -22,7 +22,6 @@
     "e2e:origin-proxy": "node e2e/real/origin-proxy.mjs"
   },
   "dependencies": {
-    "@fontsource/ibm-plex-sans-kr": "^5.3.0",
     "@hookform/resolvers": "^5.9.1",
     "@tanstack/react-query": "^5.104.1",
     "clsx": "^2.1.1",

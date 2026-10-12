@@ -1,10 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import "@fontsource/ibm-plex-sans-kr/400.css";
-import "@fontsource/ibm-plex-sans-kr/500.css";
-import "@fontsource/ibm-plex-sans-kr/600.css";
-import "@fontsource/ibm-plex-sans-kr/700.css";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "./providers";
+
+/**
+ * Noto Sans KR (files supplied in `public/fonts/NotoSans`), served by next/font with hashed, immutable URLs.
+ * The UI uses 400/500/600/700; the family has no 600, so semibold text renders with the Bold face.
+ */
+const notoSansKr = localFont({
+  src: [
+    { path: "../../public/fonts/NotoSans/NotoSansKR-Regular.woff2", weight: "400", style: "normal" },
+    { path: "../../public/fonts/NotoSans/NotoSansKR-Medium.woff2", weight: "500", style: "normal" },
+    { path: "../../public/fonts/NotoSans/NotoSansKR-Bold.woff2", weight: "700", style: "normal" },
+  ],
+  variable: "--font-noto-sans-kr",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "TX TMS",
@@ -19,7 +30,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ko">
+    <html lang="ko" className={notoSansKr.variable}>
       <body>
         <Providers>{children}</Providers>
       </body>
