@@ -1,0 +1,117 @@
+.page {
+  min-height: 100%;
+  background: var(--bg);
+  padding: 0 0 64px;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: var(--top-h);
+  padding: 0 32px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.brand b {
+  font-size: 16px;
+}
+.sp {
+  flex: 1;
+}
+.login {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--focus);
+}
+
+.hero {
+  padding: 48px 32px 40px;
+  background: var(--navy);
+  color: var(--on-navy);
+}
+.heroInner {
+  max-width: 1240px;
+  margin: 0 auto;
+}
+.hero h1 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 34px;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+}
+.hero p {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: var(--on-navy-sub2);
+  font-size: 15px;
+  line-height: 1.6;
+}
+.jump {
+  display: block;
+  width: fit-content;
+  padding: 9px 16px;
+  border-radius: var(--r-btn);
+  background: var(--brand);
+  color: var(--navy);
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: var(--shadow-btn-pri);
+}
+
+.section {
+  /* content width 1240px, the same as the hero text */
+  max-width: calc(1240px + 64px);
+  margin: 0 auto;
+  padding: 40px 32px 0;
+  scroll-margin-top: 16px;
+}
+.sectionHead {
+  margin-bottom: 18px;
+}
+.sectionHead h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.sectionHead p {
+  margin: 0;
+  color: var(--sub);
+}
+
+.card {
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--lift);
+}
+.muted {
+  margin: 0;
+  color: var(--sub);
+}
+
+@media (max-width: 860px) {
+  .top,
+  .hero,
+  .section {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .hero h1 {
+    font-size: 26px;
+  }
+  .card {
+    padding: 16px;
+  }
+}

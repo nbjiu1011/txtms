@@ -88,6 +88,8 @@ app:
     # One-click persona login (persona list, demo-login, persona switcher). Needs demo mode; off by default so
     # everyone logs in with email and password.
     persona-login-enabled: false
+    # Temporary self sign-up page (/signup) for trying every role. Needs demo mode, so it is never open in production.
+    signup-enabled: ${DEMO_SIGNUP_ENABLED:true}
   attachment:
     max-file-size: 20MB
     max-count: 10

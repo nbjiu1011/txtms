@@ -200,6 +200,8 @@ const PATH_TO_STATIC = new Map<string, RouteKey>(
 
 export const AUTH_PATHS = {
   login: "/login",
+  /** Temporary sign-up (development server only: the API answers 404 elsewhere). */
+  signup: "/signup",
   invite: (token: string) => `/invite/${encodeURIComponent(token)}`,
   reset: (token: string) => `/reset/${encodeURIComponent(token)}`,
 } as const;

@@ -1,0 +1,161 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.roles,
+.section {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.step {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--navy);
+  color: var(--on-navy);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* role cards */
+.roleGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.roleCard {
+  --c: var(--sub);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 14px 12px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--c);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  cursor: pointer;
+  transition:
+    border-color 0.12s,
+    box-shadow 0.12s;
+}
+.roleCard:hover {
+  box-shadow: var(--lift);
+}
+.roleCard.on {
+  border-color: var(--c);
+  background: color-mix(in srgb, var(--c) 6%, var(--surface));
+  box-shadow: 0 0 0 1px var(--c);
+}
+.roleCard:has(.radio:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.radio {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.roleName {
+  font-weight: 600;
+  color: var(--ink);
+}
+.roleCard.on .roleName::after {
+  content: "선택됨";
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--c);
+}
+.roleSummary {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--sub);
+}
+.roleScope {
+  margin-top: auto;
+  font-size: 11px;
+  color: var(--faint);
+}
+.roleCard[data-role="REQUESTER"] {
+  --c: var(--ty-s);
+}
+.roleCard[data-role="LEAD_REVIEWER"] {
+  --c: var(--s-wait);
+}
+.roleCard[data-role="REVIEWER"] {
+  --c: var(--s-review);
+}
+.roleCard[data-role="APPROVER"] {
+  --c: var(--s-appr);
+}
+.roleCard[data-role="CUSTOMER_ADMIN"] {
+  --c: var(--navy);
+}
+.roleCard[data-role="OPERATOR"] {
+  --c: var(--ink);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--mark-soft);
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--danger);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+.disclaimer {
+  font-size: 12px;
+  color: var(--faint);
+}
+
+@media (max-width: 860px) {
+  .roleGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  .roleGrid,
+  .row {
+    grid-template-columns: 1fr;
+  }
+}

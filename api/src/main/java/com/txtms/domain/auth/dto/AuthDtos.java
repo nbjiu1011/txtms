@@ -60,4 +60,30 @@ public final class AuthDtos {
             @NotBlank(message = "새 비밀번호를 입력하세요") @Size(max = 1000, message = "비밀번호는 72바이트 이하여야 합니다")
             String newPassword) {
     }
+
+    // ------------------------------------------------------------------ temporary sign-up (demo mode only)
+
+    /** The role a temporary sign-up asks for. Project roles need a project; the admin needs a customer. */
+    public enum SignupRole {
+        REQUESTER,
+        REVIEWER,
+        LEAD_REVIEWER,
+        APPROVER,
+        CUSTOMER_ADMIN,
+        OPERATOR
+    }
+
+    /** Checked in order by the service so the first problem names its field. */
+    public record SignupRequest(String name, String email, String password, SignupRole role, Long customerId,
+            Long projectId) {
+    }
+
+    public record SignupOptions(java.util.List<SignupCustomer> customers) {
+    }
+
+    public record SignupCustomer(long id, String name, boolean approvalEnabled, java.util.List<SignupProject> projects) {
+    }
+
+    public record SignupProject(long id, String name, String leadName) {
+    }
 }

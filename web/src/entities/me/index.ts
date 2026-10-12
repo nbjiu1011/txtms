@@ -10,6 +10,11 @@ export type {
   Membership,
   PasswordChangeBody,
   PasswordResetRequestBody,
+  SignupBody,
+  SignupCustomer,
+  SignupOptions,
+  SignupProject,
+  SignupRole,
   TokenPasswordBody,
 } from "./model/types";
 export { useSessionStore } from "./model/session-store";

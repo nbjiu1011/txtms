@@ -32,6 +32,8 @@ public class SecurityConfig {
             "/api/auth/login",
             "/api/auth/demo-personas",
             "/api/auth/demo-login",
+            "/api/auth/signup-options",
+            "/api/auth/signup",
             "/api/auth/refresh",
             "/api/auth/password-reset-requests",
             "/api/auth/tokens/**");

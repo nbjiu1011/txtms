@@ -21,3 +21,8 @@ export { PasswordResetRequestModal, PASSWORD_RESET_REQUESTED_MESSAGE } from "./u
 export { TokenPasswordForm } from "./ui/token-password-form";
 export { PASSWORD_CHANGED_MESSAGE, PasswordChangeForm } from "./ui/password-change-form";
 export { useSwitchPersona } from "./model/use-switch-persona";
+export { SIGNUP_ROLES, signupBody, signupProblem, signupRoleDef } from "./model/signup";
+export type { SignupRoleDef, SignupScope, SignupValues } from "./model/signup";
+export { signupOptionKeys, useSignupOptions } from "./model/use-signup-options";
+export { SignupForm } from "./ui/signup-form";
+export { SignupLink } from "./ui/signup-link";

@@ -19,9 +19,12 @@ import com.txtms.domain.auth.dto.AuthDtos.DemoPersona;
 import com.txtms.domain.auth.dto.AuthDtos.LoginRequest;
 import com.txtms.domain.auth.dto.AuthDtos.LoginResponse;
 import com.txtms.domain.auth.dto.AuthDtos.PasswordResetRequest;
+import com.txtms.domain.auth.dto.AuthDtos.SignupOptions;
+import com.txtms.domain.auth.dto.AuthDtos.SignupRequest;
 import com.txtms.domain.auth.dto.AuthDtos.TokenInfo;
 import com.txtms.domain.auth.dto.AuthDtos.TokenPasswordRequest;
 import com.txtms.domain.auth.service.AuthService;
+import com.txtms.domain.auth.service.SignupService;
 import com.txtms.global.exception.BusinessException;
 import com.txtms.global.exception.ErrorCode;
 import com.txtms.global.exception.ErrorResponse;
@@ -36,11 +39,14 @@ import jakarta.validation.Valid;
 public class AuthController {
 
     private final AuthService authService;
+    private final SignupService signupService;
     private final RefreshCookies cookies;
     private final RefreshRequestGuard refreshGuard;
 
-    public AuthController(AuthService authService, RefreshCookies cookies, RefreshRequestGuard refreshGuard) {
+    public AuthController(AuthService authService, SignupService signupService, RefreshCookies cookies,
+            RefreshRequestGuard refreshGuard) {
         this.authService = authService;
+        this.signupService = signupService;
         this.cookies = cookies;
         this.refreshGuard = refreshGuard;
     }
@@ -58,6 +64,18 @@ public class AuthController {
     @PostMapping("/demo-login")
     public ResponseEntity<LoginResponse> demoLogin(@Valid @RequestBody DemoLoginRequest request) {
         return withCookie(authService.demoLogin(request.userId()));
+    }
+
+    /** Temporary sign-up (demo mode only): customers and projects to join. */
+    @GetMapping("/signup-options")
+    public SignupOptions signupOptions() {
+        return signupService.options();
+    }
+
+    /** Temporary sign-up (demo mode only): creates the account with the chosen role and logs it in. */
+    @PostMapping("/signup")
+    public ResponseEntity<LoginResponse> signup(@RequestBody SignupRequest request) {
+        return withCookie(signupService.signup(request));
     }
 
     /**

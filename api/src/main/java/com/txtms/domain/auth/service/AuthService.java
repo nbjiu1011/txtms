@@ -285,7 +285,7 @@ public class AuthService {
         return startSession(user, false);
     }
 
-    private LoginResult startSession(User user, boolean remember) {
+    LoginResult startSession(User user, boolean remember) {
         // only persona login (demo mode + persona-login-enabled) makes demo sessions with the persona switcher
         boolean demoSession = user.isDemo() && properties.demo().personaLoginAvailable();
         SessionService.Created created = sessionService.create(user, remember, demoSession);

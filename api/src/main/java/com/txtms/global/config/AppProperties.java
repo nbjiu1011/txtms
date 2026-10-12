@@ -100,15 +100,20 @@ public record AppProperties(
     /**
      * Demo mode ({@code enabled}: demo seed, demo accounts may log in) and one-click persona login
      * ({@code personaLoginEnabled}: persona list, demo-login and demo sessions with the persona switcher). Persona
-     * login needs demo mode as well; without it every user logs in with email and password.
+     * login needs demo mode as well; without it every user logs in with email and password. Temporary self sign-up
+     * ({@code signupEnabled}) also needs demo mode, so a production server never offers it.
      */
-    public record Demo(boolean enabled, String defaultPassword, boolean personaLoginEnabled) {
+    public record Demo(boolean enabled, String defaultPassword, boolean personaLoginEnabled, boolean signupEnabled) {
         public boolean hasDefaultPassword() {
             return defaultPassword != null && !defaultPassword.isBlank();
         }
 
         public boolean personaLoginAvailable() {
             return enabled && personaLoginEnabled;
+        }
+
+        public boolean signupAvailable() {
+            return enabled && signupEnabled;
         }
     }
 }

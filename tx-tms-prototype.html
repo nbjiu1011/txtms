@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 :root{
   --bg:#F4F5F7; --surface:#FFFFFF; --sunk:#EEF0F3; --ink:#1B2433; --sub:#5A6475; --faint:#8C95A4;
@@ -512,16 +513,16 @@ main{background:var(--bg)}
 <div id="ov"></div>
 <script>
 /* ========== utils ========== */
-const NOW = new Date(2026, 8, 21, 14, 0, 0).getTime();
+const NOW = Date.now();
 const DAY = 864e5;
 const at = (d, h = 10, m = 0) => { const t = new Date(NOW + d * DAY); t.setHours(h, m, 0, 0); return t.getTime(); };
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const pad = n => String(n).padStart(2, '0');
 const fD = t => { if (!t) return '-'; const d = new Date(t); return `${d.getMonth() + 1}월 ${d.getDate()}일`; };
 const fDT = t => { if (!t) return '-'; const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
-const fISO = t => { const d = new Date(t); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
-const pISO = s => { const t = new Date(s + 'T18:00:00').getTime(); return isNaN(t) ? null : t; };
-let _clock = 0; const now = () => NOW + (++_clock) * 60000;
+const fISO = t => new Date(t + 9 * 3600000).toISOString().slice(0, 10);
+const pISO = s => { const t = new Date(s + 'T23:59:59.999+09:00').getTime(); return isNaN(t) ? null : t; };
+const now = () => Date.now();
 const uid = (p = 'x') => p + Math.random().toString(36).slice(2, 8);
 const clone = o => JSON.parse(JSON.stringify(o));
 const bytes = s => { let b = 0; for (const ch of String(s || '')) b += ch.charCodeAt(0) > 127 ? 2 : 1; return b; };
@@ -631,9 +632,9 @@ function seed() {
   const r101 = R({ n: 101, pid: 'p1', title: '10월 포인트 적립 이벤트 알림톡', type: '알림톡', status: 'review', by: 'u1', created: at(-3, 9), submitted: at(-3, 10), due: at(2, 18), rv: ['u2', 'u6'], pr: 'u2',
     purpose: '10월 적립 이벤트 참여 유도', target: '최근 3개월 결제 고객', bg: '분기 말 이용 실적 방어', campaign: '2026 Q4 적립',
     contents: [
-      C('이벤트 참여 안내', tb('HB_POINT_01', '#{고객명}님, 10월 한 달 동안 결제하시면 최대 #{적립포인트} 포인트가 적립 되요.\n\n이벤트 기간: #{이벤트기간}\n아래 버튼을 클릭하세요.', [{ n: '이벤트 참여하기', l: 'https://hanbitcard.co.kr/evt/oct' }])),
-      C('적립 예정 안내', tb('HB_POINT_01', '#{고객명}님, 이벤트 조건을 충족해 #{적립포인트} 포인트가 적립될 예정입니다.  적립일은 11월 10일입니다.', [{ n: '적립 내역 보기', l: 'https://hanbitcard.co.kr/point' }]), { lockBy: 'u6' }),
-      C('미참여 고객 리마인드', tb('HB_EVT_03', '#{고객명}님, 아직 이벤트에 참여하지 않으셨어요. 지금 참여하면 혜택을 드립니다. 이벤트는 #{마감일}까지입니다.', [{ n: '참여하기', l: 'hanbitcard.co.kr/evt/oct' }]))
+      C('이벤트 참여 안내', tb('HB_POINT_01', '#{customer_name}님, 10월 한 달 동안 결제하시면 최대 #{points} 포인트가 적립 되요.\n\n이벤트 기간: #{event_period}\n아래 버튼을 클릭하세요.', [{ n: '이벤트 참여하기', l: 'https://hanbitcard.co.kr/evt/oct' }])),
+      C('적립 예정 안내', tb('HB_POINT_01', '#{customer_name}님, 이벤트 조건을 충족해 #{points} 포인트가 적립될 예정입니다.  적립일은 11월 10일입니다.', [{ n: '적립 내역 보기', l: 'https://hanbitcard.co.kr/point' }]), { lockBy: 'u6' }),
+      C('미참여 고객 리마인드', tb('HB_EVT_03', '#{customer_name}님, 아직 이벤트에 참여하지 않으셨어요. 지금 참여하면 혜택을 드립니다. 이벤트는 #{마감일}까지입니다.', [{ n: '참여하기', l: 'hanbitcard.co.kr/evt/oct' }]))
     ],
     ops: [{ id: 'o1', by: 'u6', cid: 'C2', at: at(-1, 15), text: '연속 공백이 있습니다. 적립일 표기를 청구 안내와 같은 형식으로 맞추면 좋겠습니다.' }] });
 
@@ -651,27 +652,27 @@ function seed() {
     contents: [C('운영 시간 안내', sm('1588-0000', '[한빛카드] 추석 연휴(9/24~9/26) 고객센터는 분실 신고만 24시간 운영합니다. 일반 상담은 9월 27일부터 가능합니다.', true, false))] });
 
   R({ n: 105, pid: 'p1', title: '연말 캐시백 알림톡', type: '알림톡', status: 'draft', by: 'u1', created: at(0, 11), due: at(8, 18), purpose: '연말 캐시백 이벤트 사전 안내', target: '', bg: '', campaign: '2026 Q4 적립',
-    contents: [C('캐시백 사전 안내', tb('', '#{고객명}님, 12월 한 달 동안 결제 금액의 최대 3%를 캐시백해 드려요. 참여 신청은 11월 25일부터 할수 있습니다.', []))] });
+    contents: [C('캐시백 사전 안내', tb('', '#{customer_name}님, 12월 한 달 동안 결제 금액의 최대 3%를 캐시백해 드려요. 참여 신청은 11월 25일부터 할수 있습니다.', []))] });
 
   const r108 = R({ n: 88, pid: 'p1', title: '청구 금액 안내 (8월)', type: '알림톡', status: 'review', by: 'u1', created: at(-34), submitted: at(-34, 10), due: at(-30, 18), rv: ['u2'], pr: 'u2', purpose: '월 청구 금액 안내', target: '전체 회원', bg: '정기 발송',
-    contents: [C('청구 금액 안내', tb('HB_BILL_02', '#{고객명}님, 8월 청구 금액은 #{청구금액}입니다.\n결제일: #{결제일}', [{ n: '청구 내역 보기', l: 'https://hanbitcard.co.kr/bill' }]))] });
+    contents: [C('청구 금액 안내', tb('HB_BILL_02', '#{customer_name}님, 8월 청구 금액은 #{billing_amount}입니다.\n결제일: #{payment_day}', [{ n: '청구 내역 보기', l: 'https://hanbitcard.co.kr/bill' }]))] });
   const r106 = R({ n: 106, pid: 'p1', title: '청구 금액 안내 (9월)', type: '알림톡', status: 'review', by: 'u1', created: at(-8), submitted: at(-8, 10), due: at(-5, 18), rv: ['u2', 'u6'], pr: 'u6', parent: { req: r108.id, cid: 'C1' }, purpose: '월 청구 금액 안내', target: '전체 회원', bg: '정기 발송',
-    contents: [C('청구 금액 안내', tb('HB_BILL_02', '#{고객명}님, 9월 청구 금액은 #{청구금액}입니다.\n결제일: #{결제일}\n결제일 전날까지 계좌 잔액을 확인해 주세요.', [{ n: '청구 내역 보기', l: 'https://hanbitcard.co.kr/bill' }]))] });
+    contents: [C('청구 금액 안내', tb('HB_BILL_02', '#{customer_name}님, 9월 청구 금액은 #{billing_amount}입니다.\n결제일: #{payment_day}\n결제일 전날까지 계좌 잔액을 확인해 주세요.', [{ n: '청구 내역 보기', l: 'https://hanbitcard.co.kr/bill' }]))] });
 
   R({ n: 107, pid: 'p1', title: '회원 약관 개정 고지문', type: '자유입력형', status: 'review', by: 'u1', created: at(-2), submitted: at(-2, 14), due: at(4, 18), rv: ['u2', 'u3'], pr: 'u2', purpose: '약관 개정 사전 고지', target: '전체 회원', bg: '11월 1일 약관 개정',
     recall: { by: 'u1', at: at(0, 9), reason: '법무팀 최종본이 변경되어 파일을 교체하려 합니다.' },
     contents: [C('약관 개정 고지문', { title: '회원 약관 개정 안내', text: '' }, { files: [{ id: 'fl1', name: '회원약관_개정고지_v3.pdf', ext: 'pdf', unit: '페이지', total: 14, range: '1~6쪽 (개정 조항)', v: 1, vers: [{ v: 1, at: at(-2, 14), by: 'u1', name: '회원약관_개정고지_v3.pdf' }] }] })] });
 
   R({ n: 110, pid: 'p2', title: '금리 변동 위험 고지 문자', type: '문자', status: 'review', by: 'u7', created: at(-2), submitted: at(-2, 9), due: at(2, 18), rv: ['u2'], pr: 'u2', purpose: '카드론 금리 변동 고지', target: '카드론 이용 고객', bg: '기준금리 변경',
-    contents: [C('금리 변동 고지', sm('1588-0000', '[한빛카드] #{고객명}님, #{기준일}부터 카드론 금리가 변경됩니다. 자세한 내용은 홈페이지를 확인해 주세요.', true, false))] });
+    contents: [C('금리 변동 고지', sm('1588-0000', '[한빛카드] #{customer_name}님, #{reference_date}부터 카드론 금리가 변경됩니다. 자세한 내용은 홈페이지를 확인해 주세요.', true, false))] });
 
   R({ n: 113, pid: 'p1', title: '카드 분실 신고 안내 개편', type: '문자', status: 'review', by: 'u1', created: at(-6), submitted: at(-6, 10), due: at(-1, 18), urg: '긴급', rv: ['u6'], pr: 'u6', purpose: '분실 신고 절차 안내 개편', target: '신규 발급 고객', bg: '분실 신고 문의 증가',
     contents: [C('분실 신고 절차', sm('02-3456-7000', '[한빛카드] 카드를 잃어버리셨나요? 앱 첫 화면의 분실 신고 버튼으로 바로 신고하실수 있습니다.', true, false))] });
 
   const r111 = R({ n: 111, pid: 'p3', title: '10월 보험료 납입 안내', type: '알림톡', status: 'review', by: 'u9', created: at(-5), submitted: at(-5, 10), due: at(-2, 18), rv: ['u8', 'u10'], pr: 'u8', purpose: '보험료 정기 납입 안내', target: '자동이체 미등록 계약자', bg: '미납 예방',
-    contents: [C('납입 안내', tb('DD_PAY_01', '#{고객명}님, 10월 보험료 #{보험료}의 납입일은 #{납입일}입니다.', [{ n: '납입하기', l: 'https://dodamlife.com/pay' }]))] });
+    contents: [C('납입 안내', tb('DD_PAY_01', '#{customer_name}님, 10월 보험료 #{premium}의 납입일은 #{due_date}입니다.', [{ n: '납입하기', l: 'https://dodamlife.com/pay' }]))] });
   R({ n: 112, pid: 'p3', title: '실효 예정 계약 안내', type: '문자', status: 'wait', by: 'u9', created: at(-1), submitted: at(-1, 15), due: at(3, 18), purpose: '실효 예정 계약 안내', target: '2회 이상 미납 계약자', bg: '계약 유지율 관리',
-    contents: [C('실효 예정 안내', sm('1577-1234', '[도담생명] #{고객명}님의 보험 계약이 보험료 미납으로 실효될 예정입니다. 금일 중 납입하시면 계약이 유지됩니다.', true, false))] });
+    contents: [C('실효 예정 안내', sm('1577-1234', '[도담생명] #{customer_name}님의 보험 계약이 보험료 미납으로 실효될 예정입니다. 금일 중 납입하시면 계약이 유지됩니다.', true, false))] });
 
   /* history seeding */
   const H = (r, t, by, act, detail = '', scope = 'req', round = r.round) => r.hist.push({ at: t, by, act, detail, scope, round });
@@ -715,7 +716,7 @@ function finalize(S, r, by, t, isApproval) {
   const cust = S.customers.find(c => c.id === S.projects.find(p => p.id === r.pid).cid);
   r.status = cust.approval ? (isApproval ? 'approved' : 'appr') : 'done';
   if (r.status === 'appr') return;
-  r.bundle = { at: t, status: r.status, by, items: r.contents.map(c => ({ cid: c.id, title: c.title, v: c.v, f: clone(c.f), files: clone(c.files) })) };
+  r.bundle = { variables: clone(S.vars.filter(v => v.pid === r.pid)), at: t, status: r.status, by, items: r.contents.map(c => ({ cid: c.id, title: c.title, v: c.v, f: clone(c.f), files: clone(c.files) })) };
   r.hist.push({ at: t, by, act: r.status === 'approved' ? '승인 완료' : '검수 완료', detail: '완료 묶음 고정', scope: 'req', round: r.round });
 }
 
@@ -739,7 +740,7 @@ function roles(uidv, pid) {
 }
 const hasRole = (pid, role) => roles(S.me, pid).includes(role);
 const isMember = (pid, u = S.me) => !!P(pid)?.members[u];
-function activeGrant(pid) { return S.grants.find(g => g.uid === S.me && g.pid === pid && g.until >= NOW && !g.revoked); }
+function activeGrant(pid) { return null; }
 function canView(r) {
   if (!r) return false; if (!U(S.me).active) return false;
   /* 작성 중 요청은 작성한 요청자만 본다. 관리자 예외는 협의 18 결정 전까지 두지 않는다 (기획서 5.2) */
@@ -783,12 +784,12 @@ const assignOf = (cid, type) => S.assign.find(a => a.cid === cid && a.type === t
 const assignedDS = (cid, type) => { const a = assignOf(cid, type); return a ? S.datasets.find(d => d.id === a.dsId) : null; };
 /* 고객사 x 유형 조합에 배정된 유효 데이터셋으로 검사한다. 배정이 없으면 최근 배포본으로 대체하고 그 사실을 표시한다 */
 function effectiveRules(type, cid = S.cid) {
-  const c = assignedDS(cid, '공통') || latestDS('공통'), t = assignedDS(cid, type) || latestDS(type);
+  const c = assignedDS(cid, '공통'), t = assignedDS(cid, type);
   const map = new Map();
   (c?.rules || []).forEach(r => map.set(r.p, { ...r, src: '공통 v' + c.v }));
   (t?.rules || []).forEach(r => map.set(r.p, { ...r, src: type + ' v' + t.v }));
   const missing = !assignOf(cid, '공통') || !assignOf(cid, type);
-  return { rules: [...map.values()], label: `공통 v${c?.v || '-'} + ${type} v${t?.v || '-'}${missing ? ' (배정 전 기본값)' : ''}`, missing, common: c, typeDS: t };
+  return { rules: [...map.values()], label: `공통 v${c?.v || '-'} + ${type} v${t?.v || '-'}${missing ? ' (데이터셋 미배정)' : ''}`, missing, common: c, typeDS: t };
 }
 function textFields(type, f) {
   const out = [];
@@ -798,7 +799,7 @@ function textFields(type, f) {
   if (type === '자유입력형') { out.push(['title', f.title]); out.push(['text', f.text]); }
   return out;
 }
-const hashOf = (type, f) => JSON.stringify(textFields(type, f));
+const hashOf = (type, f) => JSON.stringify([f, S.vars.filter(v => v.pid === (Rq(activeTab()?.p?.id)?.pid || S.pid)).map(v => [v.key, v.ex, v.active])]);
 function runCheck(r, c, f) {
   f = f || c.f;
   const eff = effectiveRules(r.type, P(r.pid).cid);
@@ -822,7 +823,7 @@ function log(r, act, detail = '', scope = 'req') { r.hist.push({ at: now(), by: 
 function notify(uids, text, req, kind = 'info') {
   uniq(uids).filter(u => u && u !== S.me).forEach(u => S.notifs.unshift({ id: uid('nt'), uid: u, at: now(), kind, req, text, read: false }));
 }
-function newReqId() { S.seq++; return 'REQ-2609-' + String(S.seq).padStart(3, '0'); }
+function newReqId() { S.seq++; return 'REQ-' + fISO(Date.now()).slice(2, 7).replace('-', '') + '-' + String(S.seq).padStart(3, '0'); }
 function makeDraft(pid, base = {}) {
   const r = { id: newReqId(), pid, title: base.title || '', type: base.type || '알림톡', hopeDue: base.hopeDue || null, due: base.hopeDue || null, urg: '보통', purpose: base.purpose || '', target: base.target || '', bg: base.bg || '', campaign: base.campaign || '',
     status: 'draft', round: 1, reviewers: [], primary: null, recall: null, by: S.me, created: now(), submitted: null, contents: base.contents || [], opinions: [], asks: [], hist: [], parent: base.parent || null, bundle: null, public: true, idem: uid('k'), roundBump: false };
@@ -868,7 +869,7 @@ const tyChip = (t, withLabel) => `<span class="tychip ${TYC[t] || ''}" title="${
 const avStack = ids => `<span class="avs">${ids.slice(0, 3).map(i => av(i, 22)).join('')}${ids.length > 3 ? `<span class="av more">+${ids.length - 3}</span>` : ''}</span>`;
 const EMPTY_ART = `<svg class="empty-art" viewBox="0 0 120 72" fill="none" aria-hidden="true"><rect x="18" y="10" width="62" height="50" rx="6" fill="var(--surface)" stroke="var(--line2)"/><path d="M28 24h34M28 33h26M28 42h30" stroke="var(--line2)" stroke-width="3" stroke-linecap="round"/><path d="M28 33h26" stroke="var(--brand)" stroke-width="7" stroke-linecap="round" opacity=".7"/><circle cx="86" cy="46" r="14" fill="var(--surface)" stroke="var(--navy)" stroke-width="2.5"/><path d="M96 56l8 8" stroke="var(--navy)" stroke-width="3" stroke-linecap="round"/></svg>`;
 const empty = (t, d = '', btn = '') => `<div class="empty">${EMPTY_ART}<b>${t}</b>${d}${btn ? `<div style="margin-top:12px">${btn}</div>` : ''}</div>`;
-const flag = t => `<span class="tag flag" title="개발 범위 협의표에서 추가 협의가 필요한 항목">${t}</span>`;
+const flag = t => { const policies = {'비밀번호 정책 협의':'8자 이상 · 영문/숫자/특수문자 중 2종 이상','초대 유효기간, 비밀번호, 세션 정책 협의 02':'초대 7일 · 재발급 시 이전 링크 무효 · 재설정 1시간 · 미활동 30분 · 로그인 유지 최대 14일(미활동 만료 제외)','파일 수, 확장자, 용량 협의':'요청당 10개 · 파일당 20MB · 총 100MB','글자 수 한도 협의':'본문 최대 1,000자 · 버튼 5개 · 버튼명 14자','최대 행 수, 부분 성공 처리 협의':'최대 1,000행 · 정상 행 선택 등록'}; return policies[t] ? `<span class="tag">${policies[t]}</span>` : ''; };
 const names = ids => ids.map(i => U(i).name).join(', ') || '-';
 const reqRowMeta = r => `${esc(r.id)}  ${esc(P(r.pid).name)}`;
 
@@ -909,7 +910,7 @@ function vSide() {
   const ops = OPS_MENU.map(item).join('');
   return `<div class="brand"><span class="brand-mark">TX</span><b>TMS</b><small>프로토타입</small></div>
   <nav class="nav" aria-label="주 메뉴"><h6>업무</h6>${WORK_MENU.map(item).join('')}${admin ? `<h6>고객사 관리</h6>${admin}` : ''}${ops ? `<h6>운영 관리</h6>${ops}` : ''}</nav>
-  <div class="side-foot"><button data-a="nav" data-r="spec">기능 대응표 99</button></div>`;
+  <div class="side-foot"><button data-a="nav" data-r="spec">기능 대응표</button></div>`;
 }
 function vTop() {
   const projs = myProjects();
@@ -1031,7 +1032,7 @@ function vOpsHome() {
   const K = [['등록 고객사', S.customers.filter(c => c.active !== false).length, 'done'], ['관리자 미지정', noAdmin.length, 'ask'], ['데이터셋 미배정 고객사', unassigned.length, 'wait'], ['내 지원 접근', grants.length, 'review']];
   const todo = [...noAdmin.map(x => [x.c, '고객사 관리자 초대', 'opsSeed']), ...noProj.map(x => [x.c, '초기 프로젝트 생성', 'opsSeed']), ...unassigned.map(x => [x.c, `유효 데이터셋 ${x.d.unassigned.length}개 조합 배정`, 'standards'])];
   return `<div class="page"><div class="ph"><div><div class="today">9월 21일 월요일</div><h1 class="hello">${esc(me().name)}님, 운영 현황입니다</h1>
-  <p>솔루션 운영 담당자는 고객사 초기 설정과 콘텐츠 유형·교정 기준을 운영합니다. 고객사 콘텐츠는 지원 접근을 받은 기간에만 볼 수 있습니다. ${flag('운영 전용 대시보드 범위 협의 07')}</p></div>
+  <p>솔루션 운영 담당자는 고객사 초기 설정과 콘텐츠 유형·교정 기준을 운영합니다. 고객사 콘텐츠 조회 권한은 제공하지 않습니다. ${flag('운영 전용 대시보드 범위 협의 07')}</p></div>
   <div class="acts"><button class="btn pri" data-a="opsCustNew">${IC.plus}고객사 생성</button></div></div>
   <div class="kpis">${K.map(([k, v, c]) => `<div class="kpi" style="--c:var(--s-${c});cursor:default"><span class="k">${k}</span><div class="v">${v}<small>건</small></div><span class="kbar"><i style="width:${Math.min(100, v * 25)}%"></i></span></div>`).join('')}</div>
   <div class="dash"><div>
@@ -1061,7 +1062,7 @@ function workloadRows(pid, compact) {
   const rv = reviewersOf(pid); const act = S.requests.filter(r => r.pid === pid && ['review', 'ask', 'appr'].includes(r.status));
   const rows = rv.map(u => {
     const mine = act.filter(r => r.reviewers.includes(u));
-    const chars = mine.reduce((s, r) => s + r.contents.reduce((a, c) => a + (c.files.length ? 0 : textFields(r.type, c.f).reduce((x, [, t]) => x + (t || '').length, 0)), 0), 0);
+    const chars = mine.reduce((s, r) => s + r.contents.reduce((a, c) => a + (c.files.length ? 0 : (r.type === 'RCS' ? (c.f.cards || []).reduce((n, card) => n + (card.body || '').length, 0) : (c.f.body || c.f.text || '').length)), 0), 0);
     const units = {}; mine.forEach(r => r.contents.forEach(c => c.files.forEach(f => units[f.unit] = (units[f.unit] || 0) + (+f.rangeN || 0))));
     return { u, n: mine.length, pr: mine.filter(r => r.primary === u).length, chars, units, due: mine.filter(r => dueSoon(r) || overdue(r)).length };
   });
@@ -1076,12 +1077,12 @@ function workloadRows(pid, compact) {
 function vRequests(tab) {
   const f = tab.st.f || (tab.st.f = { q: '', type: '', status: '', lead: '', primary: '', rv: '', dueFrom: '', dueTo: '', subFrom: '', subTo: '', mine: false });
   const p = P(S.pid);
-  if (!isMember(S.pid) && !activeGrant(S.pid)) return `<div class="page"><div class="ph"><div><h1>요청</h1></div></div>${empty('이 프로젝트의 요청을 볼 권한이 없습니다', '프로젝트 구성원이 아니면 요청과 콘텐츠를 조회할 수 없습니다. 운영 지원이 필요하면 접근 기간을 부여받으세요.')}</div>`;
+  if (!isMember(S.pid) && !isAdmin(S.cid) && !activeGrant(S.pid)) return `<div class="page"><div class="ph"><div><h1>요청</h1></div></div>${empty('이 프로젝트의 요청을 볼 권한이 없습니다', '프로젝트 구성원이 아니면 요청과 콘텐츠를 조회할 수 없습니다. 운영 지원이 필요하면 접근 기간을 부여받으세요.')}</div>`;
   let list = S.requests.filter(r => r.pid === S.pid && canView(r) && !(r.status === 'draft' && r.by !== S.me));
   const q = f.q.trim().toLowerCase();
   list = list.filter(r => (!q || (r.title + r.id).toLowerCase().includes(q)) && (!f.type || r.type === f.type) && (!f.status || r.status === f.status)
     && (!f.primary || r.primary === f.primary) && (!f.rv || r.reviewers.includes(f.rv)) && (!f.lead || p.lead === f.lead)
-    && (!f.dueFrom || r.due >= pISO(f.dueFrom) - DAY) && (!f.dueTo || r.due <= pISO(f.dueTo)) && (!f.subFrom || (r.submitted && r.submitted >= pISO(f.subFrom) - DAY)) && (!f.subTo || (r.submitted && r.submitted <= pISO(f.subTo)))
+    && (!f.dueFrom || r.due >= pISO(f.dueFrom) - DAY + 1) && (!f.dueTo || r.due <= pISO(f.dueTo)) && (!f.subFrom || (r.submitted && r.submitted >= pISO(f.subFrom) - DAY + 1)) && (!f.subTo || (r.submitted && r.submitted <= pISO(f.subTo)))
     && (!f.mine || r.by === S.me || r.reviewers.includes(S.me) || can.approve(r)));
   list.sort((a, b) => (b.submitted || b.created) - (a.submitted || a.created));
   const rv = reviewersOf(S.pid);
@@ -1161,7 +1162,10 @@ function vBanners(r, nAsk) {
   if (r.status === 'ask') out.push(r.by === S.me ? B('', '검수자가 확인을 요청했습니다', '답변을 보내면 검수가 다시 시작됩니다. 답변하는 동안 본인 콘텐츠를 수정할 수 있습니다.', `<button class="btn sm" data-a="spTab" data-k="ask">답변하기</button>`) : B('', '요청자 답변을 기다리고 있습니다', '확인 요청 중에는 요청 전체의 검수가 멈추고, 회수 요청과 검수자 변경을 할 수 없습니다.'));
   if (r.recall && r.status === 'review') out.push(can.decideRecall(r) ? B('danger', `${esc(U(r.recall.by).name)}님이 회수를 요청했습니다`, `사유: ${esc(r.recall.reason)}<br>승인하면 요청이 작성 중으로 돌아가고 배정이 해제됩니다. 거절하면 현재 배정으로 검수를 이어갑니다.`, `<div class="row"><button class="btn sm" data-a="recallDecide" data-ok="0">거절</button><button class="btn sm pri" data-a="recallDecide" data-ok="1">회수 승인</button></div>`)
     : B('danger', '회수 요청 처리 중입니다', `주담당 검수자 ${esc(U(r.primary).name)}님이 승인 또는 거절합니다. 처리 전까지 요청자는 편집할 수 없습니다.`));
-  if (r.status === 'appr') { const ap = approvers(r.pid); out.push(B('appr', '최종 승인을 기다리고 있습니다', `콘텐츠 버전, 검수자, 주담당, 확정 납기가 고정되었습니다. 프로젝트 승인자 ${names(ap)} 중 한 명이 처리합니다.${!can.approve(r) && hasRole(r.pid, 'approver') ? '<br>본인이 요청자이거나 배정 검수자인 요청은 승인할 수 없습니다.' : ''}`)); }
+  if (r.status === 'review' && !r.recall && r.reviewers.includes(S.me)) out.push(r.primary === S.me
+    ? B('info', '주담당 검수자입니다', `${r.reviewers.length > 1 ? '공동 검수 결과와 ' : ''}최종 대상 버전을 확인한 뒤 요청 단위 검수 완료를 처리합니다.`)
+    : B('info', '공동 검수 중입니다', `문안 편집, 검수 의견, 확인 요청은 함께 할 수 있습니다. 요청 단위 검수 완료와 회수 처리는 주담당 ${esc(U(r.primary).name)}님만 합니다.`));
+  if (r.status === 'appr') { const ap = approvers(r.pid).filter(u => u !== r.by && !r.reviewers.includes(u)); out.push(B('appr', '최종 승인을 기다리고 있습니다', `콘텐츠 버전, 검수자, 주담당이 고정되었습니다. 납기·긴급도는 승인자가 변경할 수 있습니다. 프로젝트 승인자 ${names(ap)} 중 한 명이 처리합니다.${!can.approve(r) && hasRole(r.pid, 'approver') ? '<br>본인이 요청자이거나 배정 검수자인 요청은 승인할 수 없습니다.' : ''}`)); }
   if (isFinal(r)) out.push(B('done', `${ST[r.status].l}된 요청입니다`, `${fDT(r.bundle?.at)}에 완료 묶음으로 고정되었습니다. 수정이 필요하면 후속 요청을 작성합니다.`, `<button class="btn sm" data-a="sub" data-k="result">완료 결과 보기</button>`));
   return out.join('');
 }
@@ -1191,7 +1195,7 @@ function vWork(tab, r, only) {
       ${mode === 'auto' && editable ? `<button class="btn sm" data-a="manualSave">저장</button>` : ''}
       ${mode === 'buf' && editable && !lockedByOther ? `<button class="btn sm pri" data-a="saveRev" data-live="rev" ${t.buf?.[c.id] ? '' : 'disabled'}>수정본 저장</button>${t.buf?.[c.id] ? `<button class="btn sm ghost" data-a="discard">변경 취소</button>` : ''}` : ''}
     </div>
-    ${lockedByOther ? `<div class="lockbar">${esc(U(c.lockBy).name)}님이 이 문안을 편집 중입니다. 편집이 끝나면 최신 버전으로 수정할 수 있습니다.${P(r.pid).lead === S.me ? ' <button class="btn sm ghost" data-a="unlock">잠금 해제 (대표 검수자)</button>' : ''}</div>` : ''}
+    ${lockedByOther ? `<div class="lockbar">${esc(U(c.lockBy).name)}님이 이 문안을 편집 중입니다. 편집이 끝나면 최신 버전으로 수정할 수 있습니다.${P(r.pid).lead === S.me || isAdmin(P(r.pid).cid) ? ` <button class="btn sm ghost" data-a="unlock">잠금 해제 (${P(r.pid).lead === S.me ? '대표 검수자' : '고객사 관리자'})</button>` : ''}</div>` : ''}
     ${!editable && !lockedByOther ? `<div class="lockbar" style="background:var(--sunk)">${roEditReason(r)}</div>` : ''}
     ${t.buf?.[c.id] ? `<div class="lockbar">v${t.buf[c.id].base}을 기준으로 수정 중입니다. 저장하면 v${c.v + 1}이 만들어지고 히스토리에 남습니다.</div>` : ''}
     ${editorFields(r, c, F, dis)}
@@ -1218,7 +1222,7 @@ function editorFields(r, c, f, dis) {
     <div class="lbl" style="margin-bottom:6px">버튼</div>
     ${(f.btns || []).map((b, i) => `<div class="btnrow"><input class="in" placeholder="버튼명" data-f="btns.${i}.n" value="${esc(b.n)}" ${dis}><input class="in" placeholder="https://" data-f="btns.${i}.l" value="${esc(b.l)}" ${dis}><button class="btn sm ghost" data-a="rmBtn" data-i="${i}" ${dis} aria-label="버튼 삭제">${IC.x}</button></div>`).join('')}
     ${!dis ? `<button class="btn sm" data-a="addBtn" ${(f.btns || []).length >= 5 ? 'disabled' : ''}>${IC.plus}버튼 추가</button>` : (f.btns || []).length ? '' : '<span class="faint small">버튼 없음</span>'}`;
-  if (r.type === '문자') { const b = bytes(f.body) + (f.optout ? 24 : 0) + (f.cs ? 22 : 0); return `
+  if (r.type === '문자') { const b = smsBytes(f); return `
     <div class="fld"><label class="req">발신번호</label><select class="sel" data-f="sender" ${dis}><option value="">등록된 발신번호 선택</option>${p.senders.map(x => `<option ${f.sender === x ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
     <div class="fld"><label class="req">본문</label><textarea class="ta" rows="8" data-f="body" ${dis}>${esc(f.body)}</textarea><div class="counter" data-live="cnt">${b}바이트  ${b <= 90 ? '단문' : '장문'}  (안내 문구 포함)</div></div>
     <div class="row" style="gap:18px"><label class="chk"><input type="checkbox" data-f="cs" ${f.cs ? 'checked' : ''} ${dis}>고객센터 안내 포함</label><label class="chk"><input type="checkbox" data-f="optout" ${f.optout ? 'checked' : ''} ${dis}>수신거부 안내 포함</label></div>`; }
@@ -1306,7 +1310,8 @@ function vOpinions(r, c) {
 function vAsks(r, c) {
   let h = r.asks.length ? r.asks.map(a => `<div class="qa"><div class="who">${av(a.by, 20)}${esc(U(a.by).name)}  ${fDT(a.at)}  <span class="tag">${a.cid ? a.cid : '요청 전체'}</span></div><div class="q">${esc(a.q)}</div>
     ${a.a ? `<div class="a"><div class="who">${av(a.aBy, 20)}${esc(U(a.aBy).name)}  ${fDT(a.aAt)}</div>${esc(a.a)}</div>` : can.answer(r) ? `<div class="a"><textarea class="ta" id="ans-${a.id}" rows="3" style="min-height:70px" placeholder="답변을 입력하세요"></textarea><button class="btn sm pri" style="margin-top:6px" data-a="answer" data-id="${a.id}">답변하고 검수 재개</button></div>` : '<div class="a">답변 대기 중</div>'}</div>`).join('') : '<p class="muted small">확인 요청 내역이 없습니다.</p>';
-  if (can.review(r)) h += `<div class="fld" style="margin-top:12px"><label>요청자에게 확인 요청</label><select class="sel" id="ask-t"><option value="${c.id}">${c.id}  ${esc(c.title)}</option><option value="">요청 전체</option></select><textarea class="ta" id="ask-x" rows="3" style="min-height:80px" placeholder="확인이 필요한 내용"></textarea><span class="hint">보내면 요청 전체가 확인 요청 상태로 바뀌고 검수가 멈춥니다. 검수 차수는 유지됩니다.</span><button class="btn sm pri" data-a="sendAsk" style="align-self:flex-start">확인 요청 보내기</button></div>`;
+  if (can.review(r) && r.recall) h += '<p class="small faint" style="margin-top:12px">회수 요청이 처리될 때까지 확인 요청을 보낼 수 없습니다.</p>';
+  else if (can.review(r)) h += `<div class="fld" style="margin-top:12px"><label>요청자에게 확인 요청</label><select class="sel" id="ask-t"><option value="${c.id}">${c.id}  ${esc(c.title)}</option><option value="">요청 전체</option></select><textarea class="ta" id="ask-x" rows="3" style="min-height:80px" placeholder="확인이 필요한 내용"></textarea><span class="hint">보내면 요청 전체가 확인 요청 상태로 바뀌고 검수가 멈춥니다. 검수 차수는 유지됩니다.</span><button class="btn sm pri" data-a="sendAsk" style="align-self:flex-start">확인 요청 보내기</button></div>`;
   return h;
 }
 
@@ -1357,7 +1362,7 @@ function vResult(tab, r) {
   <td><div class="row">${it.files.length ? '' : `<button class="btn sm" data-a="copyC" data-cid="${it.cid}">${IC.copy}복사</button>`}<button class="btn sm ghost" data-a="followUp" data-cid="${it.cid}">후속 요청</button></div></td></tr>`).join('')}</tbody></table></div></div>`;
 }
 function vDenied(t, d) {
-  return `<div class="page"><div style="max-width:520px;margin:60px auto;text-align:center"><div style="width:44px;height:44px;border-radius:50%;border:2px solid var(--line2);display:grid;place-items:center;margin:0 auto 16px;color:var(--sub)">${IC.x}</div><h1 style="font-size:20px;margin:0 0 8px">${t}</h1><p class="muted">${d}</p><p class="small faint">메뉴가 보이지 않는 기능은 주소를 직접 입력하거나 API로 요청해도 같은 권한 조건으로 막힙니다.</p><button class="btn" data-a="nav" data-r="home">대시보드로 이동</button></div></div>`;
+  return `<div class="page"><div style="max-width:520px;margin:60px auto;text-align:center"><div style="width:44px;height:44px;border-radius:50%;border:2px solid var(--line2);display:grid;place-items:center;margin:0 auto 16px;color:var(--sub)">${IC.x}</div><h1 style="font-size:20px;margin:0 0 8px">${t}</h1><p class="muted">${d}</p><p class="small faint">직접 주소와 화면 작업에는 같은 권한 조건을 적용합니다. 운영 API 검증은 서버 연동 대상입니다.</p><button class="btn" data-a="nav" data-r="home">대시보드로 이동</button></div></div>`;
 }
 function visibleNotices() {
   return S.notices.filter(n => !n.withdrawn && (n.scope === 'common' || n.scope === 'standard'
@@ -1396,7 +1401,7 @@ function vReview(tab) {
   <div class="subtabs">${tabs.map(([k, l]) => `<button class="${t.sub === k ? 'on' : ''}" data-a="sub" data-k="${k}">${l}</button>`).join('')}</div>${body}</div>`;
 }
 function volume(r) {
-  const chars = r.contents.reduce((a, c) => a + (c.files.length ? 0 : textFields(r.type, c.f).reduce((x, [, t]) => x + (t || '').length, 0)), 0);
+  const chars = r.contents.reduce((a, c) => a + (c.files.length ? 0 : (r.type === 'RCS' ? (c.f.cards || []).reduce((n, card) => n + (card.body || '').length, 0) : (c.f.body || c.f.text || '').length)), 0);
   const fl = r.contents.flatMap(c => c.files).map(f => `${f.unit} ${f.rangeN || '?'}`);
   return [chars ? chars.toLocaleString() + '자' : '', ...fl].filter(Boolean).join(', ');
 }
@@ -1418,11 +1423,11 @@ function vContents(tab) {
   const f = tab.st.f || (tab.st.f = { q: '', type: '', camp: '', from: '', to: '', status: '' });
   const reqs = S.requests.filter(r => r.pid === S.pid && canView(r));
   const groups = {};
-  reqs.filter(isFinal).forEach(r => { if (!r.public && r.by !== S.me) return; r.bundle.items.forEach(it => { const k = lineKey(r, it.cid); (groups[k] = groups[k] || []).push({ r, it }); }); });
+  reqs.filter(isFinal).forEach(r => {  r.bundle.items.forEach(it => { const k = lineKey(r, it.cid); (groups[k] = groups[k] || []).push({ r, it }); }); });
   const q = f.q.trim().toLowerCase();
   let gs = Object.entries(groups).map(([k, arr]) => ({ k, arr: arr.sort((a, b) => b.r.bundle.at - a.r.bundle.at) }));
   gs = gs.filter(({ arr }) => { const { r, it } = arr[0]; const txt = (it.title + textFields(r.type, it.f).map(x => x[1]).join(' ') + it.files.map(x => x.name).join(' ') + r.title).toLowerCase();
-    return (!q || txt.includes(q)) && (!f.type || r.type === f.type) && (!f.camp || r.campaign === f.camp) && (!f.status || r.status === f.status) && (!f.from || r.bundle.at >= pISO(f.from) - DAY) && (!f.to || r.bundle.at <= pISO(f.to)); });
+    return (!q || txt.includes(q)) && (!f.type || r.type === f.type) && (!f.camp || r.campaign === f.camp) && (!f.status || r.status === f.status) && (!f.from || r.bundle.at >= pISO(f.from) - DAY + 1) && (!f.to || r.bundle.at <= pISO(f.to)); });
   gs.sort((a, b) => b.arr[0].r.bundle.at - a.arr[0].r.bundle.at);
   const camps = uniq(reqs.map(r => r.campaign).filter(Boolean));
   const follow = k => reqs.filter(r => !isFinal(r) && r.parent && lineKey(Rq(r.parent.req), r.parent.cid) === k);
@@ -1446,15 +1451,15 @@ function vContents(tab) {
 /* perf */
 function vPerf(tab) {
   const f = tab.st.f || (tab.st.f = { period: '30', pid: S.pid, user: '' });
-  const from = f.period === 'm' ? new Date(2026, 8, 1).getTime() : NOW - (+f.period) * DAY;
+  const from = f.from ? pISO(f.from) - DAY + 1 : f.period === 'm' ? Date.parse(fISO(Date.now()).slice(0, 7) + '-01T00:00:00+09:00') : Date.parse(fISO(Date.now()) + 'T00:00:00+09:00') - (+f.period - 1) * DAY; const until = f.to ? pISO(f.to) : Date.now();
   const projs = myProjects().filter(p => hasRole(p.id, 'lead') || isAdmin(p.cid));
-  const pids = f.pid === 'all' ? projs.map(p => p.id) : [f.pid];
+  const pids = f.pid === 'all' ? projs.map(p => p.id) : projs.filter(p => p.id === f.pid).map(p => p.id);
   /* 시연용 샘플은 실적 집계에서 제외한다 (기획서 18.4) */
-  const reqs = S.requests.filter(r => pids.includes(r.pid) && !r.demo);
-  const received = reqs.filter(r => r.submitted && r.submitted >= from && r.submitted <= NOW);
+  const reqs = S.requests.filter(r => pids.includes(r.pid) && !r.demo && !r.cancelled && canView(r));
+  const received = reqs.filter(r => r.submitted && r.submitted >= from && r.submitted <= until);
   const recDone = received.filter(isFinal);
-  const doneIn = reqs.filter(r => r.bundle && r.bundle.at >= from);
-  const rate = received.length ? Math.round(recDone.length / received.length * 100) : 0;
+  const doneIn = reqs.filter(r => r.bundle && r.bundle.at >= from && r.bundle.at <= until);
+  const rate = received.length ? Math.round(recDone.length / received.length * 100) : '-';
   const people = uniq(pids.flatMap(p => reviewersOf(p)));
   const rows = people.filter(u => !f.user || u === f.user).map(u => ({
     u, done: reqs.filter(r => r.bundle && r.bundle.at >= from && r.hist.some(h => h.by === u && h.act === '검수 완료')).length,
@@ -1526,9 +1531,9 @@ function vCustomer() {
     <div class="row" style="gap:14px"><div class="seg"><button class="${c.approval ? 'on' : ''}" disabled>사용</button><button class="${c.approval ? '' : 'on'}" disabled>사용 안 함</button></div><span class="muted small">제품 도입 시 확정한 값이며 사용 중에는 바꿀 수 없습니다.</span></div>
     <p class="small" style="margin:12px 0 0">최종 완료 상태: <b>${c.approval ? '승인 완료' : '검수 완료'}</b>. ${c.approval ? '주담당 검수 완료 후 승인 대기로 넘어가고, 프로젝트 승인자 한 명이 최종 승인합니다.' : '주담당 검수자가 검수를 완료하면 바로 최종 완료됩니다.'}</p></div></div>
   <div class="panel"><div class="panel-h"><h3>운영 설정</h3>${flag('항목 범위 협의 (E-4)')}</div><div class="panel-b">
-    <div class="grid2"><div class="fld"><label>고객사 이름</label><input class="in" value="${esc(c.name)}" data-i="custName"></div><div class="fld"><label>회사 도메인</label><input class="in" value="${esc(c.domain)}" disabled><span class="hint">초대 가능한 이메일 도메인</span></div>
-    <div class="fld"><label>업무 알림 채널</label><select class="sel" data-i="custOps" data-k="notifyChannel"><option ${c.ops.notifyChannel === '제품 내 알림' ? 'selected' : ''}>제품 내 알림</option><option ${c.ops.notifyChannel === '제품 내 알림 + 이메일' ? 'selected' : ''}>제품 내 알림 + 이메일</option></select><span class="hint">채널과 재통지 간격은 협의 후 확정합니다.</span></div>
-    <div class="fld"><label>납기 임박 기준</label><select class="sel" data-i="custOps" data-k="dueSoonDays">${[1, 2, 3].map(n => `<option value="${n}" ${c.ops.dueSoonDays == n ? 'selected' : ''}>확정 납기 ${n}일 전</option>`).join('')}</select><span class="hint">임시 기준입니다.</span></div></div></div></div></div>`;
+    <div class="grid2"><div class="fld"><label>고객사 이름</label><input class="in" value="${esc(c.name)}" data-i="custName"></div><div class="fld"><label>회사 도메인</label><input class="in" value="${esc(c.domain)}" disabled><span class="hint">외부 도메인 초대 시 경고</span></div>
+    <div class="fld"><label>업무 알림 채널</label><select class="sel" data-i="custOps" data-k="notifyChannel"><option ${c.ops.notifyChannel === '제품 내 알림' ? 'selected' : ''}>제품 내 알림</option><option ${c.ops.notifyChannel === '제품 내 알림 + 이메일' ? 'selected' : ''}>제품 내 알림 + 이메일</option></select><span class="hint">24시간 간격으로 최대 3회 재통지합니다. 이메일은 발송 대기함으로 시연합니다.</span></div>
+    <div class="fld"><label>납기 임박 기준</label><select class="sel" data-i="custOps" data-k="dueSoonDays">${[1, 2, 3].map(n => `<option value="${n}" ${c.ops.dueSoonDays == n ? 'selected' : ''}>확정 납기 ${n}일 전</option>`).join('')}</select><span class="hint">고객사 기준을 적용합니다.</span></div></div></div></div></div>`;
 }
 /* ops: 고객사 관리 (E-11) */
 const custStat = cid => {
@@ -1551,7 +1556,7 @@ function vOpsCust(tab) {
   <div class="panel" style="margin-bottom:18px"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>고객사</th><th>승인 단계</th><th>프로젝트</th><th>사용자</th><th>고객사 관리자</th><th>진행 중 요청</th><th>유효 데이터셋</th><th>상태</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>
   <div class="grid2" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start">
   <div class="panel"><div class="panel-h"><h3>${esc(sel.name)} 상세</h3><span class="sp"></span><span class="small faint">${fD(sel.created)} 등록  ${esc(U(sel.by).name)}</span></div><div class="panel-b">
-    <dl class="kv"><dt>회사 도메인</dt><dd>${esc(sel.domain)} <span class="small faint">초대 가능한 이메일 도메인</span></dd>
+    <dl class="kv"><dt>회사 도메인</dt><dd>${esc(sel.domain)} <span class="small faint">외부 도메인 초대 시 경고</span></dd>
     <dt>승인 단계</dt><dd>${sel.approval ? '사용 (최종 상태: 승인 완료)' : '미사용 (최종 상태: 검수 완료)'} <span class="small faint">도입 시 확정, 운영 중 변경 불가</span></dd>
     <dt>고객사 관리자</dt><dd>${d.admins.length ? d.admins.map(u => `${esc(u.name)} <span class="small faint">${esc(u.email)}</span>`).join('<br>') : '<span class="tag hot">미지정</span> 초기 설정에서 지정하세요'}</dd>
     <dt>프로젝트</dt><dd>${d.ps.map(p => `${esc(p.name)} <span class="small faint">대표 ${esc(U(p.lead).name)}${p.active ? '' : ', 중지'}</span>`).join('<br>') || '<span class="faint">없음</span>'}</dd>
@@ -1658,7 +1663,7 @@ function vAssign(t) {
   <div class="panel"><div class="panel-h"><h3>${esc(Cu(S.cid).name)} 텍스트 교정에 실제 적용되는 기준</h3></div><div class="panel-b">
   ${TYPES.map(ty => { const e = effectiveRules(ty, S.cid); const off = !S.types.find(x => x.k === ty)?.active;
     return `<div class="row" style="padding:8px 0;border-bottom:1px solid var(--line)"><span style="min-width:90px"><b style="font-weight:500">${ty}</b></span><span class="small ${e.missing ? 'faint' : 'muted'}">${esc(e.label)}  규칙 ${e.rules.length}개</span><span class="sp"></span>${off ? '<span class="tag">유형 미사용</span>' : e.missing ? '<span class="tag hot">배정 전 기본값</span>' : '<span class="tag">배정됨</span>'}</div>`; }).join('')}
-  <p class="small faint" style="margin-bottom:0">배정하지 않은 조합은 최근 배포본으로 검사하며 결과 카드에 배정 전 기본값으로 표시됩니다. 실제 개발에서는 배정 없이 교정을 실행할지 먼저 정해야 합니다. ${flag('기준 연결과 적용 시점 협의 15')}</p></div></div>`;
+  <p class="small faint" style="margin-bottom:0">배정하지 않은 조합은 검사를 실행할 수 없습니다. 고객사와 유형별 유효 데이터셋을 배정하세요. 실제 개발에서는 배정 없이 교정을 실행할지 먼저 정해야 합니다. ${flag('기준 연결과 적용 시점 협의 15')}</p></div></div>`;
 }
 /* E-10.2 공통 운영·기준 변경 공지 (후속) */
 function vOpsNotice() {
@@ -1847,7 +1852,7 @@ function routeHash(t) { return t.route === 'request' ? `#/request/${t.p.id}` : t
 let _hashLock = false;
 function syncHash(t) { const h = routeHash(t); if (location.hash !== h) { _hashLock = true; try { history.replaceState(null, '', h); } catch (e) { } _hashLock = false; } }
 window.addEventListener('hashchange', () => {
-  if (_hashLock || !S.me) return;
+  if (_hashLock || !S.me || /^#\/(invite|reset)\//.test(location.hash)) return;
   const [, route, a, b] = location.hash.split('/');
   if (route === 'request' && a) openTab('request', { id: a });
   else if (route === 'content' && a) openTab('content', { id: a, cid: b });
@@ -1903,7 +1908,7 @@ function updateLive(tab, r, c) {
   if (c) {
     const F = getF(t, c);
     const cnt = main.querySelector('[data-live="cnt"]');
-    if (cnt) { if (r.type === '문자') { const b = bytes(F.body) + (F.optout ? 24 : 0) + (F.cs ? 22 : 0); cnt.textContent = `${b}바이트  ${b <= 90 ? '단문' : '장문'}  (안내 문구 포함)`; } else if (r.type === '알림톡') cnt.firstChild.textContent = `${(F.body || '').length}자  `; }
+    if (cnt) { if (r.type === '문자') { const b = smsBytes(F); cnt.textContent = `${b}바이트  ${b <= 90 ? '단문' : '장문'}  (안내 문구 포함)`; } else if (r.type === '알림톡') cnt.firstChild.textContent = `${(F.body || '').length}자  `; }
     const mk = main.querySelector('[data-live="mock"]'); if (mk) mk.innerHTML = mockHTML(r, F, c);
     const stl = main.querySelector('[data-live="stale"]'); const res = t.proof?.[c.id]; if (stl && res) stl.style.display = res.hash !== hashOf(r.type, F) ? '' : 'none';
     const rev = main.querySelector('[data-live="rev"]'); if (rev && t.buf?.[c.id]) rev.disabled = false;
@@ -2226,14 +2231,14 @@ const A = {
   bulk: () => { UI.bulkRows = null; showModal({ title: 'XLSX 대량 등록', lg: 1, body: bulkBody, ok: '선택한 행 추가', okDisabled: () => !UI.bulkRows?.some(x => x.sel), onOk: () => { const { t, r } = cur(); let n = Math.max(0, ...r.contents.map(c => +c.id.slice(1)));
     UI.bulkRows.filter(x => x.sel && !x.err.length).forEach(x => { n++; const c = blankContent(r.type, n); c.title = `대량 등록 ${x.row}행`; if (r.type === '알림톡') c.f = { tpl: x.v[0], body: x.v[1], btns: x.v[2] ? [{ n: x.v[2], l: x.v[3] }] : [] }; else c.f = { sender: x.v[0], body: x.v[1], cs: false, optout: String(x.v[2]).toUpperCase() === 'Y' }; r.contents.push(c); });
     log(r, 'XLSX 대량 등록', `${UI.bulkRows.filter(x => x.sel).length}행 반영`); t.st.cid = r.contents[r.contents.length - 1].id; autosave(t, null, 1); render(); } }); },
-  bulkSample: () => { const { r } = cur(); const rows = r.type === '알림톡' ? [['승인템플릿', '본문', '버튼명', '버튼링크'], ['HB_POINT_01', '#{고객명}님, 10월 적립 이벤트에 참여해 주셔서 감사합니다.', '적립 내역', 'https://hanbitcard.co.kr/point'], ['HB_EVT_03', '#{고객명}님, 이벤트에 당첨되셨습니다.', '당첨 확인', ''], ['HB_XX_99', '등록되지 않은 템플릿 문안', '', ''], ['HB_BILL_02', '', '', ''], ['HB_BILL_02', '#{고객명}님, 이번 달 청구 금액을 확인하세요.', '청구 내역', 'https://hanbitcard.co.kr/bill']]
+  bulkSample: () => { const { r } = cur(); const rows = r.type === '알림톡' ? [['승인템플릿', '본문', '버튼명', '버튼링크'], ['HB_POINT_01', '#{customer_name}님, 10월 적립 이벤트에 참여해 주셔서 감사합니다.', '적립 내역', 'https://hanbitcard.co.kr/point'], ['HB_EVT_03', '#{customer_name}님, 이벤트에 당첨되셨습니다.', '당첨 확인', ''], ['HB_XX_99', '등록되지 않은 템플릿 문안', '', ''], ['HB_BILL_02', '', '', ''], ['HB_BILL_02', '#{customer_name}님, 이번 달 청구 금액을 확인하세요.', '청구 내역', 'https://hanbitcard.co.kr/bill']]
       : [['발신자', '본문', '수신거부문구포함'], ['1588-0000', '(광고)[한빛카드] 주말 한정 가맹점 할인 안내', 'Y'], ['010-1234-5678', '[한빛카드] 결제 알림 서비스 안내', 'N'], ['1588-0000', '[한빛카드] 카드 배송이 시작되었습니다.', 'N'], ['02-3456-7000', '', 'Y'], ['1588-0000', '[한빛카드] 이용 한도 변경 안내', '예']];
     parseRows(rows); },
   bulkTpl: () => toast('템플릿 파일을 내려받습니다. 프로토타입에서는 파일을 만들지 않습니다'),
   bulkSel: el => { const x = UI.bulkRows[+el.dataset.i]; if (!x.err.length) x.sel = !x.sel; renderOv(); },
   /* opinions & asks */
   addOp: () => { const { r } = cur(); const x = $('#op-x').value.trim(); if (!x) return toast('의견을 입력하세요'); const cid = $('#op-t').value; r.opinions.push({ id: uid('o'), by: S.me, cid, at: now(), text: x }); log(r, '검수 의견', x, cid || 'req'); render(); },
-  sendAsk: () => { const { r } = cur(); const x = $('#ask-x').value.trim(); if (!x) return toast('확인할 내용을 입력하세요'); const cid = $('#ask-t').value; const hasBuf = activeTab().st.buf && Object.keys(activeTab().st.buf).length; if (hasBuf) return toast('저장하지 않은 수정본이 있습니다. 먼저 저장하거나 취소하세요');
+  sendAsk: () => { const { r } = cur(); if (r.recall) return toast('회수 요청이 처리될 때까지 확인 요청을 보낼 수 없습니다'); const x = $('#ask-x').value.trim(); if (!x) return toast('확인할 내용을 입력하세요'); const cid = $('#ask-t').value; const hasBuf = activeTab().st.buf && Object.keys(activeTab().st.buf).length; if (hasBuf) return toast('저장하지 않은 수정본이 있습니다. 먼저 저장하거나 취소하세요');
     r.asks.push({ id: uid('a'), by: S.me, cid, at: now(), q: x, a: null }); r.status = 'ask'; log(r, '확인 요청', x, cid || 'req'); notify([r.by], `${me().name}님이 확인을 요청했습니다: ${x.slice(0, 30)}`, r.id, 'ask'); toast('확인 요청을 보냈습니다. 요청자가 답변할 때까지 검수가 멈춥니다'); render(); },
   answer: el => { const { t, r } = cur(); const a = r.asks.find(x => x.id === el.dataset.id); const v = $('#ans-' + a.id).value.trim(); if (!v) return toast('답변을 입력하세요'); if (t.st.buf && Object.keys(t.st.buf).length) return toast('수정 중인 콘텐츠를 먼저 저장하세요');
     a.a = v; a.aBy = S.me; a.aAt = now(); r.status = 'review'; log(r, '확인 응답', v, a.cid || 'req'); notify(r.reviewers, `${me().name}님이 답변했습니다. 검수가 다시 시작됩니다`, r.id, 'answer'); toast('답변을 보냈습니다. 요청이 검수 중으로 바뀌었습니다'); render(); },
@@ -2242,19 +2247,19 @@ const A = {
     const { t, r } = cur(); if (r.status !== 'draft') return;
     const { err, list } = validateReq(r); t.st.err = err;
     if (list.length) { render(); return showModal({ title: '검수를 요청하려면 다음 항목을 채우세요', body: () => `<ul style="margin:0;padding-left:18px;line-height:1.9">${list.map(x => `<li>${esc(x)}</li>`).join('')}</ul><p class="small faint">텍스트 교정 결과는 필요하지 않습니다.</p>`, ok: '확인', onOk: () => { t.st.sub = Object.keys(err).length ? 'info' : 'contents'; render(); } }); }
-    showModal({ title: '검수를 요청할까요?', sub: `${r.contents.length}건의 콘텐츠를 ${P(r.pid).name} 대표 검수자 ${U(P(r.pid).lead).name}님에게 보냅니다.`, body: () => r.roundBump ? `<p class="small">취소 또는 회수 후 다시 요청하므로 검수 차수가 ${r.round + 1}차로 올라갑니다.</p>` : '', ok: '검수 요청', onOk: () => {
+    showModal({ title: '검수를 요청할까요?', sub: `${r.contents.length}건의 콘텐츠를 ${P(r.pid).name} 대표 검수자 ${U(P(r.pid).lead).name}님에게 보냅니다.`, body: () => r.roundBump ? `<p class="small">회수 승인 후 다시 요청하므로 검수 차수가 ${r.round + 1}차로 올라갑니다.</p>` : '', ok: '검수 요청', onOk: () => {
       if (r.status !== 'draft') return; // idempotent
       if (r.roundBump) { r.round++; r.roundBump = false; }
-      snapshotVersions(r); r.status = 'wait'; r.submitted = now(); r.due = r.due || r.hopeDue; log(r, '검수 요청', `콘텐츠 ${r.contents.length}건`);
+      snapshotVersions(r); r.status = 'wait'; r.cancelled = false; r.submitted = r.submitted || now(); r.due = r.due || r.hopeDue; log(r, '검수 요청', `콘텐츠 ${r.contents.length}건`);
       notify([P(r.pid).lead], `신규 검수 요청이 배정을 기다립니다: ${r.title}`, r.id, 'assign'); t.dirty = false; t.st.sub = 'contents'; toast('검수를 요청했습니다'); render(); } });
   },
-  cancelReq: () => { const { r } = cur(); showModal({ title: '검수 요청을 취소할까요?', sub: '검수자가 배정되기 전이라 바로 취소됩니다. 요청은 작성 중으로 돌아갑니다.', body: () => '', ok: '요청 취소', okCls: 'warn', onOk: () => { if (r.status !== 'wait') return; r.status = 'draft'; r.roundBump = true; log(r, '요청 취소'); notify([P(r.pid).lead], `${r.title} 요청이 취소되었습니다`, r.id); render(); } }); },
+  cancelReq: () => { const { r } = cur(); showModal({ title: '검수 요청을 취소할까요?', sub: '검수자가 배정되기 전이라 바로 취소됩니다. 요청은 작성 중으로 돌아갑니다.', body: () => '', ok: '요청 취소', okCls: 'warn', onOk: () => { if (r.status !== 'wait') return; r.status = 'draft'; r.roundBump = false; r.cancelled = true; log(r, '요청 취소'); notify([P(r.pid).lead], `${r.title} 요청이 취소되었습니다`, r.id); render(); } }); },
   recallReq: () => { const { r } = cur(); showModal({ title: '회수를 요청할까요?', sub: `주담당 검수자 ${U(r.primary).name}님이 승인하면 작성 중으로 돌아갑니다. 처리 전까지는 편집할 수 없습니다.`, body: () => mTa('why', '회수 사유', '', 1), ok: '회수 요청', okCls: 'warn', onOk: () => { if (!need(['why', '회수 사유'])) return false; r.recall = { by: S.me, at: now(), reason: M('why') }; log(r, '회수 요청', M('why')); notify([r.primary], `${me().name}님이 회수를 요청했습니다. 승인 또는 거절이 필요합니다`, r.id, 'recall'); notify([...r.reviewers.filter(u => u !== r.primary), P(r.pid).lead], `회수 요청 사유: ${M('why')}`, r.id); render(); } }); },
   recallDecide: el => { const { t, r } = cur(); const ok = el.dataset.ok === '1'; showModal({ title: ok ? '회수를 승인할까요?' : '회수를 거절할까요?', sub: ok ? '요청이 작성 중으로 돌아가고 현재 배정이 해제됩니다. 다시 요청하면 검수 차수가 올라갑니다.' : '현재 배정으로 검수를 이어갑니다.', body: () => mTa('op', '처리 의견', '', 1), ok: ok ? '회수 승인' : '회수 거절', okCls: ok ? 'pri' : '', onOk: () => {
     if (!need(['op', '처리 의견'])) return false; const prev = `기존 배정: ${names(r.reviewers)}, 주담당 ${U(r.primary).name}`;
     const who = [r.by, ...r.reviewers, P(r.pid).lead];
     if (ok) { releaseTab(t); r.contents.forEach(c => c.lockBy = null); log(r, '회수 승인', `사유: ${r.recall.reason}\n처리 의견: ${M('op')}\n${prev}`); r.status = 'draft'; r.reviewers = []; r.primary = null; r.recall = null; r.roundBump = true; }
-    else { log(r, '회수 거절', `사유: ${r.recall.reason}\n처리 의견: ${M('op')}`); r.recall = null; }
+    else { log(r, '회수 거절', `사유: ${r.recall.reason}\n처리 의견: ${M('op')}\n${prev} (유지)`); r.recall = null; }
     notify(who, `회수 요청이 ${ok ? '승인' : '거절'}되었습니다. ${M('op')}`, r.id); render(); } }); },
   assign: el => {
     const { r } = cur(); const change = el.dataset.change === '1'; const m = {}; r.reviewers.forEach(u => m['rv:' + u] = true); m.primary = r.primary || ''; m.due = r.due ? fISO(r.due) : ''; m.urg = r.urg;
@@ -2264,8 +2269,15 @@ const A = {
         if (!sel.length) { toast('검수자를 한 명 이상 고르세요'); return false; } if (!sel.includes(M('primary'))) { toast('주담당 검수자를 지정하세요'); return false; }
         if (change && !need(['why', '변경 사유'], ['ho', '인수인계 내용'])) return false;
         const before = `${names(r.reviewers)} (주담당 ${U(r.primary).name})`; const removed = r.reviewers.filter(u => !sel.includes(u)), added = sel.filter(u => !r.reviewers.includes(u));
+        const prevReviewers = [...r.reviewers], prevPrimary = r.primary;
+        if (change && !removed.length && !added.length && prevPrimary === M('primary')) { toast('변경된 검수자나 주담당이 없습니다'); return false; }
         r.reviewers = sel; r.primary = M('primary');
-        if (change) { log(r, '검수자 변경', `${before} → ${names(sel)} (주담당 ${U(r.primary).name})\n사유: ${M('why')}\n인수인계: ${M('ho')}`); r.contents.forEach(c => { if (removed.includes(c.lockBy)) c.lockBy = null; }); notify([r.by, ...added, ...removed, r.primary], `검수 담당이 바뀌었습니다. 주담당 ${U(r.primary).name}. 인수인계: ${M('ho')}`, r.id); }
+        if (change) {
+          // Keep the previous assignment as a structured record; existing logs and opinions stay untouched.
+          (r.assignHist ||= []).push({ at: now(), by: S.me, round: r.round, from: { reviewers: prevReviewers, primary: prevPrimary }, to: { reviewers: [...sel], primary: r.primary }, reason: M('why'), handover: M('ho') });
+          log(r, '검수자 변경', `${before} → ${names(sel)} (주담당 ${U(r.primary).name})${prevPrimary !== r.primary ? `\n주담당 변경: ${U(prevPrimary).name} → ${U(r.primary).name}` : ''}\n사유: ${M('why')}\n인수인계: ${M('ho')}`);
+          r.contents.forEach(c => { if (removed.includes(c.lockBy)) { log(r, '편집 잠금 해제', `검수자 변경으로 ${U(c.lockBy).name}님의 잠금 해제`, c.id); c.lockBy = null; } });
+          notify([r.by, ...added, ...removed, prevPrimary, r.primary], `검수 담당이 바뀌었습니다. 주담당 ${U(r.primary).name}.${r.recall ? ' 회수 요청 처리 대기 중입니다.' : ''} 인수인계: ${M('ho')}`, r.id); }
         else { const nd = pISO(M('due')); if (nd && (!r.due || fISO(nd) !== fISO(r.due))) { log(r, '납기 변경', `확정 납기 ${fD(r.due)} → ${fD(nd)} (배정 시 확정)`); r.due = nd; } r.urg = M('urg'); r.status = 'review'; log(r, '검수자 배정', `${names(sel)} 배정, 주담당 ${U(r.primary).name}`); notify([r.by, ...sel], `${r.title}: ${names(sel)} 배정, 주담당 ${U(r.primary).name}`, r.id); }
         render(); } });
   },
@@ -2273,11 +2285,11 @@ const A = {
     if (!need(['why', '변경 사유'])) return false; const nd = pISO(M('due')); const d = `확정 납기 ${fD(r.due)} → ${fD(nd)}, 긴급도 ${r.urg} → ${M('urg')}\n사유: ${M('why')}`; r.due = nd; r.urg = M('urg'); log(r, '납기 변경', d); notify([r.by, P(r.pid).lead, ...r.reviewers], `${r.title} 납기 변경: ${d}`, r.id, 'due'); render(); } }); },
   complete: () => {
     const { t, r } = cur(); if (t.st.buf && Object.keys(t.st.buf).length) return toast('저장하지 않은 수정본이 있습니다. 먼저 저장하세요');
-    const appr = custOf(r).approval; const ap = approvers(r.pid);
+    const appr = custOf(r).approval; const ap = approvers(r.pid).filter(u => u !== r.by && !r.reviewers.includes(u));
     if (appr && !ap.length) return showModal({ title: '승인 대기로 넘길 수 없습니다', sub: '이 프로젝트에 활성 승인자가 없습니다.', body: () => `<p class="small">관리자에게 승인자 지정을 요청하세요. ${flag('승인자 부재 시 운영 절차 협의')}</p>`, ok: '확인' });
     const locked = r.contents.filter(c => c.lockBy && c.lockBy !== S.me);
     showModal({ title: '검수를 완료할까요?', sub: appr ? `완료하면 승인 대기로 바뀌고 ${names(ap)}에게 알립니다.` : '승인 단계를 쓰지 않는 고객사라 검수 완료가 최종 완료입니다.', m: { ok: false }, lg: 1,
-      body: () => `<div class="lbl" style="margin-bottom:6px">공동 검수 결과</div><div class="panel" style="margin-bottom:14px">${r.reviewers.map(u => `<div class="list-item" style="cursor:default">${av(u, 22)}<div class="main"><b>${esc(U(u).name)}${u === r.primary ? '  (주담당)' : ''}</b><span>검수 의견 ${r.opinions.filter(o => o.by === u).length}건</span></div></div>`).join('')}</div>
+      body: () => `<div class="lbl" style="margin-bottom:6px">공동 검수 결과</div><div class="panel" style="margin-bottom:14px">${[...r.reviewers, ...[...new Set(r.opinions.map(o => o.by))].filter(u => !r.reviewers.includes(u))].map(u => `<div class="list-item" style="cursor:default">${av(u, 22)}<div class="main"><b>${esc(U(u).name)}${u === r.primary ? '  (주담당)' : r.reviewers.includes(u) ? '' : '  (이전 담당)'}</b><span>검수 의견 ${r.opinions.filter(o => o.by === u).length}건</span></div></div>`).join('')}</div>
       <div class="lbl" style="margin-bottom:6px">대상 버전</div><div class="panel" style="margin-bottom:14px">${r.contents.map(c => `<div class="list-item" style="cursor:default"><span class="tag fill">${c.id}</span><div class="main"><b>${esc(c.title)}</b></div><span>v${c.v}${c.files.map(f => `  ${esc(f.name)} v${f.v}`).join('')}</span></div>`).join('')}</div>
       ${locked.length ? `<div class="banner danger"><div class="bt">${locked.map(c => `${c.id} ${U(c.lockBy).name}님 편집 중`).join(', ')}. 완료하면 저장되지 않은 편집은 반영되지 않습니다.</div></div>` : ''}
       <label class="chk"><input type="checkbox" data-m="ok" ${M('ok') ? 'checked' : ''}>공동 검수 결과와 대상 버전을 확인했습니다</label>`,
@@ -2403,7 +2415,7 @@ const A = {
         const by = Object.entries(P(pid).members).find(([, rs]) => rs.includes('requester'))?.[0] || reqUsers[0] || S.me;
         const r = makeDraft(pid, { type: ty, title: `[샘플] ${ty} 작성 연습`, purpose: '화면 사용 연습', target: '샘플 대상 고객', bg: '도입 교육용 샘플', hopeDue: at(7) });
         r.by = by; r.demo = true; r.contents[0].f = blankF(ty);
-        if (ty === '알림톡') r.contents[0].f.body = '#{고객명}님, 샘플 안내 문안입니다. 내용을 바꿔 보세요.';
+        if (ty === '알림톡') r.contents[0].f.body = '#{customer_name}님, 샘플 안내 문안입니다. 내용을 바꿔 보세요.';
         if (ty === '문자') { r.contents[0].f.body = '[' + c.name + '] 샘플 안내 문안입니다.'; r.contents[0].f.sender = P(pid).senders[0] || ''; }
         log(r, '샘플 요청 생성', '초기 설정에서 생성한 샘플');
         S.seedLog.unshift({ at: now(), cid, by: S.me, act: '샘플 요청 생성', target: r.id, result: `${P(pid).name}, ${ty}, 작성 중` });
@@ -2480,5 +2492,6 @@ function readXlsx(file) {
 render();
 
 </script>
+<script src="tx-tms-plan-v01.js"></script>
 </body>
 </html>

@@ -78,3 +78,35 @@ export interface PasswordChangeBody {
   currentPassword: string;
   newPassword: string;
 }
+
+/** Temporary sign-up role (`POST /api/auth/signup`, demo mode only). */
+export type SignupRole = "REQUESTER" | "REVIEWER" | "LEAD_REVIEWER" | "APPROVER" | "CUSTOMER_ADMIN" | "OPERATOR";
+
+/** `POST /api/auth/signup` body. `customerId`/`projectId` are null where the role does not need them. */
+export interface SignupBody {
+  name: string;
+  email: string;
+  password: string;
+  role: SignupRole;
+  customerId: number | null;
+  projectId: number | null;
+}
+
+export interface SignupProject {
+  id: number;
+  name: string;
+  /** Current lead reviewer (null when the project has none). */
+  leadName: string | null;
+}
+
+export interface SignupCustomer {
+  id: number;
+  name: string;
+  approvalEnabled: boolean;
+  projects: SignupProject[];
+}
+
+/** `GET /api/auth/signup-options`: active customers and their active projects. */
+export interface SignupOptions {
+  customers: SignupCustomer[];
+}

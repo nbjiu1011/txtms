@@ -4,7 +4,7 @@ import { useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { safeNextPath } from "@/shared/lib";
 import { useSessionStore } from "@/entities/me";
-import { DemoPersonaList, LoginForm } from "@/features/auth";
+import { DemoPersonaList, LoginForm, SignupLink } from "@/features/auth";
 import { AuthLayout, LoginHero } from "@/widgets/auth-layout";
 
 function nextPath(): string {
@@ -12,7 +12,10 @@ function nextPath(): string {
   return safeNextPath(new URLSearchParams(window.location.search).get("next"));
 }
 
-/** `/login` — hero + email/password form + demo personas (when the API runs in demo mode). */
+/**
+ * `/login` — hero + email/password form + demo personas (when the API runs in demo mode) + the temporary sign-up link
+ * (development server only).
+ */
 export function LoginView() {
   const router = useRouter();
   const status = useSessionStore((s) => s.status);
@@ -27,6 +30,7 @@ export function LoginView() {
     <AuthLayout hero={<LoginHero />}>
       <LoginForm onSuccess={enterApp} />
       <DemoPersonaList onSuccess={enterApp} />
+      <SignupLink />
     </AuthLayout>
   );
 }

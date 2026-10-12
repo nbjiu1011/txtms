@@ -5,6 +5,8 @@ import type {
   DemoPersona,
   LoginBody,
   PasswordResetRequestBody,
+  SignupBody,
+  SignupOptions,
   TokenPasswordBody,
 } from "@/entities/me";
 
@@ -17,6 +19,8 @@ export const authApi = {
   requestPasswordReset: (body: PasswordResetRequestBody) =>
     http.post<void>("/auth/password-reset-requests", body, { auth: false }),
   tokenInfo: (token: string) => http.get<AuthTokenInfo>(`/auth/tokens/${encodeURIComponent(token)}`, { auth: false }),
+  signupOptions: () => http.get<SignupOptions>("/auth/signup-options", { auth: false }),
+  signup: (body: SignupBody) => http.post<AuthSession>("/auth/signup", body, { auth: false }),
   setTokenPassword: (token: string, body: TokenPasswordBody) =>
     http.post<AuthSession>(`/auth/tokens/${encodeURIComponent(token)}/password`, body, { auth: false }),
 };
