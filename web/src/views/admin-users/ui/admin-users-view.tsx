@@ -29,7 +29,7 @@ type Dialog =
   | null;
 
 /** `users` tab — 사용자·권한 관리 (reference `vUsers` + J; 운영 지원 접근 is Phase 2, 접근·변경 기록 instead). */
-export function AdminUsersView({ context }: WorkViewProps) {
+export function AdminUsersView({ context, openTab }: WorkViewProps) {
   const { customer, customerId, projects, projectId } = context;
   const [page, setPage] = useListPage(String(customerId));
   const members = useCustomerMembers(customerId, page, LIST_PAGE_SIZE);
@@ -89,6 +89,7 @@ export function AdminUsersView({ context }: WorkViewProps) {
                 members={list}
                 projects={projects}
                 busyId={actions.busyId}
+                onOpen={(member) => openTab({ route: "adminUser", params: { id: String(member.user.id) } })}
                 onRoles={(member) => setDialog({ kind: "roles", member })}
                 onEmail={(member) => setDialog({ kind: "email", member })}
                 onReissue={(member) => void actions.reissue(member)}

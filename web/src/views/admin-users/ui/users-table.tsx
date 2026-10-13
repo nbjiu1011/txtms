@@ -16,6 +16,8 @@ export interface UsersTableProps {
   onDeactivate: (m: Member) => void;
   onReactivate: (m: Member) => void;
   onReissue: (m: Member) => void;
+  /** Opens the user's detail tab (사용자 상세). */
+  onOpen: (m: Member) => void;
 }
 
 /** 사용자와 역할 (reference `vUsers` + J:146 pending rows + J:238 이메일 button). */
@@ -46,7 +48,14 @@ export function UsersTable(props: UsersTableProps) {
                 <span className={styles.user}>
                   <Avatar name={m.user.name} color={m.user.avatarColor} size={24} />
                   <span>
-                    <b className={styles.name}>{m.user.name}</b>
+                    <button
+                      type="button"
+                      className={styles.nameBtn}
+                      aria-label={`${m.user.name} 상세 보기`}
+                      onClick={() => props.onOpen(m)}
+                    >
+                      {m.user.name}
+                    </button>
                     <br />
                     <span className={styles.email}>{m.user.email}</span>
                     {m.pendingEmail ? (

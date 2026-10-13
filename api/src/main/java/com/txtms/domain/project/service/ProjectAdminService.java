@@ -3,6 +3,8 @@ package com.txtms.domain.project.service;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -17,13 +19,16 @@ import com.txtms.domain.customer.entity.Customer;
 import com.txtms.domain.customer.service.CustomerAdminAccess;
 import com.txtms.domain.customer.service.CustomerAdminAccess.Admin;
 import com.txtms.domain.project.dto.ProjectBody;
+import com.txtms.domain.project.dto.ProjectMembersBody;
 import com.txtms.domain.project.dto.ProjectResponse;
 import com.txtms.domain.project.entity.Project;
 import com.txtms.domain.project.entity.ProjectRole;
 import com.txtms.domain.project.entity.ProjectTemplate;
 import com.txtms.domain.project.repository.ProjectRepository;
+import com.txtms.domain.request.entity.Request;
 import com.txtms.domain.request.entity.RequestStatus;
 import com.txtms.domain.request.service.RequestQueryService;
+import com.txtms.domain.request.service.ScopedRequest;
 import com.txtms.domain.request.service.RequestStatsService;
 import com.txtms.domain.user.entity.User;
 import com.txtms.domain.user.service.UserService;
@@ -38,13 +43,17 @@ import com.txtms.global.security.AuthUser;
  * Project management by the customer admin (actions.md §2.13 {@code projEdit}): name, lead reviewer (gets the
  * reviewer role; never a requester of the project), approver set (approval customers: at least one active approver;
  * other customers: none), active flag (deactivation refused while requests are in progress). Audited as
- * {@code 프로젝트 생성} / {@code 프로젝트 변경}. Alimtalk templates are set by the operator (contract §12).
+ * {@code 프로젝트 생성} / {@code 프로젝트 변경}. Participation (the whole member list with roles) and deleting a project
+ * without history (contract §24) are audited as {@code 프로젝트 구성원 변경} / {@code 프로젝트 삭제}. Alimtalk templates
+ * are set by the operator (contract §12).
  */
 @Service
 @Transactional
 public class ProjectAdminService {
 
     static final int NAME_MAX = 100;
+    private static final Set<RequestStatus> REVIEW_IN_PROGRESS = EnumSet.of(RequestStatus.IN_REVIEW,
+            RequestStatus.CONFIRMING, RequestStatus.APPROVAL_WAITING);
 
     private final ProjectRepository projects;
     private final CustomerAdminAccess adminAccess;
@@ -73,8 +82,13 @@ public class ProjectAdminService {
     public PageResponse<ProjectResponse> manage(AuthUser auth, long customerId, PageQuery page) {
         Admin admin = adminAccess.require(auth, customerId);
         Map<Long, Long> active = requestStats.activeCountsByProject(admin.customerId());
-        return PageResponse.slice(projects.findByCustomerIdOrderByIdAsc(admin.customerId()), page,
-                rows -> rows.stream().map(p -> ProjectResponse.of(p, active.getOrDefault(p.getId(), 0L))).toList());
+        List<Project> all = projects.findByCustomerIdOrderByIdAsc(admin.customerId());
+        Set<Long> withHistory = Set.copyOf(projects.findIdsWithHistory(admin.customerId()));
+        boolean last = all.size() <= 1;
+        return PageResponse.slice(all, page, rows -> rows.stream()
+                .map(p -> ProjectResponse.of(p, active.getOrDefault(p.getId(), 0L),
+                        !last && !withHistory.contains(p.getId())))
+                .toList());
     }
 
     public ProjectResponse create(AuthUser auth, long customerId, ProjectBody body) {
@@ -154,6 +168,110 @@ public class ProjectAdminService {
             audit.record(admin.userId(), admin.customerId(), "프로젝트 변경", name, String.join(" / ", changes));
         }
         return ProjectResponse.of(project);
+    }
+
+    /**
+     * Replaces the project's participation (contract §24): listed users get exactly their roles, other members lose
+     * theirs. Every user is checked first ({@link ProjectRoleRules#problem}, newly added users must not be
+     * deactivated) and an approval customer keeps at least one active approver; nothing changes when one fails.
+     */
+    public ProjectResponse replaceMembers(AuthUser auth, long projectId, ProjectMembersBody body) {
+        Project project = projects.findById(projectId).orElseThrow(BusinessException::notFound);
+        Admin admin = adminAccess.require(auth, project.getCustomerId());
+        List<ProjectMembersBody.Item> items = body == null || body.members() == null ? List.of() : body.members();
+        Map<Long, Set<ProjectRole>> next = new LinkedHashMap<>();
+        Map<Long, User> users = new LinkedHashMap<>();
+        for (int i = 0; i < items.size(); i++) {
+            ProjectMembersBody.Item item = items.get(i);
+            if (item == null || item.userId() == null) {
+                throw BusinessException.validation("members." + i + ".userId", "사용자를 선택하세요");
+            }
+            if (next.containsKey(item.userId())) {
+                throw BusinessException.validation("members." + i + ".userId", "같은 사용자를 두 번 보냈습니다");
+            }
+            User user = adminAccess.requireCustomerUser(admin, item.userId());
+            Set<ProjectRole> roles = EnumSet.noneOf(ProjectRole.class);
+            if (item.roles() != null) {
+                item.roles().stream().filter(Objects::nonNull).forEach(roles::add);
+            }
+            if (!roles.isEmpty() && project.rolesOf(user.getId()).isEmpty() && !user.isActive() && !user.isPending()) {
+                throw BusinessException.validation("members." + i + ".userId", "비활성 사용자는 프로젝트에 추가할 수 없습니다");
+            }
+            next.put(user.getId(), roles);
+            users.put(user.getId(), user);
+        }
+        for (Long current : project.roleMap().keySet()) {
+            if (!next.containsKey(current)) {
+                next.put(current, EnumSet.noneOf(ProjectRole.class));
+            }
+        }
+
+        List<Request> inProject = requests.visible(userService.actorOf(admin.user()), List.of(project)).stream()
+                .map(ScopedRequest::request).toList();
+        Map<Long, Set<ProjectRole>> changes = new LinkedHashMap<>();
+        for (Map.Entry<Long, Set<ProjectRole>> e : next.entrySet()) {
+            long userId = e.getKey();
+            Set<ProjectRole> before = project.rolesOf(userId);
+            if (before.equals(e.getValue())) {
+                continue;
+            }
+            boolean assigned = inProject.stream().anyMatch(r -> REVIEW_IN_PROGRESS.contains(r.getStatus())
+                    && r.getReviewerIds().contains(userId));
+            boolean requesting = inProject.stream().anyMatch(r -> r.getStatus() != RequestStatus.DRAFT
+                    && !r.getStatus().isFinal() && Long.valueOf(userId).equals(r.getRequesterId()));
+            // the last approver is judged on the whole result below, not per user
+            ProjectRoleRules.Facts facts = new ProjectRoleRules.Facts(project.getName(),
+                    admin.customer().isApprovalEnabled(), Long.valueOf(userId).equals(project.getLeadUserId()),
+                    assigned, requesting, false);
+            String problem = ProjectRoleRules.problem(facts, before, e.getValue());
+            if (problem != null) {
+                throw new BusinessException(ErrorCode.VALIDATION_FAILED, problem);
+            }
+            changes.put(userId, e.getValue());
+        }
+        if (admin.customer().isApprovalEnabled()) {
+            Map<Long, User> approverUsers = userService.byIds(next.entrySet().stream()
+                    .filter(e -> e.getValue().contains(ProjectRole.APPROVER)).map(Map.Entry::getKey).toList());
+            boolean anyActive = approverUsers.values().stream().anyMatch(u -> u.isActive() && !u.isPending());
+            if (!anyActive) {
+                throw BusinessException.validation("members", "승인자를 한 명 이상 지정하세요");
+            }
+        }
+
+        if (!changes.isEmpty()) {
+            Map<Long, User> named = userService.byIds(changes.keySet());
+            List<String> parts = new ArrayList<>();
+            changes.forEach((userId, after) -> {
+                User u = users.containsKey(userId) ? users.get(userId) : named.get(userId);
+                parts.add((u == null ? "-" : u.getName()) + ": " + ProjectRoleRules.label(project.rolesOf(userId))
+                        + " → " + ProjectRoleRules.label(after));
+                project.replaceRoles(userId, after);
+            });
+            projects.flush();
+            audit.record(admin.userId(), admin.customerId(), "프로젝트 구성원 변경", project.getName(),
+                    String.join(" / ", parts));
+        }
+        return ProjectResponse.of(project);
+    }
+
+    /**
+     * Deletes a project without history (contract §24): never the customer's last project, never one with requests,
+     * notices or variables (those are kept by stopping the project).
+     */
+    public void delete(AuthUser auth, long projectId) {
+        Project project = projects.findById(projectId).orElseThrow(BusinessException::notFound);
+        Admin admin = adminAccess.require(auth, project.getCustomerId());
+        if (projects.findByCustomerIdOrderByIdAsc(admin.customerId()).size() <= 1) {
+            throw new BusinessException(ErrorCode.REQUEST_STATE_CONFLICT, "고객사의 마지막 프로젝트는 삭제할 수 없습니다");
+        }
+        if (projects.findIdsWithHistory(admin.customerId()).contains(project.getId())) {
+            throw new BusinessException(ErrorCode.REQUEST_STATE_CONFLICT,
+                    "요청·공지·변수 이력이 있는 프로젝트는 삭제할 수 없습니다. 사용 중지로 보존하세요");
+        }
+        String name = project.getName();
+        projects.delete(project);
+        projects.flush();
+        audit.record(admin.userId(), admin.customerId(), "프로젝트 삭제", name, null);
     }
 
     // ------------------------------------------------------------------ operator initial setup (contract §12)

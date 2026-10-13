@@ -20,13 +20,14 @@ public final class ProjectRoleRules {
 
     /** What the rule check needs to know about the user in one project. */
     public record Facts(String projectName, boolean approvalEnabled, boolean lead, boolean assignedInProgress,
-            boolean onlyActiveApprover) {
+            boolean requesterInProgress, boolean onlyActiveApprover) {
     }
 
     /**
      * The first problem of changing the user's roles in one project from {@code before} to {@code after}, or null.
      * Order: requester + reviewer together → approver without approval → removing the lead's reviewer role →
-     * removing the reviewer role while assigned to an unfinished review → removing the last active approver.
+     * removing the reviewer role while assigned to an unfinished review → removing the requester role of the
+     * requester of a request in progress (submitted, not final) → removing the last active approver.
      */
     public static String problem(Facts f, Set<ProjectRole> before, Set<ProjectRole> after) {
         if (after.contains(ProjectRole.REQUESTER) && after.contains(ProjectRole.REVIEWER)) {
@@ -41,6 +42,10 @@ public final class ProjectRoleRules {
         }
         if (reviewerRemoved && f.assignedInProgress()) {
             return f.projectName() + ": 진행 중인 검수가 있어 검수자 역할을 해제할 수 없습니다. 먼저 검수자를 변경하세요";
+        }
+        boolean requesterRemoved = before.contains(ProjectRole.REQUESTER) && !after.contains(ProjectRole.REQUESTER);
+        if (requesterRemoved && f.requesterInProgress()) {
+            return f.projectName() + ": 진행 중인 요청의 요청자라 요청자 역할을 해제할 수 없습니다. 요청을 완료하거나 취소한 뒤 해제하세요";
         }
         boolean approverRemoved = before.contains(ProjectRole.APPROVER) && !after.contains(ProjectRole.APPROVER);
         if (approverRemoved && f.approvalEnabled() && f.onlyActiveApprover()) {

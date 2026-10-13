@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { Member } from "@/entities/user";
 import { UsersTable } from "./users-table";
@@ -13,7 +13,7 @@ const member = (id: number, patch: Partial<Member> = {}): Member => ({
   ...patch,
 });
 
-function renderTable(members: Member[]) {
+function renderTable(members: Member[], onOpen = vi.fn()) {
   return render(
     <UsersTable
       members={members}
@@ -24,6 +24,7 @@ function renderTable(members: Member[]) {
       onDeactivate={vi.fn()}
       onReactivate={vi.fn()}
       onReissue={vi.fn()}
+      onOpen={onOpen}
     />,
   );
 }
@@ -39,5 +40,13 @@ describe("UsersTable", () => {
   it("shows nothing extra without a waiting change", () => {
     renderTable([member(3)]);
     expect(screen.queryByText(/변경 확인 대기/)).toBeNull();
+  });
+
+  it("opens the user's detail from the name", () => {
+    const onOpen = vi.fn();
+    const m = member(1);
+    renderTable([m], onOpen);
+    fireEvent.click(screen.getByRole("button", { name: "사용자1 상세 보기" }));
+    expect(onOpen).toHaveBeenCalledWith(m);
   });
 });

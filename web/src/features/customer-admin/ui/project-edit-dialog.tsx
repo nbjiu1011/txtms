@@ -22,7 +22,7 @@ export interface ProjectEditDialogProps {
   inProgress: number;
 }
 
-/** 프로젝트 추가 / 프로젝트 편집 (reference `projEdit`). */
+/** 프로젝트 추가 / 프로젝트 수정 (reference `projEdit`). */
 export function ProjectEditDialog(props: ProjectEditDialogProps) {
   if (!props.open) return null;
   return <ProjectEditBody {...props} />;
@@ -58,7 +58,7 @@ function ProjectEditBody({ onClose, customer, project, users, inProgress }: Proj
     <Modal
       open
       onClose={onClose}
-      title={project ? "프로젝트 편집" : "프로젝트 추가"}
+      title={project ? "프로젝트 수정" : "프로젝트 추가"}
       okLabel="저장"
       onOk={submit}
     >

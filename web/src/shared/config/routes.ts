@@ -18,6 +18,7 @@ export const ROUTE_KEYS = [
   "adminProjects",
   "adminVariables",
   "adminUsers",
+  "adminUser",
   "adminCustomer",
   "adminNotices",
   "adminNotice",
@@ -100,6 +101,14 @@ export const ROUTES: Record<RouteKey, RouteDef> = {
     title: "사용자·권한 관리",
     icon: "users",
     group: "admin",
+    access: "admin",
+    enabled: true,
+  },
+  adminUser: {
+    key: "adminUser",
+    title: "사용자·권한 관리",
+    icon: null,
+    group: null,
     access: "admin",
     enabled: true,
   },
@@ -213,6 +222,7 @@ const PATH_TO_STATIC = new Map<string, RouteKey>(
 const ID_ROUTES = {
   notice: "/notices",
   adminNotice: "/admin/notices",
+  adminUser: "/admin/users",
   opsCustomer: "/ops/customers",
 } as const satisfies Partial<Record<RouteKey, string>>;
 

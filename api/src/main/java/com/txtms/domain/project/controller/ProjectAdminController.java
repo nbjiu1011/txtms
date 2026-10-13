@@ -2,10 +2,12 @@ package com.txtms.domain.project.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.txtms.domain.project.dto.ProjectBody;
+import com.txtms.domain.project.dto.ProjectMembersBody;
 import com.txtms.domain.project.dto.ProjectResponse;
 import com.txtms.domain.project.service.ProjectAdminService;
 import com.txtms.global.common.PageQuery;
@@ -48,5 +51,19 @@ public class ProjectAdminController {
     public ProjectResponse update(@AuthenticationPrincipal AuthUser auth, @PathVariable long projectId,
             @RequestBody(required = false) ProjectBody body) {
         return projects.update(auth, projectId, body);
+    }
+
+    /** Participation of the project: the whole member list with roles (contract §24). */
+    @PutMapping("/projects/{projectId}/members")
+    public ProjectResponse replaceMembers(@AuthenticationPrincipal AuthUser auth, @PathVariable long projectId,
+            @RequestBody(required = false) ProjectMembersBody body) {
+        return projects.replaceMembers(auth, projectId, body);
+    }
+
+    /** Only a project without history; others are kept by stopping them (contract §24). */
+    @DeleteMapping("/projects/{projectId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@AuthenticationPrincipal AuthUser auth, @PathVariable long projectId) {
+        projects.delete(auth, projectId);
     }
 }

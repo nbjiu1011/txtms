@@ -24,6 +24,17 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     @Query("select p.variablesRevision from Project p where p.id = :id")
     Integer findVariablesRevision(@Param("id") Long id);
 
+    /**
+     * Projects of the customer with history that forbids deleting them (contract §24): any request (drafts included),
+     * notice (also as the previous scope of an edited one) or variable (deleted ones included).
+     */
+    @Query(value = "SELECT p.id FROM projects p WHERE p.customer_id = :customerId AND ("
+            + "EXISTS (SELECT 1 FROM requests r WHERE r.project_id = p.id)"
+            + " OR EXISTS (SELECT 1 FROM notices n WHERE n.project_id = p.id)"
+            + " OR EXISTS (SELECT 1 FROM notice_logs l WHERE l.previous_project_id = p.id)"
+            + " OR EXISTS (SELECT 1 FROM variables v WHERE v.project_id = p.id))", nativeQuery = true)
+    List<Long> findIdsWithHistory(@Param("customerId") Long customerId);
+
     /** Atomic increment (the entity never writes this column). */
     @Modifying(flushAutomatically = true)
     @Query("update Project p set p.variablesRevision = p.variablesRevision + 1 where p.id = :id")

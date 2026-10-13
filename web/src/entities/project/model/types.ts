@@ -35,6 +35,8 @@ export interface Project {
    * `GET /api/customers/{id}/projects` (contract §14.6); absent for members and operators.
    */
   activeRequestCount?: number;
+  /** No requests, notices or variables and not the customer's last project — only in the 프로젝트 관리 list (§24). */
+  deletable?: boolean;
 }
 
 /** Customer admin create/update payload (contract §11). */

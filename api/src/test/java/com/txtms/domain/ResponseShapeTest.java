@@ -39,7 +39,7 @@ class ResponseShapeTest {
 
     private static ProjectResponse project(Long activeRequestCount) {
         return new ProjectResponse(4, 1, "카드 혜택 알림", true, 3L, List.of(), List.of(), 2,
-                activeRequestCount);
+                activeRequestCount, null);
     }
 
     @Test
@@ -51,8 +51,12 @@ class ResponseShapeTest {
         assertThat(counted.has("activeRequestCount")).isTrue();
         assertThat(counted.path("activeRequestCount").asLong()).isZero();
         assertThat(tree(project(7L)).path("activeRequestCount").asLong()).isEqualTo(7);
+        // deletable is only on the 프로젝트 관리 list (contract §24)
+        assertThat(tree(project(0L)).has("deletable")).isFalse();
+        assertThat(tree(new ProjectResponse(4, 1, "p", true, 3L, List.of(), List.of(), 0, 0L, true))
+                .path("deletable").asBoolean()).isTrue();
         // the other nullable key keeps its explicit null
-        JsonNode noLead = tree(new ProjectResponse(4, 1, "p", true, null, List.of(), List.of(), 0, null));
+        JsonNode noLead = tree(new ProjectResponse(4, 1, "p", true, null, List.of(), List.of(), 0, null, null));
         assertThat(noLead.has("leadUserId")).isTrue();
         assertThat(noLead.path("leadUserId").isNull()).isTrue();
     }

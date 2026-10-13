@@ -85,3 +85,30 @@
 .ttl {
   font-weight: 500;
 }
+/* 구성원 modal: user picker + 추가 above the role table */
+.addRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.addRow > :first-child {
+  flex: 1;
+}
+.w {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--faint);
+}
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.foot {
+  display: flex;
+  gap: 6px;
+}

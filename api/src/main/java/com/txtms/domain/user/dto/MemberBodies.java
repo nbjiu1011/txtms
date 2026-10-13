@@ -34,4 +34,12 @@ public final class MemberBodies {
 
     public record DeactivateBody(Long substituteUserId, String handover) {
     }
+
+    /** {@code PATCH …/users/{id}} (contract §25): omitted keys keep their value, a blank {@code dept} clears it. */
+    public record ProfileBody(String name, String dept) {
+    }
+
+    /** {@code PUT …/users/{id}/admin} (contract §25). */
+    public record AdminBody(Boolean admin) {
+    }
 }

@@ -27,6 +27,7 @@ export function tabTitle(tab: WorkTab): string {
   if (tab.route === "content") return tab.title || "콘텐츠";
   if (tab.route === "opsCustomer") return tab.title || "고객사";
   if (tab.route === "notice" || tab.route === "adminNotice") return tab.title || "공지";
+  if (tab.route === "adminUser") return tab.title || "사용자";
   return ROUTES[tab.route].title;
 }
 

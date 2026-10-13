@@ -19,6 +19,7 @@ import com.txtms.domain.user.dto.MemberBodies.DeactivateBody;
 import com.txtms.domain.user.dto.MemberBodies.EmailBody;
 import com.txtms.domain.user.dto.MemberBodies.InvitationBody;
 import com.txtms.domain.user.dto.MemberBodies.ProjectRolesBody;
+import com.txtms.domain.user.dto.MemberBodies;
 import com.txtms.domain.user.dto.MemberResponse;
 import com.txtms.domain.user.service.MemberAdminService;
 import com.txtms.domain.user.service.UserDeactivationService;
@@ -43,6 +44,25 @@ public class MemberAdminController {
     public PageResponse<MemberResponse> members(@AuthenticationPrincipal AuthUser auth, @PathVariable long customerId,
             @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer size) {
         return members.members(auth, customerId, PageQuery.of(page, size));
+    }
+
+    /** One user (detail page, contract §25). */
+    @GetMapping("/users/{userId}")
+    public MemberResponse member(@AuthenticationPrincipal AuthUser auth, @PathVariable long customerId,
+            @PathVariable long userId) {
+        return members.member(auth, customerId, userId);
+    }
+
+    @PatchMapping("/users/{userId}")
+    public MemberResponse profile(@AuthenticationPrincipal AuthUser auth, @PathVariable long customerId,
+            @PathVariable long userId, @RequestBody(required = false) MemberBodies.ProfileBody body) {
+        return members.updateProfile(auth, customerId, userId, body);
+    }
+
+    @PutMapping("/users/{userId}/admin")
+    public MemberResponse admin(@AuthenticationPrincipal AuthUser auth, @PathVariable long customerId,
+            @PathVariable long userId, @RequestBody(required = false) MemberBodies.AdminBody body) {
+        return members.setAdmin(auth, customerId, userId, body);
     }
 
     @PutMapping("/users/{userId}/project-roles")

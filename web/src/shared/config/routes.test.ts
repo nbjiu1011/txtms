@@ -72,7 +72,7 @@ describe("tabToPath", () => {
           ? { route, params: { id: "REQ-2609-101" } }
           : route === "content"
             ? { route, params: { id: "REQ-2609-101", key: "C1" } }
-            : route === "opsCustomer" || route === "notice" || route === "adminNotice"
+            : route === "opsCustomer" || route === "notice" || route === "adminNotice" || route === "adminUser"
               ? { route, params: { id: "3" } }
               : { route, params: {} };
       expect(pathToTab(tabToPath(ref))).toEqual(ref);

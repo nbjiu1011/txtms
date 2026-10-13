@@ -19,7 +19,7 @@ class ProjectRoleRulesTest {
     private static final Set<ProjectRole> APPR = EnumSet.of(ProjectRole.APPROVER);
 
     private static Facts facts(boolean approval, boolean lead, boolean assigned, boolean onlyApprover) {
-        return new Facts("카드", approval, lead, assigned, onlyApprover);
+        return new Facts("카드", approval, lead, assigned, false, onlyApprover);
     }
 
     @Test
@@ -54,6 +54,16 @@ class ProjectRoleRulesTest {
                 .isEqualTo("카드: 진행 중인 검수가 있어 검수자 역할을 해제할 수 없습니다. 먼저 검수자를 변경하세요");
         assertThat(ProjectRoleRules.problem(facts(true, false, true, false), REV,
                 EnumSet.of(ProjectRole.REVIEWER, ProjectRole.APPROVER))).isNull();
+    }
+
+    @Test
+    void requesterOfARequestInProgressKeepsTheRole() {
+        Facts requesting = new Facts("카드", true, false, false, true, false);
+        assertThat(ProjectRoleRules.problem(requesting, REQ, NONE)).isEqualTo(
+                "카드: 진행 중인 요청의 요청자라 요청자 역할을 해제할 수 없습니다. 요청을 완료하거나 취소한 뒤 해제하세요");
+        assertThat(ProjectRoleRules.problem(requesting, REQ, EnumSet.of(ProjectRole.REQUESTER, ProjectRole.APPROVER)))
+                .isNull();
+        assertThat(ProjectRoleRules.problem(facts(true, false, false, false), REQ, NONE)).isNull();
     }
 
     @Test

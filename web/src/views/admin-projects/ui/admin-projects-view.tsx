@@ -5,14 +5,30 @@ import { LIST_PAGE_SIZE, useClampPage, useListPage } from "@/shared/lib";
 import { Empty, Icon, Page, PageHeader, Panel, Table, Tag, tableClasses } from "@/shared/ui";
 import { Button, Pager } from "@/shared/common";
 import { useManagedProjects, type Project } from "@/entities/project";
-import { useCustomerUsers, useUserDirectory, type UserDirectory, type UserSummary } from "@/entities/user";
-import { ProjectEditDialog } from "@/features/customer-admin";
+import { useCustomerUsers, useUserDirectory, type UserDirectory } from "@/entities/user";
+import {
+  ProjectConfirmDialog,
+  ProjectEditDialog,
+  ProjectInfoDialog,
+  ProjectMembersDialog,
+  useProjectResume,
+  type ProjectConfirm,
+} from "@/features/customer-admin";
 import type { WorkViewProps } from "@/widgets/app-shell";
 import styles from "./admin-projects.module.css";
 
-type Editing = { project: Project | null } | null;
+/** Which modal is open: 정보 / 추가·수정 / 구성원 / 사용 중지·삭제 확인. */
+type Dialog =
+  | { kind: "info"; project: Project }
+  | { kind: "edit"; project: Project | null }
+  | { kind: "members"; project: Project }
+  | ({ kind: "confirm" } & ProjectConfirm)
+  | null;
 
-/** `projects` tab — projects of the selected customer (reference `vProjects`). */
+/**
+ * `projects` tab — 프로젝트 관리 of the selected customer (reference `vProjects`, 기획서 11.1·11.2, contract §24):
+ * 추가 · 정보 · 수정 · 구성원(참여 범위) · 사용 중지/사용 · 삭제(이력 없는 프로젝트만), all in modals.
+ */
 export function AdminProjectsView({ context }: WorkViewProps) {
   const { customer, customerId } = context;
   const [page, setPage] = useListPage(String(customerId));
@@ -20,7 +36,11 @@ export function AdminProjectsView({ context }: WorkViewProps) {
   useClampPage(page, projects.isPlaceholderData ? undefined : projects.data?.page.totalPages, setPage);
   const users = useCustomerUsers(customerId);
   const directory = useUserDirectory(customerId);
-  const [editing, setEditing] = useState<Editing>(null);
+  const [dialog, setDialog] = useState<Dialog>(null);
+  const resume = useProjectResume();
+  const approvalEnabled = customer?.approvalEnabled ?? false;
+  // the open modal follows the refreshed list (after a save elsewhere in the same modal flow)
+  const current = (p: Project) => projects.data?.content.find((x) => x.id === p.id) ?? p;
 
   return (
     <Page>
@@ -28,7 +48,7 @@ export function AdminProjectsView({ context }: WorkViewProps) {
         title="프로젝트 관리"
         description={`${customer?.name ?? ""}의 프로젝트입니다. 이력이 있는 프로젝트는 삭제하지 않고 사용 중지로 보존합니다.`}
         actions={
-          <Button variant="pri" onClick={() => setEditing({ project: null })}>
+          <Button variant="pri" onClick={() => setDialog({ kind: "edit", project: null })}>
             <Icon name="plus" />
             프로젝트 추가
           </Button>
@@ -54,7 +74,7 @@ export function AdminProjectsView({ context }: WorkViewProps) {
                 <th>진행 중 요청</th>
                 <th>상태</th>
                 <th>
-                  <span className={styles.sr}>편집</span>
+                  <span className={styles.sr}>관리</span>
                 </th>
               </tr>
             </thead>
@@ -63,24 +83,53 @@ export function AdminProjectsView({ context }: WorkViewProps) {
                 <ProjectRow
                   key={p.id}
                   project={p}
-                  approvalEnabled={customer?.approvalEnabled ?? false}
+                  approvalEnabled={approvalEnabled}
                   users={directory}
-                  onEdit={() => setEditing({ project: p })}
+                  onOpen={(kind) =>
+                    kind === "stop" || kind === "delete"
+                      ? setDialog({ kind: "confirm", project: p, action: kind })
+                      : setDialog({ kind, project: p })
+                  }
+                  onResume={() => void resume(p)}
                 />
               ))}
             </tbody>
           </Table>
         )}
+        {projects.isSuccess && projects.data.content.length === 0 ? <Empty title="프로젝트가 없습니다" /> : null}
         {projects.isSuccess ? <Pager page={page} totalPages={projects.data.page.totalPages} onPage={setPage} /> : null}
       </Panel>
-      {customer && editing ? (
-        <ProjectEditor
-          customer={customer}
-          project={editing.project}
-          users={users.data ?? []}
-          onClose={() => setEditing(null)}
-        />
+      {customer ? (
+        <>
+          <ProjectInfoDialog
+            project={dialog?.kind === "info" ? current(dialog.project) : null}
+            onClose={() => setDialog(null)}
+            customer={customer}
+            users={directory}
+            onEdit={(p) => setDialog({ kind: "edit", project: p })}
+            onMembers={(p) => setDialog({ kind: "members", project: p })}
+          />
+          <ProjectEditDialog
+            open={dialog?.kind === "edit"}
+            onClose={() => setDialog(null)}
+            customer={customer}
+            project={dialog?.kind === "edit" ? dialog.project : null}
+            users={users.data ?? []}
+            inProgress={dialog?.kind === "edit" ? (dialog.project?.activeRequestCount ?? 0) : 0}
+          />
+          <ProjectMembersDialog
+            open={dialog?.kind === "members"}
+            onClose={() => setDialog(null)}
+            customer={customer}
+            project={dialog?.kind === "members" ? current(dialog.project) : null}
+            users={users.data ?? []}
+          />
+        </>
       ) : null}
+      <ProjectConfirmDialog
+        confirm={dialog?.kind === "confirm" ? { project: dialog.project, action: dialog.action } : null}
+        onClose={() => setDialog(null)}
+      />
     </Page>
   );
 }
@@ -89,37 +138,24 @@ interface ProjectRowProps {
   project: Project;
   approvalEnabled: boolean;
   users: UserDirectory;
-  onEdit: () => void;
+  onOpen: (kind: "info" | "edit" | "members" | "stop" | "delete") => void;
+  onResume: () => void;
 }
 
-function ProjectEditor({
-  customer,
-  project,
-  users,
-  onClose,
-}: {
-  customer: NonNullable<WorkViewProps["context"]["customer"]>;
-  project: Project | null;
-  users: UserSummary[];
-  onClose: () => void;
-}) {
-  return (
-    <ProjectEditDialog
-      open
-      onClose={onClose}
-      customer={customer}
-      project={project}
-      users={users}
-      inProgress={project?.activeRequestCount ?? 0}
-    />
-  );
-}
-
-function ProjectRow({ project: p, approvalEnabled, users, onEdit }: ProjectRowProps) {
+function ProjectRow({ project: p, approvalEnabled, users, onOpen, onResume }: ProjectRowProps) {
   const approvers = p.members.filter((m) => m.roles.includes("APPROVER")).map((m) => users.name(m.userId));
   return (
     <tr>
-      <td className={tableClasses.ttl}>{p.name}</td>
+      <td className={tableClasses.ttl}>
+        <button
+          type="button"
+          className={styles.titleBtn}
+          aria-label={`${p.name} 정보`}
+          onClick={() => onOpen("info")}
+        >
+          {p.name}
+        </button>
+      </td>
       <td>{users.name(p.leadUserId)}</td>
       <td>{approvalEnabled ? approvers.join(", ") || "-" : <span className={styles.faint}>승인 단계 미사용</span>}</td>
       <td>{p.members.length}명</td>
@@ -127,9 +163,28 @@ function ProjectRow({ project: p, approvalEnabled, users, onEdit }: ProjectRowPr
       <td>{p.activeRequestCount ?? "-"}</td>
       <td>{p.active ? <Tag>사용</Tag> : <Tag variant="hot">중지</Tag>}</td>
       <td>
-        <Button size="sm" onClick={onEdit}>
-          편집
-        </Button>
+        <div className={styles.actions}>
+          <Button size="sm" onClick={() => onOpen("edit")}>
+            수정
+          </Button>
+          <Button size="sm" onClick={() => onOpen("members")}>
+            구성원
+          </Button>
+          {p.active ? (
+            <Button size="sm" variant="ghost" onClick={() => onOpen("stop")}>
+              사용 중지
+            </Button>
+          ) : (
+            <Button size="sm" variant="ghost" onClick={onResume}>
+              사용
+            </Button>
+          )}
+          {p.deletable ? (
+            <Button size="sm" variant="ghost" onClick={() => onOpen("delete")}>
+              삭제
+            </Button>
+          ) : null}
+        </div>
       </td>
     </tr>
   );

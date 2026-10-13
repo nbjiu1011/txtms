@@ -115,6 +115,10 @@ public class User extends BaseEntity {
         adminCustomerIds.add(customerId);
     }
 
+    public void revokeCustomerAdmin(Long customerId) {
+        adminCustomerIds.remove(customerId);
+    }
+
     public void changePasswordHash(String passwordHash, Instant now) {
         this.passwordHash = passwordHash;
         touch(now);

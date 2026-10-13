@@ -26,8 +26,10 @@ import com.txtms.domain.request.entity.RequestStatus;
 import com.txtms.domain.request.policy.ProjectFacts;
 import com.txtms.domain.request.service.RequestQueryService;
 import com.txtms.domain.request.service.ScopedRequest;
+import com.txtms.domain.user.dto.MemberBodies.AdminBody;
 import com.txtms.domain.user.dto.MemberBodies.EmailBody;
 import com.txtms.domain.user.dto.MemberBodies.InvitationBody;
+import com.txtms.domain.user.dto.MemberBodies.ProfileBody;
 import com.txtms.domain.user.dto.MemberBodies.ProjectRolesBody;
 import com.txtms.domain.user.dto.MemberBodies.ProjectRolesItem;
 import com.txtms.domain.user.dto.MemberBodies.SetupInvitationBody;
@@ -42,8 +44,9 @@ import com.txtms.global.security.AuthUser;
 
 /**
  * User management of the customer admin (actions.md §2.2 {@code inviteUser}/{@code inviteResend}/{@code userEmail},
- * §2.13 {@code roleEdit}): member list, project roles, invitations and their reissue, email change. Every change is
- * audited ({@code 역할 변경}, {@code 사용자 초대}, {@code 초대 재발급}, {@code 사용자 이메일 변경}).
+ * §2.13 {@code roleEdit}): member list and detail, project roles, invitations and their reissue, email change, name and
+ * department, the customer admin right (contract §25). Every change is audited ({@code 역할 변경}, {@code 사용자 초대},
+ * {@code 초대 재발급}, {@code 사용자 이메일 변경}, {@code 사용자 정보 변경}, {@code 관리자 권한 부여}/{@code 해제}).
  */
 @Service
 @Transactional
@@ -92,6 +95,85 @@ public class MemberAdminService {
     public PageResponse<MemberResponse> members(AuthUser auth, long customerId, PageQuery page) {
         Admin admin = adminAccess.require(auth, customerId);
         return membersOf(admin.customer(), page);
+    }
+
+    /** One user of the customer (pending and inactive included), for the user detail page (contract §25). */
+    @Transactional(readOnly = true)
+    public MemberResponse member(AuthUser auth, long customerId, long userId) {
+        Admin admin = adminAccess.require(auth, customerId);
+        return member(admin.customer(), adminAccess.requireCustomerUser(admin, userId));
+    }
+
+    /** Name and department (same checks as the invitation); audited only when something changed. */
+    public MemberResponse updateProfile(AuthUser auth, long customerId, long userId, ProfileBody body) {
+        Admin admin = adminAccess.require(auth, customerId);
+        User target = adminAccess.requireCustomerUser(admin, userId);
+        ProfileBody b = body == null ? new ProfileBody(null, null) : body;
+        String name = target.getName();
+        if (b.name() != null) {
+            name = b.name().trim();
+            if (name.isEmpty()) {
+                throw BusinessException.validation("name", "이름을(를) 입력하세요");
+            }
+            if (name.length() > 100) {
+                throw BusinessException.validation("name", "이름은 최대 100자입니다");
+            }
+        }
+        String dept = target.getDept();
+        if (b.dept() != null) {
+            dept = b.dept().isBlank() ? null : b.dept().trim();
+            if (dept != null && dept.length() > 100) {
+                throw BusinessException.validation("dept", "소속은 최대 100자입니다");
+            }
+        }
+        List<String> changes = new ArrayList<>();
+        if (!name.equals(target.getName())) {
+            changes.add("이름 " + target.getName() + " → " + name);
+        }
+        if (!java.util.Objects.equals(dept, target.getDept())) {
+            changes.add("소속 " + (target.getDept() == null ? "-" : target.getDept()) + " → "
+                    + (dept == null ? "-" : dept));
+        }
+        if (!changes.isEmpty()) {
+            target.updateProfile(name, dept, clock.instant());
+            audit.record(admin.userId(), admin.customerId(), "사용자 정보 변경", name, String.join(" / ", changes));
+        }
+        return member(admin.customer(), target);
+    }
+
+    /**
+     * Grants or revokes the customer admin right: granted only to active, accepted users; never revoked from oneself
+     * or from the last active admin (contract §25).
+     */
+    public MemberResponse setAdmin(AuthUser auth, long customerId, long userId, AdminBody body) {
+        Admin admin = adminAccess.require(auth, customerId);
+        User target = adminAccess.requireCustomerUser(admin, userId);
+        if (body == null || body.admin() == null) {
+            throw BusinessException.validation("admin", "관리자 권한 여부를 선택하세요");
+        }
+        boolean grant = body.admin();
+        if (grant == target.isAdminOf(admin.customerId())) {
+            return member(admin.customer(), target);
+        }
+        if (grant) {
+            if (!target.isActive() || target.isPending()) {
+                throw new BusinessException(ErrorCode.REQUEST_STATE_CONFLICT, "활성 사용자만 관리자로 지정할 수 있습니다");
+            }
+            target.grantCustomerAdmin(admin.customerId());
+        } else {
+            if (target.getId().equals(admin.userId())) {
+                throw new BusinessException(ErrorCode.REQUEST_STATE_CONFLICT, "본인의 관리자 권한은 해제할 수 없습니다");
+            }
+            boolean othersActive = userService.activeAdminsOf(admin.customerId()).stream()
+                    .anyMatch(u -> !u.getId().equals(target.getId()));
+            if (!othersActive) {
+                throw new BusinessException(ErrorCode.REQUEST_STATE_CONFLICT, "마지막 고객사 관리자는 해제할 수 없습니다");
+            }
+            target.revokeCustomerAdmin(admin.customerId());
+        }
+        audit.record(admin.userId(), admin.customerId(), grant ? "관리자 권한 부여" : "관리자 권한 해제",
+                target.getName(), null);
+        return member(admin.customer(), target);
     }
 
     /**
@@ -207,12 +289,17 @@ public class MemberAdminService {
 
     private ProjectRoleRules.Facts facts(Admin admin, Project project, User target) {
         ProjectFacts facts = projectAccess.facts(project);
-        boolean assigned = requests.visible(userService.actorOf(admin.user()), List.of(project)).stream()
-                .map(ScopedRequest::request)
+        List<com.txtms.domain.request.entity.Request> inProject = requests
+                .visible(userService.actorOf(admin.user()), List.of(project)).stream()
+                .map(ScopedRequest::request).toList();
+        boolean assigned = inProject.stream()
                 .anyMatch(r -> REVIEW_IN_PROGRESS.contains(r.getStatus()) && r.getReviewerIds().contains(target.getId()));
+        boolean requesting = inProject.stream()
+                .anyMatch(r -> r.getStatus() != RequestStatus.DRAFT && !r.getStatus().isFinal()
+                        && target.getId().equals(r.getRequesterId()));
         List<Long> approvers = facts.activeApprovers();
         return new ProjectRoleRules.Facts(project.getName(), admin.customer().isApprovalEnabled(),
-                target.getId().equals(project.getLeadUserId()), assigned,
+                target.getId().equals(project.getLeadUserId()), assigned, requesting,
                 approvers.size() == 1 && approvers.getFirst().equals(target.getId()));
     }
 

@@ -8,7 +8,17 @@ export const memberKeys = {
   byCustomer: (customerId: number, page: number, size: number) =>
     queryKeys.list("members", { customerId, page, size }),
   impact: (customerId: number, userId: number) => queryKeys.detail("deactivation-impact", `${customerId}:${userId}`),
+  detail: (customerId: number, userId: number) => queryKeys.detail("members", `${customerId}:${userId}`),
 };
+
+/** One user of the customer (사용자 상세, contract §25). */
+export function useMember(customerId: number | null, userId: number | null) {
+  return useQuery({
+    queryKey: memberKeys.detail(customerId ?? -1, userId ?? -1),
+    queryFn: () => http.get<Member>(`/customers/${customerId}/users/${userId}`),
+    enabled: customerId !== null && userId !== null,
+  });
+}
 
 /** One page of a customer's users with roles, pending invitations and inactive accounts (customer admin). */
 export function useCustomerMembers(customerId: number | null, page: number, size: number) {
@@ -47,4 +57,10 @@ export const memberApi = {
   deactivate: (customerId: number, userId: number, body: { substituteUserId: number | null; handover: string }) =>
     http.post<void>(`${user(customerId, userId)}/deactivate`, body),
   reactivate: (customerId: number, userId: number) => http.post<void>(`${user(customerId, userId)}/reactivate`),
+  /** Name and department (omitted keys stay, an empty department clears it). */
+  updateProfile: (customerId: number, userId: number, body: { name?: string; dept?: string }) =>
+    http.patch<Member>(user(customerId, userId), body),
+  /** Grants or revokes the customer admin right. */
+  setAdmin: (customerId: number, userId: number, admin: boolean) =>
+    http.put<Member>(`${user(customerId, userId)}/admin`, { admin }),
 };

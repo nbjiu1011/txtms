@@ -4,6 +4,7 @@ import { AppShell, type WorkViewProps, type WorkViewRegistry } from "@/widgets/a
 import { AdminCustomerView } from "@/views/admin-customer";
 import { AdminNoticesView } from "@/views/admin-notices";
 import { AdminProjectsView } from "@/views/admin-projects";
+import { AdminUserDetailView } from "@/views/admin-user-detail";
 import { AdminUsersView } from "@/views/admin-users";
 import { AdminVariablesView } from "@/views/admin-variables";
 import { ApprovalView } from "@/views/approval";
@@ -41,6 +42,7 @@ const VIEWS: WorkViewRegistry = {
   adminProjects: AdminProjectsView,
   adminVariables: AdminVariablesView,
   adminUsers: AdminUsersView,
+  adminUser: AdminUserDetailView,
   adminCustomer: AdminCustomerView,
   adminNotices: AdminNoticesView,
   adminNotice: AdminNoticeDetailView,

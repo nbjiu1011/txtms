@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { http, queryKeys, type Page } from "@/shared/api";
-import type { Project, ProjectUpsert } from "../model/types";
+import type { Project, ProjectMember, ProjectUpsert } from "../model/types";
 
 export const projectKeys = {
   all: queryKeys.all("projects"),
@@ -47,9 +47,14 @@ export function useProject(id: number | null) {
   });
 }
 
-/** Customer admin project writes (contract §11). Callers invalidate `projectKeys.all`. */
+/** Customer admin project writes (contract §11, §24). Callers invalidate `projectKeys.all`. */
 export const projectApi = {
   create: (customerId: number, body: ProjectUpsert) => http.post<Project>(`/customers/${customerId}/projects`, body),
   /** Partial update: omitted keys stay; `approverIds` replaces the approver set when present. */
   update: (projectId: number, body: Partial<ProjectUpsert>) => http.patch<Project>(`/projects/${projectId}`, body),
+  /** The whole participation: listed users get exactly these roles, other members are removed. */
+  setMembers: (projectId: number, members: ProjectMember[]) =>
+    http.put<Project>(`/projects/${projectId}/members`, { members }),
+  /** Only a project without history (`deletable`). */
+  remove: (projectId: number) => http.delete<void>(`/projects/${projectId}`),
 };
