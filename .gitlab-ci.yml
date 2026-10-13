@@ -63,7 +63,7 @@ variables:
         exit 1
       fi
       echo "--- settings (secrets omitted) ---"
-      grep -E '^(DB_URL|WEB_BASE_URL|CORS_ALLOWED_ORIGINS|REFRESH_COOKIE_SECURE|DEMO_ENABLED)=' deploy/.env || true
+      grep -E '^(DB_URL|WEB_BASE_URL|CORS_ALLOWED_ORIGINS|REFRESH_COOKIE_SECURE|DEMO_ENABLED|MAIL_HOST|MAIL_PORT|MAIL_USERNAME|MAIL_ALLOWED_RECIPIENTS)=' deploy/.env || true
     # Stack name and ports belong to the pipeline, not to ENV_FILE, so the two cannot disagree.
     - |
       {

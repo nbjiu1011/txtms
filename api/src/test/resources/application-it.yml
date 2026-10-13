@@ -12,6 +12,9 @@ app:
   lock:
     # Tests run the release explicitly (ContentLockService.releaseExpired) against the adjustable clock.
     release-job-enabled: false
+  mail:
+    # Tests run delivery explicitly (MailDeliveryIntegrationTest builds a dispatcher with a fake SMTP server).
+    dispatch-enabled: false
   reminder:
     # Tests run the reminders explicitly (ReminderService.run) against the adjustable clock.
     job-enabled: false

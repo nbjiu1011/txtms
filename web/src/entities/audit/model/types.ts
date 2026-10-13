@@ -29,14 +29,20 @@ export interface OutboxMail {
   subject: string;
   body: string;
   createdAt: string;
+  /** Delivery status (contract §23): PENDING · SENT · FAILED · SKIPPED. */
   status: string;
+  /** When the SMTP server accepted the mail; null otherwise. */
+  sentAt: string | null;
   /** Token links in the body were replaced (`…/invite/••••`); only the recipient gets the link. */
   masked: boolean;
   /** What the mail is for (contract §14.6). */
   kind: OutboxMailKind;
 }
 
-/** Status label of a queued mail (no real delivery yet). */
+/** Delivery status label of an outbox mail (contract §23). */
 export const OUTBOX_STATUS_LABEL: Record<string, string> = {
   PENDING: "발송 대기",
+  SENT: "발송 완료",
+  FAILED: "발송 실패",
+  SKIPPED: "발송 안 함",
 };

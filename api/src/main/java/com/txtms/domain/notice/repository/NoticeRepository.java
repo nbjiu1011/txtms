@@ -10,8 +10,10 @@ import com.txtms.domain.notice.entity.Notice;
 
 public interface NoticeRepository extends JpaRepository<Notice, Long> {
 
-    List<Notice> findByCustomerIdAndWithdrawnFalseOrderByCreatedAtDescIdDesc(Long customerId);
+    /** Notices users may see: published and not deleted, most recently published first. */
+    List<Notice> findByCustomerIdAndPublishedTrueAndDeletedFalseOrderByPublishedAtDescIdDesc(Long customerId);
 
-    /** Every notice of the customer, withdrawn ones included (admin management list). */
-    Page<Notice> findByCustomerIdOrderByCreatedAtDescIdDesc(Long customerId, Pageable pageable);
+    /** Admin management list: the customer's notices that are (not) deleted, newest first. */
+    Page<Notice> findByCustomerIdAndDeletedOrderByCreatedAtDescIdDesc(Long customerId, boolean deleted,
+            Pageable pageable);
 }

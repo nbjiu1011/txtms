@@ -15,11 +15,16 @@ public record NoticeResponse(
         String body,
         long authorId,
         Instant createdAt,
+        Instant publishedAt,
         boolean edited,
-        boolean withdrawn,
+        boolean published,
+        boolean deleted,
         List<Log> logs) {
 
-    /** Snapshot before a change ({@code 수정}) or withdrawal ({@code 철회}) and who made it. */
+    /**
+     * Snapshot before a change and who made it: {@code 수정}, {@code 게시}, {@code 게시 중지}, {@code 삭제}, {@code 복원} (and
+     * {@code 철회} of notices withdrawn before publishing could be switched).
+     */
     public record Log(Instant at, long actorId, String action, NoticeScope previousScope, Long previousProjectId,
             String previousTitle, String previousBody) {
     }

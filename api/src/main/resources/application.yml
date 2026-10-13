@@ -19,6 +19,20 @@ spring:
         default_batch_fetch_size: 100
   flyway:
     enabled: true
+  mail:
+    # SMTP delivery of the outbox (contract §23). An empty MAIL_HOST keeps mails in the outbox (no delivery).
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    default-encoding: UTF-8
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.starttls.required: true
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
   servlet:
     multipart:
       # Above the attachment limit so the application can reject oversize files with its own message.
@@ -33,6 +47,10 @@ management:
     web:
       exposure:
         include: health
+  health:
+    mail:
+      # An SMTP outage must not mark the API unhealthy (the deploy waits for a healthy container); mails retry.
+      enabled: false
 
 springdoc:
   api-docs:
@@ -72,6 +90,17 @@ app:
       enabled: true
       years: 3
       cron: "0 30 3 * * *"
+  mail:
+    # Sender address (Gmail: the account itself or a verified alias) and its display name.
+    from: ${MAIL_FROM:${MAIL_USERNAME:}}
+    from-name: TX TMS
+    # Demo mode only: recipients that may get real mail (comma-separated "@domain" or full address). Others are kept
+    # as SKIPPED, because the seeded accounts use real-looking company domains. Ignored outside demo mode.
+    allowed-recipients: ${MAIL_ALLOWED_RECIPIENTS:}
+    # Delivery batch: every 10 s, oldest first; retries 1m, 5m, 15m, 1h, then FAILED.
+    dispatch-enabled: true
+    batch-size: 20
+    retry-delays: 1m,5m,15m,1h
   reminder:
     # Re-notification of unfinished work: 24h apart, at most 3 per request and user.
     job-enabled: true

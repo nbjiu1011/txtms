@@ -10,18 +10,18 @@ import org.springframework.transaction.annotation.Transactional;
 import com.txtms.global.common.PageQuery;
 import com.txtms.global.common.PageResponse;
 
-/** Outbox reads (the mail stub's "발송 대기함"). Token links are masked unless the caller may see them. */
+/** Outbox reads ("발송 대기함", with delivery status). Token links are masked unless the caller may see them. */
 @Service
 @Transactional(readOnly = true)
 public class OutboxService {
 
     /**
-     * Contract OutboxMail (§11, §12). {@code status} stays {@code PENDING} until real delivery is connected;
-     * {@code masked}: an invitation or reset link in {@code body} was hidden ({@link OutboxMasking}); {@code kind}:
+     * Contract OutboxMail (§11, §12). {@code status}: {@code PENDING} · {@code SENT} · {@code FAILED} ·
+     * {@code SKIPPED}, {@code sentAt}: when the SMTP server accepted it (§23); {@code masked}: an invitation or reset link in {@code body} was hidden ({@link OutboxMasking}); {@code kind}:
      * what the mail is for.
      */
     public record OutboxMail(long id, Long customerId, String to, String subject, String body, Instant createdAt,
-            String status, boolean masked, MailKind kind) {
+            String status, Instant sentAt, boolean masked, MailKind kind) {
     }
 
     private final OutboundEmailRepository repository;
@@ -45,7 +45,7 @@ public class OutboxService {
         return PageResponse.of(page, m -> {
             OutboxMasking.Shown shown = OutboxMasking.show(m.getBody(), reveal);
             return new OutboxMail(m.getId(), m.getCustomerId(), m.getTo(), m.getSubject(), shown.body(),
-                    m.getCreatedAt(), m.getStatus(), shown.masked(), m.getKind());
+                    m.getCreatedAt(), m.getStatus(), m.getSentAt(), shown.masked(), m.getKind());
         });
     }
 }

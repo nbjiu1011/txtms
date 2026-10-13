@@ -3,15 +3,17 @@
 import { useId, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ErrorDetails, toast } from "@/shared/ui";
-import { Field, Input, Modal, Select, useServerError } from "@/shared/common";
+import { Checkbox, Field, Input, Modal, Select, useServerError } from "@/shared/common";
 import { RichTextEditor } from "@/shared/ui/rich-text";
 import { dashboardKeys } from "@/entities/dashboard";
 import { noticeApi, noticeKeys, type Notice, type NoticeScope } from "@/entities/notice";
 import type { Project } from "@/entities/project";
 import {
   NOTICE_CREATED_TOAST,
+  NOTICE_SAVED_UNPUBLISHED_TOAST,
   NOTICE_UPDATED_TOAST,
   initialNoticeForm,
+  newNoticeBody,
   noticeBody,
   noticeFormProblem,
   type NoticeForm,
@@ -52,7 +54,7 @@ function NoticeEditBody({ onClose, customer, projects, currentProjectId, notice 
     server.clear();
     try {
       if (notice) await noticeApi.update(notice.id, noticeBody(form));
-      else await noticeApi.create(customer.id, noticeBody(form));
+      else await noticeApi.create(customer.id, newNoticeBody(form));
     } catch (error) {
       return server.fail(error);
     }
@@ -60,7 +62,7 @@ function NoticeEditBody({ onClose, customer, projects, currentProjectId, notice 
       client.invalidateQueries({ queryKey: noticeKeys.all }),
       client.invalidateQueries({ queryKey: dashboardKeys.all }),
     ]);
-    toast(notice ? NOTICE_UPDATED_TOAST : NOTICE_CREATED_TOAST);
+    toast(notice ? NOTICE_UPDATED_TOAST : form.published ? NOTICE_CREATED_TOAST : NOTICE_SAVED_UNPUBLISHED_TOAST);
     return undefined;
   };
 
@@ -69,7 +71,7 @@ function NoticeEditBody({ onClose, customer, projects, currentProjectId, notice 
       open
       onClose={onClose}
       title={notice ? "공지 수정" : "공지 작성"}
-      okLabel={notice ? "수정" : "게시"}
+      okLabel={notice ? "수정" : form.published ? "게시" : "저장"}
       onOk={submit}
     >
       <Field label="공지 범위" htmlFor={`${id}-scope`} error={server.field("scope")}>
@@ -102,41 +104,17 @@ function NoticeEditBody({ onClose, customer, projects, currentProjectId, notice 
           onChange={(body) => set({ body })}
         />
       </Field>
+      {notice ? null : (
+        <Checkbox
+          label="바로 게시"
+          checked={form.published}
+          onChange={(e) => set({ published: e.target.checked })}
+        />
+      )}
+      {notice || form.published ? null : (
+        <p className={styles.smallMutedTop}>미게시로 저장하면 사용자에게 보이지 않습니다. 공지 관리에서 게시할 수 있습니다.</p>
+      )}
       <ErrorDetails message={server.inline.message} items={server.inline.items} />
     </Modal>
-  );
-}
-
-export interface WithdrawNoticeDialogProps {
-  notice: Notice | null;
-  onClose: () => void;
-}
-
-/** 공지를 철회할까요? (reference `noticeWithdraw`). */
-export function WithdrawNoticeDialog({ notice, onClose }: WithdrawNoticeDialogProps) {
-  const client = useQueryClient();
-  const server = useServerError("공지를 철회하지 못했습니다");
-  return (
-    <Modal
-      open={notice !== null}
-      onClose={onClose}
-      title="공지를 철회할까요?"
-      description="목록과 알림에서 사라지고 철회 이력은 남습니다."
-      okLabel="철회"
-      okVariant="warn"
-      onOk={async () => {
-        if (!notice) return undefined;
-        try {
-          await noticeApi.withdraw(notice.id);
-        } catch (error) {
-          return server.fail(error);
-        }
-        await Promise.all([
-          client.invalidateQueries({ queryKey: noticeKeys.all }),
-          client.invalidateQueries({ queryKey: dashboardKeys.all }),
-        ]);
-        return undefined;
-      }}
-    />
   );
 }

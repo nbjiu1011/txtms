@@ -420,7 +420,8 @@ export const dashboardU1: Dashboard = {
       "customerId": 1,
       "projectId": null,
       "title": "10월 정기 점검 시간 안내",
-      "createdAt": "2026-10-06T00:00:00Z"
+      "createdAt": "2026-10-06T00:00:00Z",
+      "publishedAt": "2026-10-06T00:00:00Z"
     },
     {
       "id": 2,
@@ -428,7 +429,8 @@ export const dashboardU1: Dashboard = {
       "customerId": 1,
       "projectId": 1,
       "title": "추석 연휴 검수 일정",
-      "createdAt": "2026-10-04T02:00:00Z"
+      "createdAt": "2026-10-04T02:00:00Z",
+      "publishedAt": "2026-10-04T02:00:00Z"
     }
   ],
   "adminViewing": false
@@ -1841,7 +1843,8 @@ export const dashboardU3: Dashboard = {
       "customerId": 1,
       "projectId": null,
       "title": "10월 정기 점검 시간 안내",
-      "createdAt": "2026-10-06T00:00:00Z"
+      "createdAt": "2026-10-06T00:00:00Z",
+      "publishedAt": "2026-10-06T00:00:00Z"
     },
     {
       "id": 2,
@@ -1849,7 +1852,8 @@ export const dashboardU3: Dashboard = {
       "customerId": 1,
       "projectId": 1,
       "title": "추석 연휴 검수 일정",
-      "createdAt": "2026-10-04T02:00:00Z"
+      "createdAt": "2026-10-04T02:00:00Z",
+      "publishedAt": "2026-10-04T02:00:00Z"
     }
   ],
   "adminViewing": false
@@ -2373,7 +2377,8 @@ export const dashboardU11: Dashboard = {
       "customerId": 1,
       "projectId": null,
       "title": "10월 정기 점검 시간 안내",
-      "createdAt": "2026-10-06T00:00:00Z"
+      "createdAt": "2026-10-06T00:00:00Z",
+      "publishedAt": "2026-10-06T00:00:00Z"
     },
     {
       "id": 2,
@@ -2381,7 +2386,8 @@ export const dashboardU11: Dashboard = {
       "customerId": 1,
       "projectId": 1,
       "title": "추석 연휴 검수 일정",
-      "createdAt": "2026-10-04T02:00:00Z"
+      "createdAt": "2026-10-04T02:00:00Z",
+      "publishedAt": "2026-10-04T02:00:00Z"
     }
   ],
   "adminViewing": true
@@ -3580,7 +3586,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "customerId": 1,
           "projectId": null,
           "title": "10월 정기 점검 시간 안내",
-          "createdAt": "2026-10-06T00:00:00Z"
+          "createdAt": "2026-10-06T00:00:00Z",
+          "publishedAt": "2026-10-06T00:00:00Z"
         },
         {
           "id": 2,
@@ -3588,7 +3595,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "customerId": 1,
           "projectId": 1,
           "title": "추석 연휴 검수 일정",
-          "createdAt": "2026-10-04T02:00:00Z"
+          "createdAt": "2026-10-04T02:00:00Z",
+          "publishedAt": "2026-10-04T02:00:00Z"
         }
       ],
       "adminViewing": false
@@ -4743,7 +4751,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "customerId": 1,
           "projectId": null,
           "title": "10월 정기 점검 시간 안내",
-          "createdAt": "2026-10-06T00:00:00Z"
+          "createdAt": "2026-10-06T00:00:00Z",
+          "publishedAt": "2026-10-06T00:00:00Z"
         },
         {
           "id": 2,
@@ -4751,7 +4760,8 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "customerId": 1,
           "projectId": 1,
           "title": "추석 연휴 검수 일정",
-          "createdAt": "2026-10-04T02:00:00Z"
+          "createdAt": "2026-10-04T02:00:00Z",
+          "publishedAt": "2026-10-04T02:00:00Z"
         }
       ],
       "adminViewing": false

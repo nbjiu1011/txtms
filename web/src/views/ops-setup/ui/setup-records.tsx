@@ -171,7 +171,7 @@ export function OpsOutboxPanel({ customer }: { customer: Pick<OpsCustomer, "id" 
             <p className={styles.mailBody}>{m.body}</p>
             <span className={styles.mailMeta}>
               {OUTBOX_KIND_LABEL[m.kind] ?? m.kind} · {OUTBOX_STATUS_LABEL[m.status] ?? m.status} ·{" "}
-              {formatDateTime(m.createdAt)}
+              {formatDateTime(m.sentAt ?? m.createdAt)}
               {m.masked ? (
                 <Tag variant="fill" className={styles.masked}>
                   링크 가림

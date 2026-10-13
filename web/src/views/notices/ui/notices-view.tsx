@@ -4,7 +4,7 @@ import { LIST_PAGE_SIZE, formatDateTime, useClampPage, useListPage } from "@/sha
 import { Empty, ListItem, Page, PageHeader, Panel } from "@/shared/ui";
 import { Button, Pager } from "@/shared/common";
 import { isCustomerAdmin } from "@/entities/me";
-import { noticeScopeText, useNotices, type Notice } from "@/entities/notice";
+import { noticePostedAt, noticeScopeText, useNotices, type Notice } from "@/entities/notice";
 import { useUserDirectory } from "@/entities/user";
 import type { WorkViewProps } from "@/widgets/app-shell";
 
@@ -18,7 +18,7 @@ export function NoticesView({ me, context, openTab }: WorkViewProps) {
 
   const projectName = (id: number) => projects.find((p) => p.id === id)?.name;
   const meta = (n: Notice) =>
-    `${noticeScopeText(n, projectName)}  ${users.name(n.authorId)}  ${formatDateTime(n.createdAt)}${n.edited ? "  수정됨" : ""}`;
+    `${noticeScopeText(n, projectName)}  ${users.name(n.authorId)}  ${formatDateTime(noticePostedAt(n))}${n.edited ? "  수정됨" : ""}`;
 
   return (
     <Page>

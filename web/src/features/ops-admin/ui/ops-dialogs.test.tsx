@@ -231,6 +231,7 @@ describe("SeedUserDialog", () => {
       body,
       createdAt: "2026-10-07T01:00:00Z",
       status: "PENDING",
+      sentAt: null,
       masked: false,
       kind: "INVITATION" as const,
     });

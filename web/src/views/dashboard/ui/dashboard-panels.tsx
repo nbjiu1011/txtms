@@ -2,7 +2,7 @@ import { formatDate } from "@/shared/lib";
 import { Avatar, Bar, Empty, ListItem, Panel, PanelBody, PanelHeader, StatusChip, Tag } from "@/shared/ui";
 import { Button } from "@/shared/common";
 import type { DashboardTodo, WorkloadRow } from "@/entities/dashboard";
-import { noticeScopeText, type NoticeSummary } from "@/entities/notice";
+import { noticePostedAt, noticeScopeText, type NoticeSummary } from "@/entities/notice";
 import type { Project } from "@/entities/project";
 import {
   CONTENT_TYPE_LABEL,
@@ -150,7 +150,7 @@ export function NoticePanel({
             <ListItem
               key={n.id}
               title={n.title}
-              meta={`${noticeScopeText(n, projectName)}  ${formatDate(n.createdAt)}`}
+              meta={`${noticeScopeText(n, projectName)}  ${formatDate(noticePostedAt(n))}`}
               onClick={() => onOpen(n.id)}
             />
           ))

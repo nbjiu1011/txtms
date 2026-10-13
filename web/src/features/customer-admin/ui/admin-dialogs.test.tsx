@@ -10,7 +10,8 @@ import { memberApi, type DeactivationImpact, type Member } from "@/entities/user
 import { ChangeEmailDialog } from "./change-email-dialog";
 import { DeactivateUserDialog } from "./deactivate-user-dialog";
 import { InviteUserDialog } from "./invite-user-dialog";
-import { NoticeEditDialog, WithdrawNoticeDialog } from "./notice-edit-dialog";
+import { NoticeEditDialog } from "./notice-edit-dialog";
+import { NoticeConfirmDialog, useNoticeQuickAction } from "./notice-state-dialog";
 import { RoleEditDialog } from "./role-edit-dialog";
 import { chooseValue, optionLabels, selectValue } from "@/shared/common/testing";
 
@@ -288,7 +289,7 @@ describe("DeactivateUserDialog", () => {
 });
 
 // The rich text editor (Quill) mounts asynchronously: allow for a loaded machine when the whole suite runs.
-describe("Notice edit and withdraw", { timeout: 20_000 }, () => {
+describe("Notice edit, publish and delete", { timeout: 20_000 }, () => {
   const notice: Notice = {
     id: 5,
     scope: "PROJECT",
@@ -298,8 +299,10 @@ describe("Notice edit and withdraw", { timeout: 20_000 }, () => {
     body: "본문",
     authorId: 11,
     createdAt: "2026-10-05T00:00:00Z",
+    publishedAt: "2026-10-05T00:00:00Z",
     edited: false,
-    withdrawn: false,
+    published: true,
+    deleted: false,
     logs: [],
   };
   const customer = { id: 1, name: "한빛카드" };
@@ -322,14 +325,35 @@ describe("Notice edit and withdraw", { timeout: 20_000 }, () => {
     expect(screen.queryByLabelText("프로젝트")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "게시" }));
     await waitFor(() =>
-      expect(create).toHaveBeenCalledWith(1, { scope: "CUSTOMER", projectId: null, title: "새 공지", body: "<p>안내합니다</p>" }),
+      expect(create).toHaveBeenCalledWith(1, {
+        scope: "CUSTOMER",
+        projectId: null,
+        title: "새 공지",
+        body: "<p>안내합니다</p>",
+        published: true,
+      }),
     );
     await waitFor(() => expect(lastToast()).toBe("공지를 게시했습니다"));
+  });
+
+  it("saves a new notice unpublished when 바로 게시 is off", async () => {
+    const create = vi.spyOn(noticeApi, "create").mockResolvedValue({ ...notice, published: false });
+    wrap(<NoticeEditDialog open onClose={vi.fn()} customer={customer} projects={projects} currentProjectId={1} notice={null} />);
+    fireEvent.change(screen.getByLabelText(/제목/), { target: { value: "예정 공지" } });
+    const editor = await screen.findByRole("textbox", { name: "내용" });
+    editor.innerHTML = "<p>곧 안내합니다</p>";
+    await waitFor(() => expect(editor.classList.contains("ql-blank")).toBe(false));
+    fireEvent.click(screen.getByRole("checkbox", { name: "바로 게시" }));
+    expect(screen.getByText(/미게시로 저장하면 사용자에게 보이지 않습니다/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    await waitFor(() => expect(create).toHaveBeenCalledWith(1, expect.objectContaining({ published: false })));
+    await waitFor(() => expect(lastToast()).toBe("공지를 미게시로 저장했습니다. 게시하면 사용자에게 보입니다"));
   });
 
   it("edits with the notice's values and reports the kept history", async () => {
     const update = vi.spyOn(noticeApi, "update").mockResolvedValue({ ...notice, edited: true });
     wrap(<NoticeEditDialog open onClose={vi.fn()} customer={customer} projects={projects} currentProjectId={1} notice={notice} />);
+    expect(screen.queryByRole("checkbox", { name: "바로 게시" })).toBeNull();
     expect(selectValue(screen.getByLabelText("프로젝트"))).toBe("2");
     // a plain-text notice loads as paragraphs; untouched, its body is sent back as it was
     expect((await screen.findByRole("textbox", { name: "내용" })).innerHTML).toBe("<p>본문</p>");
@@ -341,19 +365,56 @@ describe("Notice edit and withdraw", { timeout: 20_000 }, () => {
     await waitFor(() => expect(lastToast()).toBe("공지를 수정했습니다. 이전 내용은 이력으로 남습니다"));
   });
 
-  it("withdraws after confirmation; a refusal keeps the dialog", async () => {
-    const withdraw = vi
-      .spyOn(noticeApi, "withdraw")
-      .mockRejectedValueOnce(new ApiError(409, { code: "REQUEST_STATE_CONFLICT", message: "철회된 공지는 수정하거나 다시 철회할 수 없습니다" }))
-      .mockResolvedValueOnce({ ...notice, withdrawn: true });
+  it("stops publishing after confirmation; a refusal keeps the dialog", async () => {
+    const unpublish = vi
+      .spyOn(noticeApi, "unpublish")
+      .mockRejectedValueOnce(new ApiError(409, { code: "REQUEST_STATE_CONFLICT", message: "게시 중인 공지가 아닙니다" }))
+      .mockResolvedValueOnce({ ...notice, published: false });
     const onClose = vi.fn();
-    wrap(<WithdrawNoticeDialog notice={notice} onClose={onClose} />);
-    expect(screen.getByText("목록과 알림에서 사라지고 철회 이력은 남습니다.")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "철회" }));
-    await waitFor(() => expect(lastToast()).toBe("철회된 공지는 수정하거나 다시 철회할 수 없습니다"));
+    wrap(<NoticeConfirmDialog confirm={{ notice, action: "unpublish" }} onClose={onClose} />);
+    expect(screen.getByText("공지 목록과 대시보드에서 사라집니다. 언제든 다시 게시할 수 있습니다.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "게시 중지" }));
+    await waitFor(() => expect(lastToast()).toBe("게시 중인 공지가 아닙니다"));
     expect(onClose).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "철회" }));
+    fireEvent.click(screen.getByRole("button", { name: "게시 중지" }));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
-    expect(withdraw).toHaveBeenCalledTimes(2);
+    expect(unpublish).toHaveBeenCalledTimes(2);
+    expect(lastToast()).toBe("공지 게시를 중지했습니다");
+  });
+
+  it("deletes after confirmation", async () => {
+    const remove = vi.spyOn(noticeApi, "remove").mockResolvedValue(undefined);
+    const onClose = vi.fn();
+    wrap(<NoticeConfirmDialog confirm={{ notice, action: "delete" }} onClose={onClose} />);
+    expect(screen.getByRole("dialog", { name: "공지를 삭제할까요?" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "삭제" }));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(remove).toHaveBeenCalledWith(5);
+    expect(lastToast()).toBe("공지를 삭제했습니다");
+  });
+
+  it("publishes and restores at once, reporting a refusal", async () => {
+    vi.spyOn(noticeApi, "publish").mockResolvedValue(notice);
+    vi.spyOn(noticeApi, "restore").mockRejectedValue(
+      new ApiError(409, { code: "REQUEST_STATE_CONFLICT", message: "삭제된 공지가 아닙니다" }),
+    );
+    function Quick() {
+      const quick = useNoticeQuickAction();
+      return (
+        <>
+          <button type="button" onClick={() => void quick(notice, "publish")}>
+            게시
+          </button>
+          <button type="button" onClick={() => void quick(notice, "restore")}>
+            복원
+          </button>
+        </>
+      );
+    }
+    wrap(<Quick />);
+    fireEvent.click(screen.getByRole("button", { name: "게시" }));
+    await waitFor(() => expect(lastToast()).toBe("공지를 게시했습니다"));
+    fireEvent.click(screen.getByRole("button", { name: "복원" }));
+    await waitFor(() => expect(lastToast()).toBe("삭제된 공지가 아닙니다"));
   });
 });

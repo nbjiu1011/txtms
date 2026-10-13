@@ -5,6 +5,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -37,10 +39,11 @@ import com.txtms.global.exception.ErrorCode;
 import com.txtms.global.security.AuthUser;
 
 /**
- * Notices. Reading: notices visible to a user within one customer (withdrawn excluded): customer-wide notices for
+ * Notices. Reading: published, not deleted notices visible to a user within one customer: customer-wide notices for
  * its own users and admins, project notices for project members and admins. Other customers' notices are never
- * exposed. Management (customer admins of the notice's customer): list with withdrawn ones, post, edit (the full
- * previous snapshot and the actor are logged as {@code 수정}), withdraw ({@code 철회}). Every write is audited.
+ * exposed. Management (customer admins of the notice's customer, contract §22): list (deleted ones separately),
+ * post (published or not), edit, publish / unpublish, soft delete and restore. Every change logs the full previous
+ * snapshot with the actor, and every write is audited.
  */
 @Service
 @Transactional(readOnly = true)
@@ -50,7 +53,7 @@ public class NoticeService {
     /** Server cap of the (non-paged) notice lists, newest first (contract §0.1 small lists). */
     /** Upper bound of a rich body including inline images (base64), about 5 MB. */
     static final int HTML_MAX = 5_000_000;
-    static final String WITHDRAWN = "철회된 공지는 수정하거나 다시 철회할 수 없습니다";
+    static final String DELETED = "삭제된 공지입니다. 복원한 뒤 다시 시도하세요";
 
     private final NoticeRepository notices;
     private final NoticeLogRepository logs;
@@ -83,8 +86,8 @@ public class NoticeService {
     }
 
     /**
-     * One notice (detail page, contract §19): the customer's admins see every notice of their customer, withdrawn
-     * ones included; everybody else only a notice they may read in the list. Anything else is {@code NOT_FOUND}.
+     * One notice (detail page, contract §19): the customer's admins see every notice of their customer, unpublished
+     * and deleted ones included; everybody else only a notice they may read in the list. Anything else is {@code NOT_FOUND}.
      */
     public NoticeResponse detail(AuthUser auth, long noticeId) {
         User user = userService.require(auth.userId());
@@ -102,7 +105,7 @@ public class NoticeService {
     public List<NoticeSummary> latest(User user, Customer customer, int limit) {
         return visible(user, customer).stream().limit(limit)
                 .map(n -> new NoticeSummary(n.getId(), n.getScope(), n.getCustomerId(), n.getProjectId(),
-                        n.getTitle(), n.getCreatedAt()))
+                        n.getTitle(), n.getCreatedAt(), n.getPublishedAt()))
                 .toList();
     }
 
@@ -115,7 +118,7 @@ public class NoticeService {
                 .filter(p -> !p.rolesOf(user.getId()).isEmpty())
                 .map(Project::getId)
                 .collect(Collectors.toSet());
-        return notices.findByCustomerIdAndWithdrawnFalseOrderByCreatedAtDescIdDesc(customer.getId()).stream()
+        return notices.findByCustomerIdAndPublishedTrueAndDeletedFalseOrderByPublishedAtDescIdDesc(customer.getId()).stream()
                 .filter(n -> n.getScope() == NoticeScope.CUSTOMER
                         ? ownCustomer || admin
                         : projects.containsKey(n.getProjectId()) && (admin || memberProjects.contains(n.getProjectId())))
@@ -124,24 +127,26 @@ public class NoticeService {
 
     // ------------------------------------------------------------------ management
 
-    /** Every notice of the customer, withdrawn ones included, newest first. */
-    public PageResponse<NoticeResponse> manage(AuthUser auth, long customerId, PageQuery page) {
+    /** The customer's notices, published or not, newest first: the deleted ones only when {@code deleted}. */
+    public PageResponse<NoticeResponse> manage(AuthUser auth, long customerId, boolean deleted, PageQuery page) {
         Admin admin = adminAccess.require(auth, customerId);
-        return PageResponse.batch(notices.findByCustomerIdOrderByCreatedAtDescIdDesc(admin.customerId(),
-                PageRequest.of(page.page(), page.size())), this::responses);
+        return PageResponse.batch(notices.findByCustomerIdAndDeletedOrderByCreatedAtDescIdDesc(admin.customerId(),
+                deleted, PageRequest.of(page.page(), page.size())), this::responses);
     }
 
     @Transactional
     public NoticeResponse create(AuthUser auth, long customerId, NoticeBody body) {
         Admin admin = adminAccess.require(auth, customerId);
-        NoticeBody b = body == null ? new NoticeBody(null, null, null, null) : body;
+        NoticeBody b = body == null ? new NoticeBody(null, null, null, null, null) : body;
         NoticeScope scope = requireScope(b.scope());
         Long projectId = scope == NoticeScope.PROJECT ? requireProject(admin, b.projectId()) : null;
         String title = title(b.title());
         String text = body(b.body());
+        boolean published = !Boolean.FALSE.equals(b.published());
         Notice notice = notices.save(new Notice(scope, admin.customerId(), projectId, title, text, admin.userId(),
-                clock.instant()));
-        audit.record(admin.userId(), admin.customerId(), "공지 게시", title, scopeLabel(notice));
+                published, clock.instant()));
+        audit.record(admin.userId(), admin.customerId(), published ? "공지 게시" : "공지 등록(미게시)", title,
+                scopeLabel(notice));
         return response(notice, List.of());
     }
 
@@ -150,10 +155,8 @@ public class NoticeService {
     public NoticeResponse update(AuthUser auth, long noticeId, NoticeBody body) {
         Notice notice = notices.findById(noticeId).orElseThrow(BusinessException::notFound);
         Admin admin = adminAccess.require(auth, notice.getCustomerId());
-        if (notice.isWithdrawn()) {
-            throw new BusinessException(ErrorCode.REQUEST_STATE_CONFLICT, WITHDRAWN);
-        }
-        NoticeBody b = body == null ? new NoticeBody(null, null, null, null) : body;
+        requireNotDeleted(notice);
+        NoticeBody b = body == null ? new NoticeBody(null, null, null, null, null) : body;
         NoticeScope scope = b.scope() != null ? b.scope() : notice.getScope();
         Long projectId = null;
         if (scope == NoticeScope.PROJECT) {
@@ -172,21 +175,66 @@ public class NoticeService {
     }
 
     @Transactional
-    public NoticeResponse withdraw(AuthUser auth, long noticeId) {
+    public NoticeResponse publish(AuthUser auth, long noticeId) {
+        return change(auth, noticeId, "게시", "공지 게시", n -> {
+            requireNotDeleted(n);
+            if (n.isPublished()) {
+                throw new BusinessException(ErrorCode.REQUEST_STATE_CONFLICT, "이미 게시된 공지입니다");
+            }
+        }, Notice::publish);
+    }
+
+    @Transactional
+    public NoticeResponse unpublish(AuthUser auth, long noticeId) {
+        return change(auth, noticeId, "게시 중지", "공지 게시 중지", n -> {
+            requireNotDeleted(n);
+            if (!n.isPublished()) {
+                throw new BusinessException(ErrorCode.REQUEST_STATE_CONFLICT, "게시 중인 공지가 아닙니다");
+            }
+        }, Notice::unpublish);
+    }
+
+    /** Soft delete: kept with its history for the deleted list and restoring; a published notice is taken down. */
+    @Transactional
+    public void delete(AuthUser auth, long noticeId) {
+        change(auth, noticeId, "삭제", "공지 삭제", n -> {
+            if (n.isDeleted()) {
+                throw new BusinessException(ErrorCode.REQUEST_STATE_CONFLICT, "이미 삭제된 공지입니다");
+            }
+        }, Notice::delete);
+    }
+
+    /** Back from the deleted list as an unpublished notice. */
+    @Transactional
+    public NoticeResponse restore(AuthUser auth, long noticeId) {
+        return change(auth, noticeId, "복원", "공지 복원", n -> {
+            if (!n.isDeleted()) {
+                throw new BusinessException(ErrorCode.REQUEST_STATE_CONFLICT, "삭제된 공지가 아닙니다");
+            }
+        }, Notice::restore);
+    }
+
+    /** A state change by an admin of the notice's customer: checked, logged with the previous snapshot, audited. */
+    private NoticeResponse change(AuthUser auth, long noticeId, String logAction, String auditAction,
+            Consumer<Notice> check, BiConsumer<Notice, Instant> apply) {
         Notice notice = notices.findById(noticeId).orElseThrow(BusinessException::notFound);
         Admin admin = adminAccess.require(auth, notice.getCustomerId());
-        if (notice.isWithdrawn()) {
-            throw new BusinessException(ErrorCode.REQUEST_STATE_CONFLICT, WITHDRAWN);
-        }
+        check.accept(notice);
         Instant now = clock.instant();
-        logs.save(new NoticeLog(notice.getId(), now, admin.userId(), "철회", notice.getScope(),
+        logs.save(new NoticeLog(notice.getId(), now, admin.userId(), logAction, notice.getScope(),
                 notice.getProjectId(), notice.getTitle(), notice.getBody()));
-        notice.withdraw(now);
-        audit.record(admin.userId(), admin.customerId(), "공지 철회", notice.getTitle(), scopeLabel(notice));
+        apply.accept(notice, now);
+        audit.record(admin.userId(), admin.customerId(), auditAction, notice.getTitle(), scopeLabel(notice));
         return response(notice, logsOf(notice.getId()));
     }
 
     // ------------------------------------------------------------------ helpers
+
+    private static void requireNotDeleted(Notice notice) {
+        if (notice.isDeleted()) {
+            throw new BusinessException(ErrorCode.REQUEST_STATE_CONFLICT, DELETED);
+        }
+    }
 
     private static NoticeScope requireScope(NoticeScope scope) {
         if (scope == null) {
@@ -271,7 +319,8 @@ public class NoticeService {
 
     private static NoticeResponse response(Notice n, List<NoticeLog> noticeLogs) {
         return new NoticeResponse(n.getId(), n.getScope(), n.getCustomerId(), n.getProjectId(), n.getTitle(),
-                n.getBody(), n.getAuthorId(), n.getCreatedAt(), n.isEdited(), n.isWithdrawn(),
+                n.getBody(), n.getAuthorId(), n.getCreatedAt(), n.getPublishedAt(), n.isEdited(), n.isPublished(),
+                n.isDeleted(),
                 noticeLogs.stream()
                         .map(l -> new NoticeResponse.Log(l.getAt(), l.getActorId(), l.getAction(),
                                 l.getPreviousScope(), l.getPreviousProjectId(), l.getPreviousTitle(),

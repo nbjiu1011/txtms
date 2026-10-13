@@ -462,10 +462,10 @@ public class DemoDataSeeder implements ApplicationRunner {
         void seedNotices() {
             notices.save(new Notice(NoticeScope.CUSTOMER, c.get("c1").getId(), null, "10월 정기 점검 시간 안내",
                     "10월 3일(토) 02:00부터 04:00까지 서비스를 이용할 수 없습니다. 이 시간에는 자동 저장도 멈춥니다.", id("u11"),
-                    at(-2, 9, 0)));
+                    true, at(-2, 9, 0)));
             notices.save(new Notice(NoticeScope.PROJECT, c.get("c1").getId(), p.get("p1").getId(), "추석 연휴 검수 일정",
                     "9월 24일부터 26일까지는 긴급 요청만 배정합니다. 일반 요청의 확정 납기는 연휴 이후로 조정됩니다.", id("u11"),
-                    at(-4, 11, 0)));
+                    true, at(-4, 11, 0)));
         }
 
         void seedNotifications() {

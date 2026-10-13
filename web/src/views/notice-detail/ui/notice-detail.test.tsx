@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { http } from "@/shared/api";
 import { ApiError } from "@/shared/api";
 import type { Me } from "@/entities/me";
-import { noticeKeys, type Notice } from "@/entities/notice";
+import { noticeApi, noticeKeys, type Notice } from "@/entities/notice";
 import type { Project } from "@/entities/project";
 import { userKeys, type UserSummary } from "@/entities/user";
 import type { WorkViewProps } from "@/widgets/app-shell";
@@ -21,8 +21,10 @@ const notice = (patch: Partial<Notice> = {}): Notice => ({
   body: "<p><strong>토요일</strong> 02시 점검</p>",
   authorId: 11,
   createdAt: "2026-10-05T00:00:00Z",
+  publishedAt: "2026-10-05T00:00:00Z",
   edited: true,
-  withdrawn: false,
+  published: true,
+  deleted: false,
   logs: [
     {
       at: "2026-10-05T01:00:00Z",
@@ -83,7 +85,7 @@ describe("NoticeDetailView", () => {
     expect(props.openTab).toHaveBeenCalledWith({ route: "adminNotice", params: { id: "7" } });
   });
 
-  it("reports a notice it may not read (withdrawn or out of scope)", async () => {
+  it("reports a notice it may not read (unpublished, deleted or out of scope)", async () => {
     vi.spyOn(http, "get").mockRejectedValue(new ApiError(404, { code: "NOT_FOUND", message: "찾을 수 없습니다" }));
     setup((p) => <NoticeDetailView {...p} />, null);
     expect(await screen.findByText("공지를 찾을 수 없습니다")).toBeTruthy();
@@ -94,27 +96,51 @@ describe("NoticeDetailView", () => {
 describe("AdminNoticeDetailView", () => {
   it("shows the state, body and change history with the previous body on demand", () => {
     setup((p) => <AdminNoticeDetailView {...p} />, notice(), { adminCustomerIds: [1] });
-    expect(screen.getByText("게시")).toBeTruthy();
+    expect(screen.getAllByText("게시")).toHaveLength(2); // 게시 시각 label and the state tag
     expect(screen.getByText("점검 안내")).toBeTruthy();
     expect(screen.getByText("고객사 전체")).toBeTruthy();
     expect(screen.queryByText("이전 본문")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "보기" }));
     expect(screen.getByText("이전 본문")).toBeTruthy();
     expect(screen.getByRole("button", { name: "수정" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "철회" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "게시 중지" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "삭제" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "게시" })).toBeNull();
   });
 
-  it("opens the edit and withdraw dialogs", async () => {
+  it("opens the edit, 게시 중지 and 삭제 dialogs", async () => {
     setup((p) => <AdminNoticeDetailView {...p} />, notice(), { adminCustomerIds: [1] });
+    fireEvent.click(screen.getByRole("button", { name: "게시 중지" }));
+    expect(await screen.findByRole("dialog", { name: "게시를 중지할까요?" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+    fireEvent.click(screen.getByRole("button", { name: "삭제" }));
+    expect(await screen.findByRole("dialog", { name: "공지를 삭제할까요?" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
     fireEvent.click(screen.getByRole("button", { name: "수정" }));
     expect(await screen.findByRole("dialog", { name: "공지 수정" })).toBeTruthy();
   });
 
-  it("a withdrawn notice is read-only with a banner", () => {
-    setup((p) => <AdminNoticeDetailView {...p} />, notice({ withdrawn: true }), { adminCustomerIds: [1] });
-    expect(screen.getByText("철회된 공지입니다")).toBeTruthy();
-    expect(screen.getAllByText("철회").length).toBeGreaterThan(0);
+  it("an unpublished notice says so and can be published", async () => {
+    const publish = vi.spyOn(noticeApi, "publish").mockResolvedValue(notice());
+    setup((p) => <AdminNoticeDetailView {...p} />, notice({ published: false }), { adminCustomerIds: [1] });
+    expect(screen.getByText("미게시 공지입니다")).toBeTruthy();
+    expect(screen.getByText("미게시")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "게시" }));
+    await waitFor(() => expect(publish).toHaveBeenCalledWith(7));
+    vi.restoreAllMocks();
+  });
+
+  it("a deleted notice is read-only with a banner and can be restored", async () => {
+    const restore = vi.spyOn(noticeApi, "restore").mockResolvedValue(notice({ published: false }));
+    setup((p) => <AdminNoticeDetailView {...p} />, notice({ published: false, deleted: true }), {
+      adminCustomerIds: [1],
+    });
+    expect(screen.getByText("삭제된 공지입니다")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "수정" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "철회" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "게시" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "삭제" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "복원" }));
+    await waitFor(() => expect(restore).toHaveBeenCalledWith(7));
+    vi.restoreAllMocks();
   });
 });

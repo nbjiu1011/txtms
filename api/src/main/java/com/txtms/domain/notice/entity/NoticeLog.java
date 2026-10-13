@@ -11,7 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-/** Snapshot of a notice before an edit or withdrawal. {@code action} is the Korean label (수정/철회). */
+/** Snapshot of a notice before a change. {@code action} is the Korean label (수정/게시/게시 중지/삭제/복원, older 철회). */
 @Entity
 @Table(name = "notice_logs")
 public class NoticeLog {

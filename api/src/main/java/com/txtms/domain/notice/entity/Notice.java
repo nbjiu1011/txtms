@@ -45,16 +45,22 @@ public class Notice extends BaseEntity {
     private boolean edited;
 
     @Column(nullable = false)
-    private boolean withdrawn;
+    private boolean published;
 
-    @Column(name = "withdrawn_at")
-    private Instant withdrawnAt;
+    @Column(name = "published_at")
+    private Instant publishedAt;
+
+    @Column(nullable = false)
+    private boolean deleted;
+
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
 
     protected Notice() {
     }
 
     public Notice(NoticeScope scope, Long customerId, Long projectId, String title, String body, Long authorId,
-            Instant now) {
+            boolean published, Instant now) {
         if (scope == NoticeScope.PROJECT && projectId == null) {
             throw new IllegalArgumentException("project notice needs a project");
         }
@@ -64,14 +70,14 @@ public class Notice extends BaseEntity {
         this.title = title;
         this.body = body;
         this.authorId = authorId;
+        this.published = published;
+        this.publishedAt = published ? now : null;
         initTimestamps(now);
     }
 
     /** Overwrites the notice (the caller logs the previous snapshot first). */
     public void edit(NoticeScope scope, Long projectId, String title, String body, Instant now) {
-        if (withdrawn) {
-            throw new IllegalStateException("withdrawn notice");
-        }
+        requireNotDeleted();
         if (scope == NoticeScope.PROJECT && projectId == null) {
             throw new IllegalArgumentException("project notice needs a project");
         }
@@ -83,13 +89,52 @@ public class Notice extends BaseEntity {
         touch(now);
     }
 
-    public void withdraw(Instant now) {
-        if (withdrawn) {
-            throw new IllegalStateException("already withdrawn");
+    /** Unpublished → published (users see it from now on, ordered by this time). */
+    public void publish(Instant now) {
+        requireNotDeleted();
+        if (published) {
+            throw new IllegalStateException("already published");
         }
-        this.withdrawn = true;
-        this.withdrawnAt = now;
+        this.published = true;
+        this.publishedAt = now;
         touch(now);
+    }
+
+    /** Published → unpublished (hidden from users; {@code publishedAt} is kept). */
+    public void unpublish(Instant now) {
+        requireNotDeleted();
+        if (!published) {
+            throw new IllegalStateException("not published");
+        }
+        this.published = false;
+        touch(now);
+    }
+
+    /** Soft delete: hidden everywhere but the admin's deleted list; a published notice is unpublished as well. */
+    public void delete(Instant now) {
+        if (deleted) {
+            throw new IllegalStateException("already deleted");
+        }
+        this.deleted = true;
+        this.deletedAt = now;
+        this.published = false;
+        touch(now);
+    }
+
+    /** Deleted → kept unpublished, so restoring alone never shows the notice to users again. */
+    public void restore(Instant now) {
+        if (!deleted) {
+            throw new IllegalStateException("not deleted");
+        }
+        this.deleted = false;
+        this.deletedAt = null;
+        touch(now);
+    }
+
+    private void requireNotDeleted() {
+        if (deleted) {
+            throw new IllegalStateException("deleted notice");
+        }
     }
 
     public Long getId() {
@@ -124,11 +169,19 @@ public class Notice extends BaseEntity {
         return edited;
     }
 
-    public boolean isWithdrawn() {
-        return withdrawn;
+    public boolean isPublished() {
+        return published;
     }
 
-    public Instant getWithdrawnAt() {
-        return withdrawnAt;
+    public Instant getPublishedAt() {
+        return publishedAt;
+    }
+
+    public boolean isDeleted() {
+        return deleted;
+    }
+
+    public Instant getDeletedAt() {
+        return deletedAt;
     }
 }

@@ -4,7 +4,7 @@ import type { DeactivationImpact, Member } from "@/entities/user";
 import type { Variable } from "@/entities/variable";
 import { blockingItems, deactivationProblem, needsSubstitute, preBlocked } from "./deactivation";
 import { inviteStep, type InviteForm } from "./invite-form";
-import { noticeBody, noticeFormProblem } from "./notice-form";
+import { newNoticeBody, noticeBody, noticeFormProblem } from "./notice-form";
 import { projectFormProblem, type ProjectForm } from "./project-form";
 import { inlineError } from "@/shared/common";
 import { variableFormProblem, variablePatch, variableUsageText } from "./variable-form";
@@ -90,17 +90,30 @@ describe("variable admin", () => {
 });
 
 describe("notice form", () => {
+  const form = { scope: "PROJECT", projectId: "1", title: "t", body: "x", published: true } as const;
+
   it("requires title and body; customer scope drops the project", () => {
-    expect(noticeFormProblem({ scope: "PROJECT", projectId: "1", title: "", body: "x" })).toBe("제목을(를) 입력하세요");
-    expect(noticeFormProblem({ scope: "PROJECT", projectId: "1", title: "t", body: "" })).toBe("내용을(를) 입력하세요");
-    expect(noticeFormProblem({ scope: "PROJECT", projectId: "1", title: "t", body: "<p><br></p>" })).toBe("내용을(를) 입력하세요");
-    expect(noticeFormProblem({ scope: "PROJECT", projectId: "1", title: "t", body: "<p>안내</p>" })).toBeNull();
-    expect(noticeBody({ scope: "CUSTOMER", projectId: "1", title: " t ", body: "b" })).toEqual({
+    expect(noticeFormProblem({ ...form, title: "" })).toBe("제목을(를) 입력하세요");
+    expect(noticeFormProblem({ ...form, body: "" })).toBe("내용을(를) 입력하세요");
+    expect(noticeFormProblem({ ...form, body: "<p><br></p>" })).toBe("내용을(를) 입력하세요");
+    expect(noticeFormProblem({ ...form, body: "<p>안내</p>" })).toBeNull();
+    expect(noticeBody({ ...form, scope: "CUSTOMER", title: " t ", body: "b" })).toEqual({
       scope: "CUSTOMER",
       projectId: null,
       title: "t",
       body: "b",
     });
+  });
+
+  it("sends the publish choice only for a new notice", () => {
+    expect(newNoticeBody({ ...form, published: false })).toEqual({
+      scope: "PROJECT",
+      projectId: 1,
+      title: "t",
+      body: "x",
+      published: false,
+    });
+    expect(noticeBody({ ...form, published: false })).not.toHaveProperty("published");
   });
 });
 

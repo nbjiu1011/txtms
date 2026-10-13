@@ -207,9 +207,21 @@ with the seven engine columns, `dataset_assignments`, `correction_suggestions` a
 `outbound_emails.kind` (`INVITATION`, `PASSWORD_RESET`, `REMINDER`, `OTHER`; rows queued before it are classified by
 subject).
 
+## Mail delivery (contract §23)
+
+- Every mail is first written to `outbound_emails` in the business transaction (`OutboxMailSender`).
+  `MailDispatcher` sends due `PENDING` mails over SMTP every 10 s (`MailDispatchJob`), each in its own transaction:
+  `SENT` + `sentAt`, or a retry after 1m / 5m / 15m / 1h and then `FAILED` (`last_error` stays in the table and
+  the log, never in API responses).
+- Settings: `MAIL_HOST`, `MAIL_PORT` (587, STARTTLS), `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM` (default the
+  user name). With an empty `MAIL_HOST` nothing is sent and mails stay `PENDING` (local development, tests).
+- Demo mode (dev server): only recipients matching `MAIL_ALLOWED_RECIPIENTS` (`@domain` or address) get mail; the
+  rest is `SKIPPED` — the seeded accounts use real-looking company addresses. Production sends to everyone.
+- The `mail` health indicator is off: an SMTP outage must not fail the container health check (mails retry).
+- Tests: `MailRecipientPolicyTest`, `OutboundEmailTest` (unit), `MailDeliveryIntegrationTest` (fake SMTP server).
+
 ## Not implemented yet (stubs)
 
-- Mail delivery: `OutboxMailSender` only stores mails in `outbound_emails` (status `PENDING`).
 - File storage: `LocalDiskFileStorage` writes attachments and card images to `app.storage.local-root` (default
   `storage/` under the working directory, git-ignored). Replace with object storage before production.
 - Malware scanning: `DemoMalwareScanner` only flags the EICAR test string as `UNSAFE`. In demo mode the header

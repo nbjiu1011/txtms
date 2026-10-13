@@ -3,7 +3,8 @@
  *   node e2e/real/admin-flow.mjs            (BASE=http://localhost:4246, API_ORIGIN=http://localhost:4245)
  * 강민호 (u11, 한빛카드 admin) creates a project, invites an external-domain user (confirmation step),
  * reads the unmasked outbox of the sample customer, the invitee accepts in a fresh context, roles are
- * edited, a notice is published / edited / withdrawn (김서연 sees it, 문지아 of 도담생명 does not), a
+ * edited, a notice is published / edited / unpublished / deleted / restored (김서연 sees it only while published,
+ * 문지아 of 도담생명 never), a
  * variable is registered / edited / deleted while an in-use one stays protected, settings change and
  * are restored, a user is deactivated with a lead handover and reactivated, a blocked deactivation
  * shows the server details. A throwaway customer (ops API) shows the masked outbox. 이도현 (u3) opens
@@ -133,7 +134,7 @@ await step("역할 관리: requester/reviewer exclusivity, saved as reviewer", a
   await expect(row(admin, INVITEE_NAME)).toContainText("검수자");
 });
 
-await step("공지: publish (u1 sees it, u9 does not), edit (수정됨), withdraw", async () => {
+await step("공지: publish (u1 sees it, u9 does not), edit (수정됨), unpublish, delete, restore", async () => {
   await go(admin, "/admin/notices", "공지 관리");
   await m().getByRole("button", { name: "공지 작성" }).click();
   const d = dialog(admin, "공지 작성");
@@ -143,7 +144,7 @@ await step("공지: publish (u1 sees it, u9 does not), edit (수정됨), withdra
   await shot(admin, "notice-modal");
   await d.getByRole("button", { name: "게시" }).click();
   await toastSeen(admin, "공지를 게시했습니다");
-  await expect(row(admin, NOTICE).getByText("게시")).toBeVisible();
+  await expect(row(admin, NOTICE).getByText("게시", { exact: true })).toBeVisible();
 
   const u1 = await persona("u1", "김서연");
   await go(u1, "/notices", "공지");
@@ -163,12 +164,31 @@ await step("공지: publish (u1 sees it, u9 does not), edit (수정됨), withdra
   await u1.reload();
   await expect(main(u1).getByRole("button", { name: new RegExp(`${NOTICE} \\(수정\\)`) })).toContainText("수정됨");
 
-  await row(admin, `${NOTICE} (수정)`).getByRole("button", { name: "철회" }).click();
-  await dialog(admin, "공지를 철회할까요?").getByRole("button", { name: "철회" }).click();
-  await expect(row(admin, `${NOTICE} (수정)`).getByText("철회", { exact: true })).toBeVisible();
-  await expect(row(admin, `${NOTICE} (수정)`).getByRole("button")).toHaveCount(0);
+  const edited = `${NOTICE} (수정)`;
+  await row(admin, edited).getByRole("button", { name: "게시 중지" }).click();
+  await dialog(admin, "게시를 중지할까요?").getByRole("button", { name: "게시 중지" }).click();
+  await toastSeen(admin, "공지 게시를 중지했습니다");
+  await expect(row(admin, edited).getByText("미게시", { exact: true })).toBeVisible();
   await u1.reload();
   await expect(main(u1).getByText(NOTICE)).toHaveCount(0);
+
+  await row(admin, edited).getByRole("button", { name: "삭제" }).click();
+  await dialog(admin, "공지를 삭제할까요?").getByRole("button", { name: "삭제" }).click();
+  await toastSeen(admin, "공지를 삭제했습니다");
+  await expect(m().getByText(edited)).toHaveCount(0);
+  await m().getByRole("radio", { name: "삭제된 공지" }).click();
+  await row(admin, edited).getByRole("button", { name: "복원" }).click();
+  await toastSeen(admin, "공지를 복원했습니다. 게시하면 사용자에게 다시 보입니다");
+  await expect(m().getByText(edited)).toHaveCount(0);
+  await m().getByRole("radio", { name: "공지", exact: true }).click();
+  await row(admin, edited).getByRole("button", { name: "게시", exact: true }).click();
+  await toastSeen(admin, "공지를 게시했습니다");
+  await u1.reload();
+  await expect(main(u1).getByRole("button", { name: new RegExp(`${NOTICE} \\(수정\\)`) })).toBeVisible();
+  // leave the dev DB clean: the test notice ends deleted
+  await row(admin, edited).getByRole("button", { name: "삭제" }).click();
+  await dialog(admin, "공지를 삭제할까요?").getByRole("button", { name: "삭제" }).click();
+  await toastSeen(admin, "공지를 삭제했습니다");
   await u1.context().close();
 });
 

@@ -136,12 +136,15 @@ class ResponseShapeTest {
     }
 
     @Test
-    void outboxMailCarriesItsKind() {
-        JsonNode mail = tree(new OutboxMail(1, 2L, "a@b.kr", "TX TMS 초대", "본문", AT, "PENDING", true,
+    void outboxMailCarriesItsKindAndDeliveryTime() {
+        JsonNode mail = tree(new OutboxMail(1, 2L, "a@b.kr", "TX TMS 초대", "본문", AT, "PENDING", null, true,
                 MailKind.INVITATION));
         assertThat(mail.path("kind").asString()).isEqualTo("INVITATION");
-        assertThat(new OutboundEmail(MailKind.REMINDER, 2L, "a@b.kr", "s", "b", AT).getKind())
+        // sentAt is always present, null until the SMTP server accepted the mail (contract §23)
+        assertThat(mail.has("sentAt")).isTrue();
+        assertThat(mail.path("sentAt").isNull()).isTrue();
+        assertThat(new OutboundEmail(MailKind.REMINDER, 2L, "a@b.kr", "s", "b", AT, true).getKind())
                 .isEqualTo(MailKind.REMINDER);
-        assertThat(new OutboundEmail(null, 2L, "a@b.kr", "s", "b", AT).getKind()).isEqualTo(MailKind.OTHER);
+        assertThat(new OutboundEmail(null, 2L, "a@b.kr", "s", "b", AT, true).getKind()).isEqualTo(MailKind.OTHER);
     }
 }

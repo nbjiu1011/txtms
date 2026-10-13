@@ -5,7 +5,7 @@ import { Empty, Page, PageHeader, Panel, PanelBody, Tag } from "@/shared/ui";
 import { Button } from "@/shared/common";
 import { RichTextView } from "@/shared/ui/rich-text";
 import { isCustomerAdmin } from "@/entities/me";
-import { noticeScopeText } from "@/entities/notice";
+import { noticePostedAt, noticeScopeText } from "@/entities/notice";
 import { useUserDirectory } from "@/entities/user";
 import type { WorkViewProps } from "@/widgets/app-shell";
 import { useNoticeTab } from "../model/use-notice-tab";
@@ -61,7 +61,7 @@ export function NoticeDetailView({ tab, me, context, openTab, setTitle }: WorkVi
           <div className={cn(styles.meta, styles.block)}>
             <span>{noticeScopeText(n, projectName)}</span>
             <span>{users.name(n.authorId)}</span>
-            <span className={styles.when}>{formatDateTime(n.createdAt)}</span>
+            <span className={styles.when}>{formatDateTime(noticePostedAt(n))}</span>
             {n.edited ? <Tag>수정됨</Tag> : null}
           </div>
           <RichTextView className={styles.body} value={n.body} />

@@ -2,37 +2,85 @@
 
 import { Fragment, useState } from "react";
 import { LIST_PAGE_SIZE, formatDate, useClampPage, useListPage } from "@/shared/lib";
-import { Empty, Icon, Page, PageHeader, Panel, Table, Tag, tableClasses } from "@/shared/ui";
-import { Button, Pager } from "@/shared/common";
-import { noticeScopeText, useManagedNotices, type Notice } from "@/entities/notice";
+import { Empty, Icon, Page, PageHeader, Panel, Table, tableClasses } from "@/shared/ui";
+import { Button, Pager, Seg } from "@/shared/common";
+import { NoticeStateTag, noticeScopeText, useManagedNotices, type Notice } from "@/entities/notice";
 import { useUserDirectory } from "@/entities/user";
-import { NoticeEditDialog, WithdrawNoticeDialog } from "@/features/customer-admin";
+import {
+  NoticeConfirmDialog,
+  NoticeEditDialog,
+  useNoticeQuickAction,
+  type NoticeConfirm,
+} from "@/features/customer-admin";
 import type { WorkViewProps } from "@/widgets/app-shell";
 import styles from "./admin-notices.module.css";
 
 type Editing = { notice: Notice | null } | null;
+type Shelf = "active" | "deleted";
 
-/** `noticeAdmin` tab — 공지 관리 (reference `vNoticeAdmin`; operator notices are Phase 2). */
+/**
+ * `noticeAdmin` tab — 공지 관리 (reference `vNoticeAdmin`; operator notices are Phase 2): published and unpublished
+ * notices with 게시 / 게시 중지 / 수정 / 삭제, and the deleted ones with 복원 (contract §22).
+ */
 export function AdminNoticesView({ context, openTab }: WorkViewProps) {
   const { customer, customerId, projects, projectId } = context;
-  const [page, setPage] = useListPage(String(customerId));
-  const notices = useManagedNotices(customerId, page, LIST_PAGE_SIZE);
+  const [shelf, setShelf] = useState<Shelf>("active");
+  const deleted = shelf === "deleted";
+  const [page, setPage] = useListPage(`${customerId}-${shelf}`);
+  const notices = useManagedNotices(customerId, deleted, page, LIST_PAGE_SIZE);
   useClampPage(page, notices.isPlaceholderData ? undefined : notices.data?.page.totalPages, setPage);
   const users = useUserDirectory(customerId);
   const [editing, setEditing] = useState<Editing>(null);
-  const [withdrawing, setWithdrawing] = useState<Notice | null>(null);
+  const [confirm, setConfirm] = useState<NoticeConfirm | null>(null);
+  const quick = useNoticeQuickAction();
   const projectName = (id: number) => projects.find((p) => p.id === id)?.name;
+
+  const actions = (n: Notice) =>
+    n.deleted ? (
+      <Button size="sm" onClick={() => void quick(n, "restore")}>
+        복원
+      </Button>
+    ) : (
+      <>
+        {n.published ? (
+          <Button size="sm" variant="ghost" onClick={() => setConfirm({ notice: n, action: "unpublish" })}>
+            게시 중지
+          </Button>
+        ) : (
+          <Button size="sm" onClick={() => void quick(n, "publish")}>
+            게시
+          </Button>
+        )}
+        <Button size="sm" onClick={() => setEditing({ notice: n })}>
+          수정
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => setConfirm({ notice: n, action: "delete" })}>
+          삭제
+        </Button>
+      </>
+    );
 
   return (
     <Page>
       <PageHeader
         title="공지 관리"
-        description="수정과 철회 이력은 보존됩니다. 기준 변경 공지는 실제 배포 묶음에 연결합니다."
+        description="미게시 공지는 사용자에게 보이지 않습니다. 수정·게시·삭제 이력은 보존되고 삭제한 공지는 복원할 수 있습니다."
         actions={
-          <Button variant="pri" onClick={() => setEditing({ notice: null })}>
-            <Icon name="plus" />
-            공지 작성
-          </Button>
+          <div className={styles.row}>
+            <Seg<Shelf>
+              label="공지 구분"
+              value={shelf}
+              onChange={setShelf}
+              options={[
+                { key: "active", label: "공지" },
+                { key: "deleted", label: "삭제된 공지" },
+              ]}
+            />
+            <Button variant="pri" onClick={() => setEditing({ notice: null })}>
+              <Icon name="plus" />
+              공지 작성
+            </Button>
+          </div>
         }
       />
       <Panel aria-busy={notices.isFetching}>
@@ -84,24 +132,19 @@ export function AdminNoticesView({ context, openTab }: WorkViewProps) {
                           ))
                         : "-"}
                     </td>
-                    <td>{n.withdrawn ? <Tag variant="hot">철회</Tag> : <Tag>게시</Tag>}</td>
                     <td>
-                      {n.withdrawn ? null : (
-                        <div className={styles.row}>
-                          <Button size="sm" onClick={() => setEditing({ notice: n })}>
-                            수정
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => setWithdrawing(n)}>
-                            철회
-                          </Button>
-                        </div>
-                      )}
+                      <NoticeStateTag notice={n} />
+                    </td>
+                    <td>
+                      <div className={styles.row}>{actions(n)}</div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </Table>
-            {notices.data.content.length === 0 ? <Empty title="공지가 없습니다" /> : null}
+            {notices.data.content.length === 0 ? (
+              <Empty title={deleted ? "삭제된 공지가 없습니다" : "공지가 없습니다"} />
+            ) : null}
             <Pager page={page} totalPages={notices.data.page.totalPages} onPage={setPage} />
           </>
         )}
@@ -120,7 +163,7 @@ export function AdminNoticesView({ context, openTab }: WorkViewProps) {
           notice={editing?.notice ?? null}
         />
       ) : null}
-      <WithdrawNoticeDialog notice={withdrawing} onClose={() => setWithdrawing(null)} />
+      <NoticeConfirmDialog confirm={confirm} onClose={() => setConfirm(null)} />
     </Page>
   );
 }
