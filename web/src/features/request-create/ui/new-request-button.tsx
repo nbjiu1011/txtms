@@ -2,16 +2,17 @@
 
 import { Icon } from "@/shared/ui";
 import { Button } from "@/shared/common";
-import { useRequestCreate, type OpenRequestTab } from "../model/use-request-create";
+import { useRequestCreate, type CanOpenTab, type OpenRequestTab } from "../model/use-request-create";
 
 export interface NewRequestButtonProps {
   projectId: number;
   onOpenRequest: OpenRequestTab;
+  canOpenTab: CanOpenTab;
 }
 
 /** `+새 요청` (requesters): creates a draft in the project and opens it on the 요청 정보 tab. */
-export function NewRequestButton({ projectId, onOpenRequest }: NewRequestButtonProps) {
-  const { create, pending } = useRequestCreate(onOpenRequest);
+export function NewRequestButton({ projectId, onOpenRequest, canOpenTab }: NewRequestButtonProps) {
+  const { create, pending } = useRequestCreate(onOpenRequest, canOpenTab);
   return (
     <Button variant="pri" aria-disabled={pending || undefined} onClick={() => void create(projectId)}>
       <Icon name="plus" />새 요청

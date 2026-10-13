@@ -8,7 +8,7 @@ import { isCustomerAdmin, projectRoles } from "@/entities/me";
 import { useArchiveCampaigns, useArchiveContents, type ArchiveLine } from "@/entities/request";
 import { copyCompletedText } from "@/features/completed-output";
 import { useRequestCreate } from "@/features/request-create";
-import type { WorkViewProps } from "@/widgets/app-shell";
+import { ensureTabRoom, type WorkViewProps } from "@/widgets/app-shell";
 import { EMPTY_ARCHIVE_FILTERS, archiveFiltersToParams, type ArchiveFilters } from "../model/archive-view-model";
 import { ArchiveFilterBar } from "./archive-filters";
 import { ArchiveLineItem } from "./archive-line";
@@ -41,7 +41,7 @@ export function ContentArchiveView({ me, context, openTab }: WorkViewProps) {
   useClampPage(page, list.isPlaceholderData ? undefined : list.data?.page.totalPages, setPage);
   const campaigns = useArchiveCampaigns(allowed ? projectId : null);
   const openRequest = (id: string) => openTab({ route: "request", params: { id } });
-  const { followUp } = useRequestCreate(openRequest);
+  const { followUp } = useRequestCreate(openRequest, ensureTabRoom);
 
   if (!allowed) {
     return (

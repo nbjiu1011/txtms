@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<!-- 재통지 (MailKind.REMINDER). Model: name, urgent, count, maxCount, intervalHours, title, requestId, link. -->
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{mail/layout :: layout(~{::h1}, ~{::section})}">
+<body>
+<h1 style="margin:0; font-size:20px; line-height:1.4;"
+    th:text="${urgent} ? '납기가 임박한 요청이 있습니다' : '처리하지 않은 요청이 있습니다'">처리하지 않은 요청이 있습니다</h1>
+<section>
+  <p style="margin:0 0 16px;">
+    <b th:text="${name}">이름</b>님, 아래 요청이 아직 처리되지 않았습니다.
+  </p>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+         style="border:1px solid #e1e4ea; border-radius:8px;">
+    <tr>
+      <td style="padding:14px 16px;">
+        <span th:text="${urgent} ? '납기 임박' : '미처리'"
+              th:style="${urgent} ? 'display:inline-block; font-size:12px; font-weight:700; padding:2px 8px; border-radius:999px; color:#c0392b; background-color:#fbedeb;' : 'display:inline-block; font-size:12px; font-weight:700; padding:2px 8px; border-radius:999px; color:#a86a12; background-color:#fff6cc;'"
+              style="display:inline-block; font-size:12px; font-weight:700; padding:2px 8px; border-radius:999px;">미처리</span>
+        <span style="font-size:12px; color:#8c95a4; padding-left:6px;"
+              th:text="'재통지 ' + ${count} + '/' + ${maxCount}">재통지 1/3</span>
+        <div style="margin-top:8px; font-size:15px; font-weight:700;" th:text="${title}">요청 제목</div>
+        <div style="margin-top:2px; font-size:12px; color:#5a6475;" th:text="${requestId}">REQ-0000-000</div>
+      </td>
+    </tr>
+  </table>
+  <table th:replace="~{mail/parts :: button(${link}, '요청 열기')}"></table>
+  <p style="margin:0; font-size:13px; color:#5a6475;">
+    재통지는 <span th:text="${intervalHours} + '시간'">24시간</span> 간격으로 최대 <span th:text="${maxCount} + '회'">3회</span> 보내며, 요청을 처리하면 더 보내지 않습니다.
+  </p>
+</section>
+</body>
+</html>

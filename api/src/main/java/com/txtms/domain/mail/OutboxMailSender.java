@@ -29,8 +29,8 @@ public class OutboxMailSender implements MailSender {
 
     @Override
     @Transactional
-    public long send(MailKind kind, Long customerId, String to, String subject, String body) {
-        OutboundEmail mail = repository.save(new OutboundEmail(kind, customerId, to, subject, body, clock.instant(),
+    public long send(MailKind kind, Long customerId, String to, MailContent content) {
+        OutboundEmail mail = repository.save(new OutboundEmail(kind, customerId, to, content, clock.instant(),
                 dispatcher.queueAsDeliverable(to)));
         if (!dispatcher.configured()) {
             log.info("[stub] SMTP not configured (MAIL_HOST empty): mail {} kept in the outbox only", mail.getId());

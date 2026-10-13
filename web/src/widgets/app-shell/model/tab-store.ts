@@ -1,7 +1,10 @@
 import { create } from "zustand";
 import { readJson, writeJson } from "@/shared/lib";
+import { toast } from "@/shared/ui";
 import type { TabRef } from "@/shared/config/routes";
 import {
+  MAX_TABS,
+  TAB_LIMIT_MESSAGE,
   activateTab,
   closeTab,
   openTab,
@@ -64,6 +67,16 @@ export function getActiveTab(): WorkTab | undefined {
 /** The work tab is still open (background work of a closed tab stops). */
 export function isTabOpen(tabId: string): boolean {
   return useTabStore.getState().tabs.some((tab) => tab.id === tabId);
+}
+
+/**
+ * Room for one more work tab; otherwise tells the user to close one. Checked before creating something that
+ * opens in a new tab (a new draft), so nothing is created that could not be opened.
+ */
+export function ensureTabRoom(): boolean {
+  if (useTabStore.getState().tabs.length < MAX_TABS) return true;
+  toast(TAB_LIMIT_MESSAGE);
+  return false;
 }
 
 /** Closes every tab of a request (its request tab and its content tabs), e.g. after the request was deleted. */

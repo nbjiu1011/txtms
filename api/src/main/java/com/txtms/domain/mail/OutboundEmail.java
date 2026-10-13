@@ -45,6 +45,10 @@ public class OutboundEmail {
     @Column(nullable = false, updatable = false, columnDefinition = "text")
     private String body;
 
+    /** HTML part used for delivery only (null for mails queued before templates, V11). */
+    @Column(name = "html_body", updatable = false, columnDefinition = "text")
+    private String htmlBody;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, updatable = false, length = 20)
     private MailKind kind;
@@ -76,11 +80,18 @@ public class OutboundEmail {
      */
     public OutboundEmail(MailKind kind, Long customerId, String to, String subject, String body, Instant now,
             boolean deliverable) {
+        this(kind, customerId, to, new MailContent(subject, body, null), now, deliverable);
+    }
+
+    /** A mail rendered from a template: the text part is the listed body, the HTML part is sent alongside it. */
+    public OutboundEmail(MailKind kind, Long customerId, String to, MailContent content, Instant now,
+            boolean deliverable) {
         this.kind = kind == null ? MailKind.OTHER : kind;
         this.customerId = customerId;
         this.to = to;
-        this.subject = subject;
-        this.body = body;
+        this.subject = content.subject();
+        this.body = content.text();
+        this.htmlBody = content.html();
         this.status = deliverable ? STATUS_PENDING : STATUS_SKIPPED;
         this.nextAttemptAt = deliverable ? now : null;
         this.createdAt = now;
@@ -143,6 +154,10 @@ public class OutboundEmail {
 
     public String getBody() {
         return body;
+    }
+
+    public String getHtmlBody() {
+        return htmlBody;
     }
 
     public MailKind getKind() {

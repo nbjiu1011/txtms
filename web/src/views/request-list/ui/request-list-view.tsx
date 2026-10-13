@@ -14,7 +14,7 @@ import {
 } from "@/entities/request";
 import { useUserDirectory, type UserSummary } from "@/entities/user";
 import { NewRequestButton } from "@/features/request-create";
-import type { WorkViewProps } from "@/widgets/app-shell";
+import { ensureTabRoom, type WorkViewProps } from "@/widgets/app-shell";
 import { RequestFilterBar } from "./request-filters";
 import { RequestTable } from "./request-table";
 
@@ -76,7 +76,7 @@ export function RequestListView({ me, context, openTab }: WorkViewProps) {
         description={`${project?.name ?? ""} 프로젝트의 모든 요청입니다. 프로젝트 구성원은 담당 여부와 관계없이 조회할 수 있습니다.`}
         actions={
           REQUEST_CREATE_IMPLEMENTED && projectId !== null && roles.includes("REQUESTER") ? (
-            <NewRequestButton projectId={projectId} onOpenRequest={openRequest} />
+            <NewRequestButton projectId={projectId} onOpenRequest={openRequest} canOpenTab={ensureTabRoom} />
           ) : undefined
         }
       />

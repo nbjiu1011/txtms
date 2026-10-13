@@ -13,13 +13,13 @@ vi.mock("@/shared/ui", async (importOriginal) => ({
   toast: vi.fn(),
 }));
 
-function setup() {
+function setup(canOpenTab = () => true) {
   const client = new QueryClient();
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
   const open = vi.fn();
-  const { result } = renderHook(() => useRequestCreate(open), { wrapper });
+  const { result } = renderHook(() => useRequestCreate(open, canOpenTab), { wrapper });
   return { client, open, result };
 }
 
@@ -56,5 +56,29 @@ describe("useRequestCreate.followUp", () => {
     await act(() => result.current.followUp("REQ-2609-088", "C9"));
     expect(toast).toHaveBeenCalledWith("현재 역할과 요청 상태에서 이 작업을 실행할 수 없습니다");
     expect(open).not.toHaveBeenCalled();
+  });
+});
+
+describe("useRequestCreate tab limit", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("creates nothing while no work tab can be opened for it", async () => {
+    const create = vi.spyOn(requestApi, "create").mockResolvedValue(draft);
+    const clone = vi.spyOn(requestApi, "clone").mockResolvedValue(draft);
+    const { open, result } = setup(() => false);
+    await act(() => result.current.create(1));
+    await act(() => result.current.clone("REQ-2609-088"));
+    await act(() => result.current.followUp("REQ-2609-088"));
+    expect(create).not.toHaveBeenCalled();
+    expect(clone).not.toHaveBeenCalled();
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it("creates and opens the draft when a tab can be opened", async () => {
+    const create = vi.spyOn(requestApi, "create").mockResolvedValue(draft);
+    const { open, result } = setup(() => true);
+    await act(() => result.current.create(1));
+    expect(create).toHaveBeenCalledWith({ projectId: 1 });
+    expect(open).toHaveBeenCalledWith("REQ-2610-130");
   });
 });

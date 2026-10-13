@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<!-- 이메일 변경 확인 (MailKind.EMAIL_CHANGE), sent to the new address. Model: name, link, hours. -->
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{mail/layout :: layout(~{::h1}, ~{::section})}">
+<body>
+<h1 style="margin:0; font-size:20px; line-height:1.4;">로그인 이메일 변경 확인</h1>
+<section>
+  <p style="margin:0 0 12px;">
+    <b th:text="${name}">이름</b>님, TX TMS 로그인 이메일을 이 주소로 바꾸는 요청이 접수되었습니다.
+  </p>
+  <p style="margin:0;">아래 버튼을 눌러 확인하면 이 주소로 변경됩니다.</p>
+  <table th:replace="~{mail/parts :: button(${link}, '이메일 변경 확인')}"></table>
+  <p style="margin:0; font-size:13px; color:#5a6475;">
+    링크는 <b th:text="${hours} + '시간'">24시간</b> 동안 쓸 수 있습니다.
+    요청한 적이 없다면 이 메일을 무시하세요. 이메일은 바뀌지 않습니다.
+  </p>
+  <p th:replace="~{mail/parts :: fallback(${link})}"></p>
+</section>
+</body>
+</html>

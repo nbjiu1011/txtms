@@ -27,7 +27,7 @@ import {
   checkBeforeComplete,
   handleWorkflowError,
 } from "@/features/request-workflow";
-import { closeRequestTabs, type WorkViewProps } from "@/widgets/app-shell";
+import { closeRequestTabs, ensureTabRoom, type WorkViewProps } from "@/widgets/app-shell";
 import { selectBanners } from "../model/banners";
 import { UPLOAD_BUSY_MESSAGE, type DraftEditing } from "../model/use-draft-editing";
 import type { RequestPage } from "../model/use-request-page";
@@ -81,7 +81,7 @@ export function RequestTabBody({ page, meId, meIsApprover, demo, openTab, editin
   const [pendingType, setPendingType] = useState<ContentType | null>(null);
   const types = useContentTypes();
   const openRequest = (id: string) => openTab({ route: "request", params: { id } });
-  const { clone, followUp } = useRequestCreate(openRequest);
+  const { clone, followUp } = useRequestCreate(openRequest, ensureTabRoom);
   const workflow = useRequestWorkflow(page, meId, revision);
   const { performable } = workflow;
   const correction = useRequestCorrection({

@@ -24,6 +24,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import com.txtms.domain.mail.MailContent;
 import com.txtms.domain.mail.MailDispatcher;
 import com.txtms.domain.mail.MailKind;
 import com.txtms.domain.mail.MailProperties;
@@ -135,6 +136,24 @@ class MailDeliveryIntegrationTest extends IntegrationTestBase {
         assertThat(reload(failing).getStatus()).isEqualTo("FAILED");
         assertThat(reload(failing).getAttempts()).isEqualTo(3);
         assertThat(smtp.accepted).hasSize(1);
+    }
+
+    @Test
+    void aTemplatedMailIsSentAsTextAndHtml() throws Exception {
+        long id = repository.save(new OutboundEmail(MailKind.INVITATION, null, "kim@tagoplus.co.kr",
+                new MailContent("TX TMS 초대", "초대 링크입니다.", "<p>초대 링크입니다.</p>"), T0, true)).getId();
+        queued.add(id);
+        FakeSmtp smtp = new FakeSmtp();
+        dispatcher("smtp.test", smtp, T0.plusSeconds(1)).dispatchDue();
+
+        assertThat(reload(id).getStatus()).isEqualTo("SENT");
+        MimeMessage message = smtp.accepted.getFirst();
+        message.saveChanges();
+        assertThat(message.getContentType()).startsWith("multipart/mixed");
+        java.io.ByteArrayOutputStream raw = new java.io.ByteArrayOutputStream();
+        message.writeTo(raw);
+        String wire = raw.toString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(wire).contains("multipart/alternative", "text/plain", "text/html");
     }
 
     @Test

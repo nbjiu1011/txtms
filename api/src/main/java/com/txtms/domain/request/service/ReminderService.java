@@ -3,6 +3,7 @@ package com.txtms.domain.request.service;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,7 @@ import com.txtms.domain.customer.entity.NotifyChannel;
 import com.txtms.domain.customer.service.CustomerService;
 import com.txtms.domain.mail.MailKind;
 import com.txtms.domain.mail.MailSender;
+import com.txtms.domain.mail.MailTemplates;
 import com.txtms.domain.notification.service.NotificationService;
 import com.txtms.domain.notification.service.NotificationService.Original;
 import com.txtms.domain.request.entity.Request;
@@ -46,6 +48,7 @@ public class ReminderService {
     private final UserService userService;
     private final CustomerService customerService;
     private final MailSender mailSender;
+    private final MailTemplates mailTemplates;
     private final Clock clock;
     private final Duration interval;
     private final int maxCount;
@@ -54,7 +57,8 @@ public class ReminderService {
 
     public ReminderService(NotificationService notifications, RequestWriteSupport support,
             RequestReminderRepository reminders, RequestPolicy policy, UserService userService,
-            CustomerService customerService, MailSender mailSender, Clock clock, AppProperties properties,
+            CustomerService customerService, MailSender mailSender,
+            MailTemplates mailTemplates, Clock clock, AppProperties properties,
             PlatformTransactionManager transactionManager) {
         this.notifications = notifications;
         this.support = support;
@@ -63,6 +67,7 @@ public class ReminderService {
         this.userService = userService;
         this.customerService = customerService;
         this.mailSender = mailSender;
+        this.mailTemplates = mailTemplates;
         this.clock = clock;
         this.interval = properties.reminder().interval();
         this.maxCount = properties.reminder().maxCount();
@@ -128,9 +133,19 @@ public class ReminderService {
             String text = ReminderRules.text(d.urgent(), d.count(), maxCount, r.getTitle());
             notifications.remind(o.id(), ReminderRules.kind(d.urgent(), o.kind()), text);
             if (d.email()) {
+                Map<String, Object> model = new HashMap<>();
+                model.put("name", user.getName());
+                model.put("text", text);
+                model.put("urgent", d.urgent());
+                model.put("count", d.count());
+                model.put("maxCount", maxCount);
+                model.put("intervalHours", Math.max(1, interval.toHours()));
+                model.put("title", r.getTitle());
+                model.put("requestId", r.getId());
+                model.put("link", webBaseUrl + "/requests/" + r.getId());
                 mailSender.send(MailKind.REMINDER, customer.getId(), user.getEmail(),
-                        text.length() > 200 ? text.substring(0, 200) : text,
-                        text + "\n요청 " + r.getId() + "\n" + webBaseUrl);
+                        mailTemplates.render(MailTemplates.Template.REMINDER,
+                                text.length() > 200 ? text.substring(0, 200) : text, model));
             }
             sent++;
         }

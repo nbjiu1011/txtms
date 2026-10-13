@@ -14,6 +14,7 @@ import com.txtms.domain.auth.entity.UserInvitation;
 import com.txtms.domain.auth.repository.UserInvitationRepository;
 import com.txtms.domain.mail.MailKind;
 import com.txtms.domain.mail.MailSender;
+import com.txtms.domain.mail.MailTemplates;
 import com.txtms.domain.user.entity.User;
 import com.txtms.global.config.AppProperties;
 
@@ -29,13 +30,16 @@ public class InvitationService {
 
     private final UserInvitationRepository invitations;
     private final MailSender mailSender;
+    private final MailTemplates mailTemplates;
     private final Clock clock;
     private final AppProperties properties;
 
-    public InvitationService(UserInvitationRepository invitations, MailSender mailSender, Clock clock,
+    public InvitationService(UserInvitationRepository invitations, MailSender mailSender, MailTemplates mailTemplates,
+            Clock clock,
             AppProperties properties) {
         this.invitations = invitations;
         this.mailSender = mailSender;
+        this.mailTemplates = mailTemplates;
         this.clock = clock;
         this.properties = properties;
     }
@@ -53,9 +57,10 @@ public class InvitationService {
         Instant expiresAt = now.plus(properties.auth().invitationTtl());
         invitations.save(new UserInvitation(user.getId(), OpaqueTokens.hash(token), now, expiresAt, createdBy));
         String link = properties.webBaseUrl() + "/invite/" + token;
-        long mailId = mailSender.send(MailKind.INVITATION, user.getCustomerId(), user.getEmail(), SUBJECT,
-                user.getName() + "님, " + customerName + "의 TX TMS에 초대되었습니다. 아래 링크에서 7일 안에 이름과 "
-                        + "비밀번호를 설정하세요.\n" + link);
+        long days = Math.max(1, properties.auth().invitationTtl().toDays());
+        long mailId = mailSender.send(MailKind.INVITATION, user.getCustomerId(), user.getEmail(),
+                mailTemplates.render(MailTemplates.Template.INVITATION, SUBJECT, Map.of("name", user.getName(),
+                        "customerName", customerName, "link", link, "days", days)));
         return new Issued(expiresAt, mailId);
     }
 

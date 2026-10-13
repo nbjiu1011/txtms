@@ -209,6 +209,12 @@ subject).
 
 ## Mail delivery (contract §23)
 
+- Bodies come from templates in `src/main/resources/templates/mail/` (`MailTemplates`, Thymeleaf core):
+  `invitation`, `password-reset`, `email-change`, `reminder`, each as `.html` (sent as HTML) and `.txt` (the
+  plain-text alternative and the outbox `body`); `layout.html` is the shared frame and `parts.html` the button and
+  plain-link fallback. HTML uses tables and inline styles only (mail clients drop `<style>`). Subjects stay in code
+  (older mails are classified by subject). To change a wording, edit both files of the mail; `MailTemplatesTest`
+  pins the text parts.
 - Every mail is first written to `outbound_emails` in the business transaction (`OutboxMailSender`).
   `MailDispatcher` sends due `PENDING` mails over SMTP every 10 s (`MailDispatchJob`), each in its own transaction:
   `SENT` + `sentAt`, or a retry after 1m / 5m / 15m / 1h and then `FAILED` (`last_error` stays in the table and

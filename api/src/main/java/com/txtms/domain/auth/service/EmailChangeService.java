@@ -15,6 +15,7 @@ import com.txtms.domain.auth.entity.EmailChange;
 import com.txtms.domain.auth.repository.EmailChangeRepository;
 import com.txtms.domain.mail.MailKind;
 import com.txtms.domain.mail.MailSender;
+import com.txtms.domain.mail.MailTemplates;
 import com.txtms.domain.user.entity.User;
 import com.txtms.global.config.AppProperties;
 
@@ -31,13 +32,16 @@ public class EmailChangeService {
 
     private final EmailChangeRepository changes;
     private final MailSender mailSender;
+    private final MailTemplates mailTemplates;
     private final Clock clock;
     private final AppProperties properties;
 
-    public EmailChangeService(EmailChangeRepository changes, MailSender mailSender, Clock clock,
+    public EmailChangeService(EmailChangeRepository changes, MailSender mailSender, MailTemplates mailTemplates,
+            Clock clock,
             AppProperties properties) {
         this.changes = changes;
         this.mailSender = mailSender;
+        this.mailTemplates = mailTemplates;
         this.clock = clock;
         this.properties = properties;
     }
@@ -52,9 +56,9 @@ public class EmailChangeService {
                 now.plus(properties.auth().emailChangeTtl()), createdBy));
         String link = properties.webBaseUrl() + "/email-change/" + token;
         long hours = Math.max(1, properties.auth().emailChangeTtl().toHours());
-        return mailSender.send(MailKind.EMAIL_CHANGE, user.getCustomerId(), newEmail, SUBJECT,
-                user.getName() + "님, TX TMS 로그인 이메일을 이 주소로 바꾸는 요청이 접수되었습니다. 아래 링크에서 "
-                        + hours + "시간 안에 확인하면 변경됩니다. 요청한 적이 없다면 이 메일을 무시하세요.\n" + link);
+        return mailSender.send(MailKind.EMAIL_CHANGE, user.getCustomerId(), newEmail,
+                mailTemplates.render(MailTemplates.Template.EMAIL_CHANGE, SUBJECT,
+                        Map.of("name", user.getName(), "link", link, "hours", hours)));
     }
 
     /**

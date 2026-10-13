@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<!--
+  Shared frame of every TX TMS mail (contract §23). Mail clients drop <style> blocks and most CSS, so the layout is
+  tables with inline styles only, 560 px wide, system fonts. Each mail passes its heading and its content section:
+  <html th:replace="~{mail/layout :: layout(~{::h1}, ~{::section})}">
+-->
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" th:fragment="layout(heading, content)">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title th:text="${subject}">TX TMS</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f2f3f7;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+         style="background-color:#f2f3f7;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0"
+               style="width:100%; max-width:560px; background-color:#ffffff; border-radius:12px; overflow:hidden;
+                      font-family:'Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',sans-serif; color:#1b2433;">
+          <tr>
+            <td style="background-color:#1f2b4d; padding:18px 28px; border-bottom:3px solid #ffd84d;">
+              <span style="display:inline-block; background-color:#ffd84d; color:#1f2b4d; font-weight:700;
+                           font-size:13px; line-height:13px; padding:6px 7px; border-radius:6px;">TX</span>
+              <span style="color:#ffffff; font-size:15px; font-weight:700; vertical-align:middle; padding-left:8px;">
+                TX TMS
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px 28px 8px;">
+              <h1 th:replace="${heading}" style="margin:0; font-size:20px; line-height:1.4;">제목</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:12px 28px 28px; font-size:14px; line-height:1.7; color:#1b2433;">
+              <section th:replace="${content}">본문</section>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:18px 28px; background-color:#f7f8fa; border-top:1px solid #e1e4ea;
+                       font-size:12px; line-height:1.6; color:#8c95a4;">
+              이 메일은 발신 전용입니다. 문의는 소속 고객사 관리자에게 해 주세요.<br>
+              © TX TMS
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

@@ -11,6 +11,9 @@ export const FOLLOW_UP_CREATED = "완료본과 연결된 후속 요청을 만들
 /** Opens the work tab of a request (the shell's `openTab`). */
 export type OpenRequestTab = (requestId: string) => void;
 
+/** Whether a new work tab can be opened (the shell's tab limit); tells the user why not. */
+export type CanOpenTab = () => boolean;
+
 function messageOf(error: unknown, fallback: string): string {
   return isApiError(error) ? error.message : fallback;
 }
@@ -18,14 +21,15 @@ function messageOf(error: unknown, fallback: string): string {
 /**
  * Creates a draft (`POST /api/requests`, first active type when omitted) or a copy of a request
  * (`POST /api/requests/{id}/clone`) and opens its tab. A pending call ignores repeated clicks so a
- * double click never creates two drafts.
+ * double click never creates two drafts, and nothing is created while no tab can be opened for it (the
+ * draft would be left behind unseen on every click).
  */
-export function useRequestCreate(openRequest: OpenRequestTab) {
+export function useRequestCreate(openRequest: OpenRequestTab, canOpenTab: CanOpenTab) {
   const client = useQueryClient();
   const [pending, setPending] = useState(false);
 
   const run = async (call: () => Promise<RequestDetail>, fallback: string, success?: string) => {
-    if (pending) return;
+    if (pending || !canOpenTab()) return;
     setPending(true);
     try {
       const detail = await call();

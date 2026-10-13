@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,6 +25,7 @@ import com.txtms.domain.customer.service.CustomerService;
 import com.txtms.domain.demo.DemoPersonas;
 import com.txtms.domain.mail.MailKind;
 import com.txtms.domain.mail.MailSender;
+import com.txtms.domain.mail.MailTemplates;
 import com.txtms.domain.request.service.ContentLockService;
 import com.txtms.domain.user.entity.User;
 import com.txtms.domain.user.service.UserService;
@@ -43,6 +45,7 @@ public class AuthService {
 
     public static final String LOGIN_FAILED_MESSAGE = "이메일 또는 비밀번호를 확인하세요";
     public static final String INVALID_LINK_MESSAGE = "유효하지 않은 링크입니다";
+    public static final String PASSWORD_RESET_SUBJECT = "TX TMS 비밀번호 재설정";
     public static final String CURRENT_PASSWORD_MISMATCH_MESSAGE = "현재 비밀번호가 일치하지 않습니다";
     public static final String SAME_PASSWORD_MESSAGE = "현재 비밀번호와 다른 비밀번호를 입력하세요";
     public static final String EMAIL_INVALID_OR_DUPLICATE_MESSAGE = "이메일 형식 또는 중복을 확인하세요";
@@ -58,6 +61,7 @@ public class AuthService {
     private final UserInvitationRepository invitations;
     private final EmailChangeRepository emailChanges;
     private final MailSender mailSender;
+    private final MailTemplates mailTemplates;
     private final ContentLockService contentLocks;
     private final Clock clock;
     private final AppProperties properties;
@@ -68,6 +72,7 @@ public class AuthService {
             LoginAttemptService loginAttempts, MeService meService, JwtService jwtService,
             PasswordEncoder passwordEncoder, PasswordResetRepository passwordResets,
             UserInvitationRepository invitations, EmailChangeRepository emailChanges, MailSender mailSender,
+            MailTemplates mailTemplates,
             ContentLockService contentLocks,
             Clock clock, AppProperties properties, AuditLogService audit) {
         this.userService = userService;
@@ -81,6 +86,7 @@ public class AuthService {
         this.invitations = invitations;
         this.emailChanges = emailChanges;
         this.mailSender = mailSender;
+        this.mailTemplates = mailTemplates;
         this.contentLocks = contentLocks;
         this.clock = clock;
         this.properties = properties;
@@ -228,8 +234,10 @@ public class AuthService {
         passwordResets.save(new PasswordReset(user.getId(), OpaqueTokens.hash(token), now,
                 now.plus(properties.auth().passwordResetTtl())));
         String link = properties.webBaseUrl() + "/reset/" + token;
-        mailSender.send(MailKind.PASSWORD_RESET, user.getCustomerId(), user.getEmail(), "TX TMS 비밀번호 재설정",
-                user.getName() + "님, 아래 링크에서 1시간 안에 새 비밀번호를 설정하세요.\n" + link);
+        long hours = Math.max(1, properties.auth().passwordResetTtl().toHours());
+        mailSender.send(MailKind.PASSWORD_RESET, user.getCustomerId(), user.getEmail(),
+                mailTemplates.render(MailTemplates.Template.PASSWORD_RESET, PASSWORD_RESET_SUBJECT,
+                        Map.of("name", user.getName(), "link", link, "hours", hours)));
     }
 
     @Transactional(readOnly = true)

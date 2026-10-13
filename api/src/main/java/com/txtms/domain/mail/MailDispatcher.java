@@ -109,11 +109,17 @@ public class MailDispatcher {
     private void send(OutboundEmail mail) throws MessagingException, UnsupportedEncodingException {
         JavaMailSender sender = senders.getObject();
         MimeMessage message = sender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+        boolean html = mail.getHtmlBody() != null;
+        // multipart/alternative: clients that cannot show HTML fall back to the plain-text part
+        MimeMessageHelper helper = new MimeMessageHelper(message, html, "UTF-8");
         helper.setFrom(properties.from(), properties.fromName());
         helper.setTo(mail.getTo());
         helper.setSubject(mail.getSubject());
-        helper.setText(mail.getBody(), false);
+        if (html) {
+            helper.setText(mail.getBody(), mail.getHtmlBody());
+        } else {
+            helper.setText(mail.getBody(), false);
+        }
         sender.send(message);
     }
 

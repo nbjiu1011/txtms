@@ -16,7 +16,7 @@ import {
 } from "@/entities/request";
 import { useUserDirectory } from "@/entities/user";
 import { NewRequestButton } from "@/features/request-create";
-import type { WorkViewProps } from "@/widgets/app-shell";
+import { ensureTabRoom, type WorkViewProps } from "@/widgets/app-shell";
 import { NoticePanel, RecentPanel, TodoPanel, WorkloadPanel } from "./dashboard-panels";
 import { PipelineBar } from "./pipeline-bar";
 import { RequestListModal } from "./request-list-modal";
@@ -46,7 +46,7 @@ export function DashboardView({ me, context, openTab }: WorkViewProps) {
       description={project ? `${project.name} 프로젝트 기준입니다.` : undefined}
       actions={
         REQUEST_CREATE_IMPLEMENTED && projectId !== null && roles.includes("REQUESTER") ? (
-          <NewRequestButton projectId={projectId} onOpenRequest={openRequest} />
+          <NewRequestButton projectId={projectId} onOpenRequest={openRequest} canOpenTab={ensureTabRoom} />
         ) : undefined
       }
     />

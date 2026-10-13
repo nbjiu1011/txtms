@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<!-- 초대 (MailKind.INVITATION). Model: name, customerName, link, days. -->
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{mail/layout :: layout(~{::h1}, ~{::section})}">
+<body>
+<h1 style="margin:0; font-size:20px; line-height:1.4;">
+  <span th:text="${customerName}">고객사</span>의 TX TMS에 초대되었습니다
+</h1>
+<section>
+  <p style="margin:0 0 12px;"><b th:text="${name}">이름</b>님, 안녕하세요.</p>
+  <p style="margin:0;">
+    TX TMS는 알림톡·문자·자유입력형 콘텐츠의 작성, 검수, 승인을 한곳에서 처리하는 서비스입니다.
+    아래 버튼을 눌러 이름과 비밀번호를 설정하면 바로 시작할 수 있습니다.
+  </p>
+  <table th:replace="~{mail/parts :: button(${link}, '초대 수락하기')}"></table>
+  <p style="margin:0; font-size:13px; color:#5a6475;">
+    초대 링크는 <b th:text="${days} + '일'">7일</b> 동안 쓸 수 있고, 한 번 사용하면 다시 쓸 수 없습니다.
+  </p>
+  <p th:replace="~{mail/parts :: fallback(${link})}"></p>
+</section>
+</body>
+</html>

@@ -147,6 +147,53 @@ class BundleExportRulesTest {
     }
 
     @Test
+    void workbookIsLaidOutForReading() throws Exception {
+        String body = "#{customer_name}님, 10월 한 달 동안 결제하시면 최대 #{points} 포인트가 적립됩니다.\n"
+                + "이벤트 기간: #{event_period}\n아래 버튼을 눌러 확인하세요.";
+        List<String> row = List.of("C1", "알림톡", "이벤트 참여 안내", body, "이벤트 참여하기",
+                "https://hanbitcard.co.kr/evt/oct", "customer_name\npoints\nevent_period", "v2", "승인 완료", "2026-10-07");
+        byte[] bytes = BundleSheet.workbook(List.of(row, row));
+        try (XSSFWorkbook wb = new XSSFWorkbook(new ByteArrayInputStream(bytes))) {
+            var sheet = wb.getSheetAt(0);
+            // the header stays in view and carries filter buttons over every column
+            assertThat(sheet.getPaneInformation().isFreezePane()).isTrue();
+            assertThat(sheet.getPaneInformation().getHorizontalSplitPosition()).isEqualTo((short) 1);
+            assertThat(wb.getSheetAt(0).getCTWorksheet().getAutoFilter().getRef()).isEqualTo("A1:J3");
+            var header = sheet.getRow(0).getCell(0).getCellStyle();
+            assertThat(wb.getFontAt(header.getFontIndex()).getBold()).isTrue();
+            assertThat(((org.apache.poi.xssf.usermodel.XSSFCellStyle) header).getFillForegroundXSSFColor().getRGB())
+                    .containsExactly(0x1F, 0x2B, 0x4D);
+            // the body column is the widest, and a three-line body gets a three-line row
+            assertThat(sheet.getColumnWidth(3)).isEqualTo(60 * 256);
+            assertThat(sheet.getRow(1).getHeightInPoints()).isGreaterThanOrEqualTo(3 * 16.5f);
+            // every other data row is banded; identifiers and dates are centred, texts start left
+            assertThat(sheet.getRow(1).getCell(3).getCellStyle().getFillPattern())
+                    .isEqualTo(org.apache.poi.ss.usermodel.FillPatternType.NO_FILL);
+            assertThat(sheet.getRow(2).getCell(3).getCellStyle().getFillPattern())
+                    .isEqualTo(org.apache.poi.ss.usermodel.FillPatternType.SOLID_FOREGROUND);
+            assertThat(sheet.getRow(1).getCell(0).getCellStyle().getAlignment())
+                    .isEqualTo(org.apache.poi.ss.usermodel.HorizontalAlignment.CENTER);
+            assertThat(sheet.getRow(1).getCell(3).getCellStyle().getAlignment())
+                    .isEqualTo(org.apache.poi.ss.usermodel.HorizontalAlignment.LEFT);
+            // printing: landscape, one page wide, header repeated
+            assertThat(sheet.getPrintSetup().getLandscape()).isTrue();
+            assertThat(sheet.getRepeatingRows().getFirstRow()).isZero();
+            assertThat(sheet.getRepeatingRows().getLastRow()).isZero();
+        }
+    }
+
+    @Test
+    void wrappedLinesCountBreaksAndWideCharacters() {
+        assertThat(BundleSheet.wrappedLines("", 20)).isEqualTo(1);
+        assertThat(BundleSheet.wrappedLines("a\nb\nc", 20)).isEqualTo(3);
+        // 30 Hangul syllables ≈ 45 column units in a 20-unit column (19 usable) → 3 lines
+        assertThat(BundleSheet.wrappedLines("가".repeat(30), 20)).isEqualTo(3);
+        assertThat(BundleSheet.wrappedLines("가".repeat(12), 20)).isEqualTo(1);
+        assertThat(BundleSheet.wrappedLines("a".repeat(19), 20)).isEqualTo(1);
+        assertThat(BundleSheet.rowHeight(List.of("C1", "x".repeat(10_000)))).isEqualTo(409f);
+    }
+
+    @Test
     void zipNamesAreSanitizedAndDigestsAreHex() {
         assertThat(BundleExportService.safeName("a/b\\c:d*e?f\"g<h>i|j.pdf")).isEqualTo("a_b_c_d_e_f_g_h_i_j.pdf");
         assertThat(BundleExportService.sha256("abc".getBytes()))

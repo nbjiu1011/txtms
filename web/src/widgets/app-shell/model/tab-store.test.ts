@@ -1,5 +1,12 @@
-import { beforeEach, describe, expect, it } from "vitest";
-import { closeRequestTabs, tabsStorageKey, useTabStore } from "./tab-store";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { toast } from "@/shared/ui";
+import { MAX_TABS, TAB_LIMIT_MESSAGE } from "./tab-model";
+import { closeRequestTabs, ensureTabRoom, tabsStorageKey, useTabStore } from "./tab-store";
+
+vi.mock("@/shared/ui", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/shared/ui")>()),
+  toast: vi.fn(),
+}));
 
 beforeEach(() => {
   localStorage.clear();
@@ -52,5 +59,18 @@ describe("closeRequestTabs", () => {
       ["requests", null],
       ["request", "R2"],
     ]);
+  });
+});
+
+describe("ensureTabRoom", () => {
+  it("allows a new tab below the limit and refuses with the limit message at it", () => {
+    const store = useTabStore.getState();
+    store.hydrate(7);
+    for (let i = 0; i < MAX_TABS - 1; i++) store.open({ route: "request", params: { id: `R${i}` } });
+    expect(ensureTabRoom()).toBe(true);
+    expect(toast).not.toHaveBeenCalled();
+    useTabStore.getState().open({ route: "request", params: { id: "R-last" } });
+    expect(ensureTabRoom()).toBe(false);
+    expect(toast).toHaveBeenCalledWith(TAB_LIMIT_MESSAGE);
   });
 });
