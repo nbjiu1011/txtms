@@ -98,7 +98,7 @@ export function OpsSetupView({ context, openTab }: WorkViewProps) {
   if (!customer) {
     const failed = customers.isError ? customers : detail.isError ? detail : null;
     return (
-      <Page wide>
+      <Page>
         {header}
         <Panel>
           {customers.isPending || (selectedId !== null && detail.isPending) ? (
@@ -124,7 +124,7 @@ export function OpsSetupView({ context, openTab }: WorkViewProps) {
   const typeList = contentTypes.data ?? [];
 
   return (
-    <Page wide>
+    <Page>
       {header}
       {customer.active ? null : (
         <Banner tone="danger" className={styles.block} title="비활성 고객사입니다">

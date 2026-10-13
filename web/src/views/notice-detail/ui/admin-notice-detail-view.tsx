@@ -53,7 +53,7 @@ export function AdminNoticeDetailView({ tab, context, openTab, setTitle }: WorkV
   const projectName = (id: number) => context.projects.find((p) => p.id === id)?.name;
 
   return (
-    <Page wide aria-busy={notice.isFetching}>
+    <Page aria-busy={notice.isFetching}>
       <PageHeader
         title={n.title}
         actions={

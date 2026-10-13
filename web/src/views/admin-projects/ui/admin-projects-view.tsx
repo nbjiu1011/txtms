@@ -23,7 +23,7 @@ export function AdminProjectsView({ context }: WorkViewProps) {
   const [editing, setEditing] = useState<Editing>(null);
 
   return (
-    <Page wide>
+    <Page>
       <PageHeader
         title="프로젝트 관리"
         description={`${customer?.name ?? ""}의 프로젝트입니다. 이력이 있는 프로젝트는 삭제하지 않고 사용 중지로 보존합니다.`}

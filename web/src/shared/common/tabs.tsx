@@ -30,7 +30,13 @@ export function SubTabs<K extends string>({ items, value, onChange, label, class
     <Tabs.Root value={value} onValueChange={(next) => onChange(next as K)} activationMode="manual">
       <Tabs.List
         aria-label={label}
-        className={cn("mb-[18px] flex gap-[18px] overflow-x-auto border-b border-line", className)}
+        // Horizontal scroll only (overflow-x: auto alone turns overflow-y to auto as well). The 1px baseline is an
+        // inset shadow and each tab ends 1px above it with a 1px underline — the reference look (navy line on the gray
+        // baseline) without pulling the tabs into a border, which overflowed the list and showed a vertical scrollbar.
+        className={cn(
+          "mb-[18px] flex gap-[18px] overflow-x-auto overflow-y-hidden shadow-[inset_0_-1px_0_var(--line)]",
+          className,
+        )}
       >
         {items.map((item) => (
           <Tabs.Trigger
@@ -42,7 +48,7 @@ export function SubTabs<K extends string>({ items, value, onChange, label, class
               if (item.key !== value) onChange(item.key);
             }}
             className={cn(
-              "-mb-px flex cursor-pointer items-center gap-1.5 border-0 border-b-2 border-transparent bg-transparent px-0 py-[9px]",
+              "mb-px flex cursor-pointer items-center gap-1.5 border-0 border-b border-transparent bg-transparent px-0 py-[9px]",
               "whitespace-nowrap text-sub",
               // the reference adds an empty ::after to the selected tab: one more flex gap (6px) of width
               "data-[state=active]:border-navy data-[state=active]:font-semibold data-[state=active]:text-ink",

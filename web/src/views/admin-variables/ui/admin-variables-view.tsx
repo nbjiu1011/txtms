@@ -34,7 +34,7 @@ export function AdminVariablesView({ context }: WorkViewProps) {
   const deletion = useDeleteVariable();
 
   return (
-    <Page wide>
+    <Page>
       <PageHeader
         title="변수 관리"
         description="진행 중 문안에는 현재 값, 완료 묶음에는 완료 당시 값을 적용합니다."

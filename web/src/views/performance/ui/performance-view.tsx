@@ -44,7 +44,7 @@ export function PerformanceView({ me, context }: WorkViewProps) {
   const performance = usePerformance(customerId === null ? null : toPerformanceParams(filter, customerId, today));
 
   return (
-    <Page wide>
+    <Page>
       <PageHeader
         title="업무량·실적"
         description="고유 요청 수와 콘텐츠 수를 나눠 집계합니다. 접수 집단 완료율과 기간 내 완료량은 서로 다른 지표입니다."

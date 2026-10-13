@@ -24,7 +24,7 @@ export function AdminNoticesView({ context, openTab }: WorkViewProps) {
   const projectName = (id: number) => projects.find((p) => p.id === id)?.name;
 
   return (
-    <Page wide>
+    <Page>
       <PageHeader
         title="공지 관리"
         description="수정과 철회 이력은 보존됩니다. 기준 변경 공지는 실제 배포 묶음에 연결합니다."

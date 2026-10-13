@@ -37,7 +37,7 @@ export function ApprovalView({ context, openTab }: WorkViewProps) {
   const done = processed.isError ? [] : (processed.data?.content ?? []);
 
   return (
-    <Page wide>
+    <Page>
       <PageHeader title="승인" description="프로젝트 승인자 모두가 같은 대기열을 봅니다. 한 명이 처리하면 상태가 바뀝니다." />
       {noApprover ? (
         <Banner tone="danger" title="활성 승인자가 없습니다">

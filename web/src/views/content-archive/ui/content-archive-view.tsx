@@ -45,7 +45,7 @@ export function ContentArchiveView({ me, context, openTab }: WorkViewProps) {
 
   if (!allowed) {
     return (
-      <Page wide>
+      <Page>
         <PageHeader title="콘텐츠" description={DESCRIPTION} />
         {me.operator ? (
           <Empty
@@ -71,7 +71,7 @@ export function ContentArchiveView({ me, context, openTab }: WorkViewProps) {
     });
 
   return (
-    <Page wide>
+    <Page>
       <PageHeader title="콘텐츠" description={DESCRIPTION} />
       <ArchiveFilterBar value={filters} onChange={onFilters} campaigns={campaigns.data ?? []} />
       <Panel aria-busy={list.isFetching}>

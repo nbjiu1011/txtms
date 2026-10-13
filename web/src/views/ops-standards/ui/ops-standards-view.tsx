@@ -93,7 +93,7 @@ export function OpsStandardsView({ context }: WorkViewProps) {
     matrix.isPending || customers.isPending || datasets.isPending || assignments.isPending || contentTypes.isPending;
 
   return (
-    <Page wide>
+    <Page>
       <PageHeader
         title="유형·교정 기준"
         description="솔루션 운영 담당자가 콘텐츠 유형과 고객사별 유효 교정 기준을 운영합니다. 1차는 유형 사용 상태와 유효 데이터셋 배정까지입니다."

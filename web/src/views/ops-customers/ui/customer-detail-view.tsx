@@ -62,7 +62,7 @@ export function OpsCustomerDetailView({ tab, openTab, setTitle }: WorkViewProps)
   const projectName = (projectId: number) => refs.data?.projects.find((p) => p.id === projectId)?.name ?? null;
 
   return (
-    <Page wide aria-busy={customer.isFetching}>
+    <Page aria-busy={customer.isFetching}>
       <PageHeader
         title={c.name}
         description={`${c.domain} · ${c.active ? "사용 중" : "비활성"} 고객사입니다. 운영 담당자는 요청 수만 보고 콘텐츠는 조회하지 않습니다.`}

@@ -24,23 +24,11 @@ export function BrandMark({ inverse, className }: BrandMarkProps) {
   );
 }
 
-export interface PageProps extends HTMLAttributes<HTMLDivElement> {
-  /** No max-width (`.page.wide`). */
-  wide?: boolean;
-}
+export type PageProps = HTMLAttributes<HTMLDivElement>;
 
-/** `.page` — screen content container (30/36/72 padding, max 1440). */
-export function Page({ wide, className, ...rest }: PageProps) {
-  return (
-    <div
-      className={cn(
-        "pt-7.5 px-9 pb-18 upto-nav:pt-5 upto-nav:px-4 upto-nav:pb-12",
-        wide ? "max-w-none" : "max-w-[1440px]",
-        className,
-      )}
-      {...rest}
-    />
-  );
+/** `.page` — screen content container (30/36/72 padding), always the full width of the work area. */
+export function Page({ className, ...rest }: PageProps) {
+  return <div className={cn("pt-7.5 px-9 pb-18 upto-nav:pt-5 upto-nav:px-4 upto-nav:pb-12", className)} {...rest} />;
 }
 
 export interface PageHeaderProps {

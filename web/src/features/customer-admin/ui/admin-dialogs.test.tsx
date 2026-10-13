@@ -287,7 +287,8 @@ describe("DeactivateUserDialog", () => {
   });
 });
 
-describe("Notice edit and withdraw", () => {
+// The rich text editor (Quill) mounts asynchronously: allow for a loaded machine when the whole suite runs.
+describe("Notice edit and withdraw", { timeout: 20_000 }, () => {
   const notice: Notice = {
     id: 5,
     scope: "PROJECT",

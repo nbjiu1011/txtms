@@ -26,7 +26,7 @@ export function OpsCustomersView({ openTab }: WorkViewProps) {
   const openDetail = (c: Pick<OpsCustomer, "id">) => openTab({ route: "opsCustomer", params: { id: String(c.id) } });
 
   return (
-    <Page wide>
+    <Page>
       <PageHeader
         title="고객사 관리"
         description="솔루션 운영 담당자가 고객사를 등록하고 상태를 관리합니다. 이력이 연결된 고객사는 삭제하지 않고 비활성으로 보존합니다."

@@ -51,7 +51,7 @@ export function AdminUsersView({ context }: WorkViewProps) {
 
   return (
     <>
-      <Page wide>
+      <Page>
         <PageHeader
           title="사용자·권한 관리"
           description="한 사용자가 여러 역할을 가질 수 있지만 요청자와 검수자는 함께 가질 수 없습니다. 역할이 바뀌어도 접근 범위는 자동으로 넓어지지 않습니다."

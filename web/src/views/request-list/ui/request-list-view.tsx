@@ -70,7 +70,7 @@ export function RequestListView({ me, context, openTab }: WorkViewProps) {
   const openRequest = (id: string) => openTab({ route: "request", params: { id } });
 
   return (
-    <Page wide>
+    <Page>
       <PageHeader
         title="요청"
         description={`${project?.name ?? ""} 프로젝트의 모든 요청입니다. 프로젝트 구성원은 담당 여부와 관계없이 조회할 수 있습니다.`}

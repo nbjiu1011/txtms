@@ -28,7 +28,7 @@ export function ReviewView({ me, context, openTab }: WorkViewProps) {
 
   if (projectId === null || subs.length === 0) {
     return (
-      <Page wide>
+      <Page>
         <PageHeader title="검수" />
         <Empty title="검수할 프로젝트가 없습니다" description="검수자 또는 대표 검수자 역할이 있는 프로젝트를 선택하세요." />
       </Page>
@@ -36,7 +36,7 @@ export function ReviewView({ me, context, openTab }: WorkViewProps) {
   }
 
   return (
-    <Page wide>
+    <Page>
       <PageHeader
         title="검수"
         description={`${project?.name ?? ""} 프로젝트. ${
