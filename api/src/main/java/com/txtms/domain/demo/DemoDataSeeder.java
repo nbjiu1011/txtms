@@ -359,8 +359,6 @@ public class DemoDataSeeder implements ApplicationRunner {
             p1.addTemplate("HB_POINT_01", "포인트 적립 안내");
             p1.addTemplate("HB_BILL_02", "청구 금액 안내");
             p1.addTemplate("HB_EVT_03", "이벤트 당첨 안내");
-            p1.addSender("1588-0000");
-            p1.addSender("02-3456-7000");
             p.put("p1", projects.save(p1));
 
             Project p2 = new Project(c.get("c1").getId(), SEED_PROJECTS.get("p2").get(1), id("u5"), at(-119));
@@ -368,7 +366,6 @@ public class DemoDataSeeder implements ApplicationRunner {
             p2.addRole(id("u2"), ProjectRole.REVIEWER);
             p2.addRole(id("u4"), ProjectRole.APPROVER);
             p2.assignLead(id("u3"));
-            p2.addSender("1588-0000");
             p.put("p2", projects.save(p2));
 
             Project p3 = new Project(c.get("c2").getId(), SEED_PROJECTS.get("p3").get(1), id("u5"), at(-73));
@@ -376,7 +373,6 @@ public class DemoDataSeeder implements ApplicationRunner {
             p3.addRole(id("u10"), ProjectRole.REVIEWER);
             p3.assignLead(id("u8"));
             p3.addTemplate("DD_PAY_01", "보험료 납입 안내");
-            p3.addSender("1577-1234");
             p.put("p3", projects.save(p3));
         }
 

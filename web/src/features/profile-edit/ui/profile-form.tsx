@@ -3,7 +3,8 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { serverFormError } from "@/shared/api";
-import { Field, Input, toast } from "@/shared/ui";
+import { toast } from "@/shared/ui";
+import { Field, Input } from "@/shared/common";
 import { meApi, useSessionStore, type Me } from "@/entities/me";
 import { profileSchema, type ProfileValues } from "../model/schema";
 

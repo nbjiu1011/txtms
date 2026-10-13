@@ -1,7 +1,8 @@
 "use client";
 
 import { LIST_PAGE_SIZE, formatDateTime, useClampPage, useListPage } from "@/shared/lib";
-import { Button, Empty, Pager, Panel, PanelBody, PanelHeader, ReadOnlyBox, Table, Tag } from "@/shared/ui";
+import { Empty, Panel, PanelBody, PanelHeader, ReadOnlyBox, Table, Tag } from "@/shared/ui";
+import { Button, Pager } from "@/shared/common";
 import { OUTBOX_KIND_LABEL, OUTBOX_STATUS_LABEL } from "@/entities/audit";
 import { useOpsOutbox, useSampleOverview, useSetupLogs, type OpsCustomer } from "@/entities/ops";
 import { REQUEST_STATUS_LABEL } from "@/entities/request";

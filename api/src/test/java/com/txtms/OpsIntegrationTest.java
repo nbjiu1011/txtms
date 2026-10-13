@@ -282,7 +282,7 @@ class OpsIntegrationTest extends IntegrationTestBase {
         assertThat(check.path("ok").asBoolean()).isFalse();
         assertThat(check.path("details").toString()).contains("템플릿");
 
-        // ---- templates and senders set by the operator
+        // ---- Alimtalk templates set by the operator
         String tpl = "/api/ops/projects/" + pid + "/templates";
         expect(403, boss, put(tpl), List.of(Map.of("code", "M7_WELCOME_01", "name", "가입 환영")));
         assertThat(expect(400, operator, put(tpl), List.of(Map.of("code", "bad code", "name", "x")))
@@ -296,15 +296,14 @@ class OpsIntegrationTest extends IntegrationTestBase {
                 Map.of("code", "M7_WELCOME_01", "name", "가입 환영")));
         expect(200, operator, put(tpl), List.of(Map.of("code", "M7_BILL_02", "name", "청구"),
                 Map.of("code", "M7_WELCOME_01", "name", "가입 환영"))); // unchanged: no audit
-        String snd = "/api/ops/projects/" + pid + "/senders";
-        assertThat(expect(400, operator, put(snd), List.of("12ab")).path("message").asString())
-                .isEqualTo("발신번호 형식을 확인하세요 (예: 1588-0000, 02-3456-7000)");
-        assertThat(expect(200, operator, put(snd), List.of("1588-1234", "02-555-0101")).path("senders").get(1)
-                .asString()).isEqualTo("02-555-0101");
-        assertThat(auditCount("프로젝트 발신 정보 변경", cid)).isEqualTo(3);
-        assertThat(jdbc.queryForObject("SELECT detail FROM audit_logs WHERE action = '프로젝트 발신 정보 변경' "
+        assertThat(auditCount("프로젝트 알림톡 템플릿 변경", cid)).isEqualTo(2);
+        assertThat(auditCount("프로젝트 발신 정보 변경", cid)).isZero();
+        assertThat(jdbc.queryForObject("SELECT detail FROM audit_logs WHERE action = '프로젝트 알림톡 템플릿 변경' "
                 + "AND customer_id = ? ORDER BY id DESC LIMIT 1", String.class, cid))
-                .isEqualTo("발신번호 없음 → 1588-1234, 02-555-0101");
+                .isEqualTo("알림톡 템플릿 M7_WELCOME_01, M7_BILL_02 → M7_BILL_02, M7_WELCOME_01");
+        // sender numbers are no longer registered per project
+        expect(404, operator, put("/api/ops/projects/" + pid + "/senders"), List.of("1588-1234"));
+        assertThat(withTemplates.has("senders")).isFalse();
         expect(404, operator, put("/api/ops/projects/999999/templates"), List.of());
         assertThat(getJson(writer, "/api/projects/" + pid).path("templates")).hasSize(2);
 
@@ -313,7 +312,7 @@ class OpsIntegrationTest extends IntegrationTestBase {
         assertThat(submitted.path("status").asString()).isEqualTo("WAITING");
         assertThat(getJson(operator, "/api/ops/setup-logs?customerId=" + cid).path("content").toString())
                 .contains("템플릿 등록")
-                .contains("발신번호 등록").contains("초기 프로젝트 생성").contains("초대 링크 생성");
+                .doesNotContain("발신번호 등록").contains("초기 프로젝트 생성").contains("초대 링크 생성");
         JsonNode customerRow = getJson(operator, "/api/ops/customers/" + cid);
         assertThat(customerRow.path("activeRequestCount").asLong()).isEqualTo(1);
         assertThat(customerRow.path("projectCount").asLong()).isEqualTo(2);
@@ -322,7 +321,7 @@ class OpsIntegrationTest extends IntegrationTestBase {
         // operator audit listing: one customer, newest first
         JsonNode audits = getJson(operator, "/api/ops/audit-logs?customerId=" + cid + "&size=100").path("content");
         audits.forEach(a -> assertThat(a.path("customerId").asLong()).isEqualTo(cid));
-        assertThat(audits.get(0).path("action").asString()).isEqualTo("프로젝트 발신 정보 변경");
+        assertThat(audits.get(0).path("action").asString()).isEqualTo("프로젝트 알림톡 템플릿 변경");
     }
 
     @Test
@@ -417,7 +416,7 @@ class OpsIntegrationTest extends IntegrationTestBase {
         assertThat(projects).hasSize(1);
         assertThat(projects.get(0).path("id").asLong()).isEqualTo(t.projectId());
         assertThat(projects.get(0).path("templates").get(0).path("code").asString()).isEqualTo("HB_POINT_01");
-        assertThat(projects.get(0).path("senders").get(0).asString()).isEqualTo("1588-0000");
+        assertThat(projects.get(0).has("senders")).isFalse();
         assertThat(projects.get(0).has("activeRequestCount")).isFalse();
 
         // ---- dataset assignment: operator names of the assignment and the confirmation
@@ -620,6 +619,21 @@ class OpsIntegrationTest extends IntegrationTestBase {
         assertThat(getJson(operator, "/api/ops/setup-logs?customerId=" + s.customerId()).path("content").get(0)
                 .path("result")
                 .asString()).isEqualTo("운영 요청 1건은 보존");
+    }
+
+    @Test
+    void smsSampleRequestHasABlankSender() throws Exception {
+        Tenant s = newTenant();
+        jdbc.update("UPDATE customers SET sample = 1 WHERE id = ?", s.customerId());
+        Login operator = login(JUNG_OPERATOR);
+        String id = expect(201, operator, post("/api/ops/customers/" + s.customerId() + "/sample-requests"),
+                Map.of("projectId", s.projectId(), "type", "SMS")).path("id").asString();
+        // projects register no sender numbers any more, so the sample leaves the optional sender empty
+        JsonNode payload = json.readTree(jdbc.queryForObject("SELECT payload FROM contents WHERE request_id = ?",
+                String.class, id));
+        assertThat(payload.has("sender")).isTrue();
+        assertThat(payload.path("sender").asString()).isEmpty();
+        assertThat(payload.path("body").asString()).endsWith("샘플 안내 문안입니다.");
     }
 
     @Test

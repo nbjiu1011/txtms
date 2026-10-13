@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AUTH_PATHS } from "@/shared/config/routes";
-import { Banner, BrandMark, Button, Tag, toast } from "@/shared/ui";
+import { Banner, BrandMark, Tag, toast } from "@/shared/ui";
+import { Button } from "@/shared/common";
 import { SignupForm, useSignupOptions } from "@/features/auth";
 import { ServiceFlow, SetupLane } from "./service-flow";
 import styles from "./signup-view.module.css";

@@ -1,4 +1,4 @@
-import type { StatusTone } from "@/shared/ui";
+import { type StatusTone } from "@/shared/ui";
 
 /** Who does a step. Each actor has its own accent in the flow (always shown with its name). */
 export type FlowActor = "requester" | "lead" | "reviewer" | "primary" | "approver" | "admin" | "operator" | "system";

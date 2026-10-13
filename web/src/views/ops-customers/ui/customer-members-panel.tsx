@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { LIST_PAGE_SIZE, formatDate, useClampPage } from "@/shared/lib";
-import { Avatar, Button, Empty, Pager, Panel, PanelHeader, Table, Tag } from "@/shared/ui";
+import { Avatar, Empty, Panel, PanelHeader, Table, Tag } from "@/shared/ui";
+import { Button, Pager } from "@/shared/common";
 import { useOpsCustomerMembers } from "@/entities/ops";
 import { LEAD_ROLE_LABEL, PROJECT_ROLE_LABEL } from "@/entities/project";
 import type { Member } from "@/entities/user";

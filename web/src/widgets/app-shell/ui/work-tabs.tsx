@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { cn } from "@/shared/lib";
 import { ADMIN_MENU, ROUTES, WORK_MENU, type RouteKey, type TabRef } from "@/shared/config/routes";
-import { Icon, Modal, Popover, PopoverBody, PopoverHeader, PopoverItem, PopoverSection, Tag } from "@/shared/ui";
+import { Icon, Tag } from "@/shared/ui";
+import { Modal, Popover, PopoverBody, PopoverHeader, PopoverItem, PopoverSection } from "@/shared/common";
 import type { WorkTab } from "../model/tab-model";
 import { useRecentContents } from "../model/use-recent-contents";
 import styles from "./work-tabs.module.css";
@@ -20,11 +21,12 @@ export interface WorkTabsProps {
   onOpen: (ref: TabRef) => void;
 }
 
-/** Visible title of a tab: request/content/customer titles come from the view, menus from ROUTES. */
+/** Visible title of a tab: request/content/customer/notice titles come from the view, menus from ROUTES. */
 export function tabTitle(tab: WorkTab): string {
   if (tab.route === "request") return tab.title || tab.params.id || "요청";
   if (tab.route === "content") return tab.title || "콘텐츠";
   if (tab.route === "opsCustomer") return tab.title || "고객사";
+  if (tab.route === "notice" || tab.route === "adminNotice") return tab.title || "공지";
   return ROUTES[tab.route].title;
 }
 

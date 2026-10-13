@@ -3,7 +3,8 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { serverFormError } from "@/shared/api";
-import { Button, Field, Input, toast } from "@/shared/ui";
+import { toast } from "@/shared/ui";
+import { Button, Field, Input } from "@/shared/common";
 import { meApi } from "@/entities/me";
 import {
   PASSWORD_POLICY_TEXT,

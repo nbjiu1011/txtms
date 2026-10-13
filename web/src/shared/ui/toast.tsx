@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { create } from "zustand";
-import styles from "./overlay.module.css";
 
 export const TOAST_DURATION_MS = 2800;
 
@@ -40,7 +39,11 @@ export function Toaster() {
 
   if (!message) return null;
   return (
-    <div className={styles.toast} role="status" aria-live="polite">
+    <div
+      className="fixed left-1/2 bottom-[calc(24px+env(safe-area-inset-bottom,0px))] -translate-x-1/2 z-60 max-w-[90vw] bg-navy text-surface py-2.5 px-4 rounded-md text-[13px] shadow-pop"
+      role="status"
+      aria-live="polite"
+    >
       {message}
     </div>
   );

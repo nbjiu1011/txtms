@@ -82,6 +82,22 @@ public class NoticeService {
         return PageResponse.slice(visible(user, customer), page, this::responses);
     }
 
+    /**
+     * One notice (detail page, contract §19): the customer's admins see every notice of their customer, withdrawn
+     * ones included; everybody else only a notice they may read in the list. Anything else is {@code NOT_FOUND}.
+     */
+    public NoticeResponse detail(AuthUser auth, long noticeId) {
+        User user = userService.require(auth.userId());
+        Notice notice = notices.findById(noticeId).orElseThrow(BusinessException::notFound);
+        Customer customer = projectAccess.requireAccessibleCustomer(user, notice.getCustomerId());
+        boolean readable = user.isAdminOf(customer.getId())
+                || visible(user, customer).stream().anyMatch(n -> n.getId().equals(notice.getId()));
+        if (!readable) {
+            throw BusinessException.notFound();
+        }
+        return responses(List.of(notice)).getFirst();
+    }
+
     /** Newest visible notices of the customer, for dashboards. */
     public List<NoticeSummary> latest(User user, Customer customer, int limit) {
         return visible(user, customer).stream().limit(limit)

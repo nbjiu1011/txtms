@@ -2,7 +2,8 @@
 
 import { Fragment, useState } from "react";
 import { LIST_PAGE_SIZE, formatDateTime, useClampPage, useListPage } from "@/shared/lib";
-import { Button, Empty, Page, PageHeader, Pager, Panel, Select, Table } from "@/shared/ui";
+import { Empty, Page, PageHeader, Panel, Table } from "@/shared/ui";
+import { Button, Pager, Select } from "@/shared/common";
 import {
   VARIABLE_TYPE_LABEL,
   logsByVariable,

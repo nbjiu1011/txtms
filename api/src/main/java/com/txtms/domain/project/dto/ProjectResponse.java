@@ -17,7 +17,6 @@ public record ProjectResponse(
         boolean active,
         Long leadUserId,
         List<Template> templates,
-        List<String> senders,
         List<Member> members,
         int variablesRevision,
         @JsonInclude(JsonInclude.Include.NON_NULL) Long activeRequestCount) {
@@ -38,6 +37,6 @@ public record ProjectResponse(
                 .map(e -> new Member(e.getKey(), e.getValue().stream().sorted().toList()))
                 .toList();
         return new ProjectResponse(p.getId(), p.getCustomerId(), p.getName(), p.isActive(), p.getLeadUserId(),
-                templates, p.getSenders(), members, p.getVariablesRevision(), activeRequestCount);
+                templates, members, p.getVariablesRevision(), activeRequestCount);
     }
 }

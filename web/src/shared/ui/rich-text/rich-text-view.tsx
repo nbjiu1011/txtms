@@ -2,8 +2,7 @@
 
 import "quill/dist/quill.snow.css";
 import DOMPurify from "dompurify";
-import { cn } from "@/shared/lib";
-import { useMounted } from "../overlay/use-mounted";
+import { cn, useMounted } from "@/shared/lib";
 import { isRichText } from "./rich-text";
 import styles from "./rich-text.module.css";
 

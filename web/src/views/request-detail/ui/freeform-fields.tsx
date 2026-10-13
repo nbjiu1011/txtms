@@ -2,7 +2,8 @@
 
 import { useId } from "react";
 import { downloadFile } from "@/shared/api";
-import { Button, Field, Icon, Input, Label, Tag, Textarea, buttonClassName, toast } from "@/shared/ui";
+import { Icon, Tag, toast } from "@/shared/ui";
+import { Button, Field, Input, Label, Textarea, buttonClassName } from "@/shared/common";
 import { FILE_UNIT_LABEL, requestFilePaths, type Content, type FileMeta, type FreeformPayload } from "@/entities/request";
 import { parseFileRange, readFileRange, type FileRangeDraft } from "../model/file-range";
 import { UPLOAD_STATE_LABEL, type UploadItem } from "../model/upload-queue";

@@ -1,7 +1,8 @@
 "use client";
 
 import { cn } from "@/shared/lib";
-import { Button, Panel, PanelBody, PanelHeader, Table, Tag, tableClasses } from "@/shared/ui";
+import { Panel, PanelBody, PanelHeader, Table, Tag, tableClasses } from "@/shared/ui";
+import { Button } from "@/shared/common";
 import {
   ASSIGNABLE_TYPES,
   assignmentOf,
@@ -143,7 +144,7 @@ export function RuleSeedPanel({ customer, datasets, assignments, contentTypes, o
   );
 }
 
-export interface SendingPanelProps {
+export interface TemplatePanelProps {
   projects: Project[];
   loading: boolean;
   /** Inactive customer: its projects are listed (operator API) but cannot be changed. */
@@ -152,19 +153,18 @@ export interface SendingPanelProps {
 }
 
 /**
- * 프로젝트 발신 정보 (not in the reference): the 알림톡 templates and 문자 sender numbers each project's
+ * 프로젝트 알림톡 템플릿 (not in the reference): the 알림톡 template codes each project's 알림톡
  * contents are checked against on submission.
  */
-export function SendingPanel({ projects, loading, inactive, onEdit }: SendingPanelProps) {
+export function TemplatePanel({ projects, loading, inactive, onEdit }: TemplatePanelProps) {
   return (
     <Panel className={styles.block}>
-      <PanelHeader title="프로젝트 발신 정보" note="알림톡 템플릿과 문자 발신번호는 검수 요청 검증 기준입니다" />
+      <PanelHeader title="프로젝트 알림톡 템플릿" note="알림톡은 등록한 템플릿 코드와 같아야 검수 요청할 수 있습니다" />
       <Table>
         <thead>
           <tr>
             <th>프로젝트</th>
             <th>알림톡 템플릿</th>
-            <th>문자 발신번호</th>
             <th>상태</th>
             <th>
               <span className={styles.sr}>편집</span>
@@ -174,7 +174,7 @@ export function SendingPanel({ projects, loading, inactive, onEdit }: SendingPan
         <tbody>
           {projects.length === 0 ? (
             <tr>
-              <td colSpan={5} className={styles.muted}>
+              <td colSpan={4} className={styles.muted}>
                 {loading
                   ? "불러오는 중입니다."
                   : inactive
@@ -196,25 +196,15 @@ export function SendingPanel({ projects, loading, inactive, onEdit }: SendingPan
                     <span className={styles.faint}>없음</span>
                   )}
                 </td>
-                <td>
-                  {p.senders.length ? (
-                    <>
-                      {p.senders.slice(0, 3).join(", ")}
-                      {p.senders.length > 3 ? ` 외 ${p.senders.length - 3}개` : ""}
-                    </>
-                  ) : (
-                    <span className={styles.faint}>없음</span>
-                  )}
-                </td>
                 <td>{p.active ? <Tag>사용</Tag> : <Tag variant="hot">중지</Tag>}</td>
                 <td>
                   <Button
                     size="sm"
                     disabled={inactive}
-                    title={inactive ? "비활성 고객사입니다. 사용 재개 후 발신 정보를 설정하세요." : undefined}
+                    title={inactive ? "비활성 고객사입니다. 사용 재개 후 알림톡 템플릿을 설정하세요." : undefined}
                     onClick={() => onEdit(p)}
                   >
-                    발신 정보
+                    알림톡 템플릿
                   </Button>
                 </td>
               </tr>

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { formatDate, kstDateKey } from "@/shared/lib";
-import { Field, Input, Modal, Textarea, toast } from "@/shared/ui";
+import { toast } from "@/shared/ui";
+import { Field, Input, Modal, Textarea } from "@/shared/common";
 import { requestApi, type RequestDetail, type Urgency } from "@/entities/request";
 import { firstMissing } from "../model/assignment-form";
 import { handleWorkflowError, modalResult } from "../model/workflow-error";

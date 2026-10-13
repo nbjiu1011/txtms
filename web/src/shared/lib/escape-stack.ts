@@ -3,8 +3,10 @@
 import { useEffect, useRef, useLayoutEffect } from "react";
 
 /**
- * Escape closes exactly one overlay per key press, in this order:
- * modal → popover → drawer → mobile navigation (latest opened wins within a level).
+ * Escape closes exactly one layer per key press (highest priority, then latest opened, wins).
+ * radix overlays (modal, popover, drawer, select) handle Escape themselves in the capture phase and
+ * cancel the event, so a layer registered here (the mobile navigation) only closes when no radix
+ * overlay is open above it.
  */
 export const ESCAPE_PRIORITY = {
   nav: 0,

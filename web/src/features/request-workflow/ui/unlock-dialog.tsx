@@ -1,6 +1,7 @@
 "use client";
 
-import { Modal, toast } from "@/shared/ui";
+import { toast } from "@/shared/ui";
+import { Modal } from "@/shared/common";
 import { requestApi } from "@/entities/request";
 import { handleWorkflowError } from "../model/workflow-error";
 

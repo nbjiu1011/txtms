@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/shared/lib";
-import { Empty, Modal } from "@/shared/ui";
+import { Empty } from "@/shared/ui";
+import { Modal } from "@/shared/common";
 import {
   canEditContentByPolicy,
   invalidateRequestViews,

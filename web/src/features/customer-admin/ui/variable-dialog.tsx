@@ -2,7 +2,8 @@
 
 import { useId, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Checkbox, ErrorDetails, Field, Input, Modal, Select, toast } from "@/shared/ui";
+import { ErrorDetails, toast } from "@/shared/ui";
+import { Checkbox, Field, Input, Modal, Select, useServerError } from "@/shared/common";
 import { projectKeys } from "@/entities/project";
 import {
   VARIABLE_TYPES,
@@ -13,7 +14,6 @@ import {
   type VariableType,
 } from "@/entities/variable";
 import { initialVariableForm, variableFormProblem, variablePatch, type VariableForm } from "../model/variable-form";
-import { useServerError } from "@/shared/ui";
 
 export interface VariableDialogProps {
   open: boolean;

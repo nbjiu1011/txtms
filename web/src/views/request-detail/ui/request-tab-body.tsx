@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Modal, toast } from "@/shared/ui";
+import { toast } from "@/shared/ui";
+import { Modal } from "@/shared/common";
 import {
   CONTENT_TYPE_LABEL,
   FINAL_STATUSES,

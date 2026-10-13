@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ErrorDetails, Modal, Table, tableClasses, toast } from "@/shared/ui";
+import { ErrorDetails, Table, tableClasses, toast } from "@/shared/ui";
+import { Modal, useServerError } from "@/shared/common";
 import type { Customer } from "@/entities/customer";
 import { PROJECT_ROLES, type Project } from "@/entities/project";
 import { memberApi, type Member } from "@/entities/user";
@@ -15,7 +16,6 @@ import {
   toggleRole,
   type RoleMatrix,
 } from "../model/role-matrix";
-import { useServerError } from "@/shared/ui";
 
 export interface RoleEditDialogProps {
   open: boolean;

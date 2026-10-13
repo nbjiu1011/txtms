@@ -26,7 +26,6 @@ const project = (id: number, customerId: number, name: string): Project => ({
   active: true,
   leadUserId: null,
   templates: [],
-  senders: [],
   members: [],
   variablesRevision: 0,
 });

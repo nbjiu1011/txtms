@@ -124,7 +124,6 @@ public class SampleRequestService {
             payload.put("body", "#{customer_name}님, 샘플 안내 문안입니다. 내용을 바꿔 보세요.");
         } else if (type == ContentType.SMS) {
             payload.put("body", "[" + customer.getName() + "] 샘플 안내 문안입니다.");
-            payload.put("sender", project.getSenders().isEmpty() ? "" : project.getSenders().getFirst());
         }
         contents.save(new Content(r.getId(), "C1", "콘텐츠 1", json.writeValueAsString(payload), 1, now));
         support.log(r, requesterId, "요청 작성", null, null, null);

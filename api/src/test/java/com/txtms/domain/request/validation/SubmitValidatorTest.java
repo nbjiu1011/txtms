@@ -32,7 +32,7 @@ class SubmitValidatorTest {
     private static final Map<String, String> VARS = Map.of("customer_name", "홍길동", "event_url", "https://a.kr/e");
 
     private Input input(ContentType type, RequestInfo info, List<ContentInput> contents) {
-        return new Input(info, type, true, true, Set.of("HB_POINT_01"), Set.of("1588-0000"), VARS, contents);
+        return new Input(info, type, true, true, Set.of("HB_POINT_01"), VARS, contents);
     }
 
     private ContentInput content(String key, String payload, FileInput... files) {
@@ -66,7 +66,7 @@ class SubmitValidatorTest {
     void requestInformationAndTypeAndProjectRules() {
         RequestInfo empty = new RequestInfo(" ", null, "", null, "", null, Urgency.NORMAL);
         SubmitValidator.Result r = validator.validate(new Input(empty, ContentType.FREEFORM, false, false, Set.of(),
-                Set.of(), Map.of(), List.of()));
+                Map.of(), List.of()));
         assertThat(r.details()).containsExactly("요청 정보: 제목", "요청 정보: 희망 납기", "요청 정보: 목적", "요청 정보: 대상 고객",
                 "요청 정보: 배경", "요청 정보: 유형", "콘텐츠가 1건 이상 필요합니다", "사용 중인 프로젝트에서 검수를 요청하세요");
         assertThat(r.fieldErrors()).extracting(f -> f.field() + "=" + f.message()).containsExactly(
@@ -106,9 +106,7 @@ class SubmitValidatorTest {
     @Test
     void smsRulesUseTheSingleByteFormula() {
         assertThat(details(ContentType.SMS, "{\"sender\":\"\",\"body\":\"\",\"customerCenter\":false,\"optOut\":false}"))
-                .containsExactly("C1 콘텐츠 1: 발신번호", "C1 콘텐츠 1: 본문");
-        assertThat(details(ContentType.SMS, "{\"sender\":\"02-000\",\"body\":\"a\",\"customerCenter\":false,"
-                + "\"optOut\":false}")).containsExactly("C1: 등록된 발신번호");
+                .containsExactly("C1 콘텐츠 1: 본문");
         // 1,973 bytes + 27 (opt-out line) = 2,000 → LMS; + 19 (customer center) = 2,019 → over LMS, still ok
         String body = "a".repeat(1973);
         SubmitValidator.Result lms = result(ContentType.SMS, "{\"sender\":\"1588-0000\",\"body\":\"" + body
@@ -181,6 +179,15 @@ class SubmitValidatorTest {
         assertThat(details(ContentType.SMS,
                 "{\"sender\":\"1588-0000\",\"body\":\"\",\"customerCenter\":false,\"optOut\":false}",
                 "{\"sender\":\"999\",\"body\":\"\",\"customerCenter\":false,\"optOut\":false}"))
-                .containsExactly("C1 콘텐츠 1: 본문", "C2 콘텐츠 2: 본문", "C2: 등록된 발신번호");
+                .containsExactly("C1 콘텐츠 1: 본문", "C2 콘텐츠 2: 본문");
+    }
+
+    @Test
+    void smsSenderIsOptionalFreeText() {
+        // no registered sender numbers: blank and arbitrary senders both pass
+        assertThat(details(ContentType.SMS, "{\"sender\":\"\",\"body\":\"안내\",\"customerCenter\":false,"
+                + "\"optOut\":false}")).isEmpty();
+        assertThat(details(ContentType.SMS, "{\"sender\":\"홍보팀 담당자 02-000\",\"body\":\"안내\","
+                + "\"customerCenter\":false,\"optOut\":false}")).isEmpty();
     }
 }

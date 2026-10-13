@@ -18,12 +18,12 @@ class BulkRowValidatorTest {
             new ChannelSpecCheck.Spec(1000, 5, 14, 90, 2000), "고객센터 1588-0000", "무료 수신거부 080-000-0000"));
 
     private java.util.List<String> alimtalk(String payload) {
-        return validator.validate(ContentType.ALIMTALK, json.readTree(payload), Set.of("HB_POINT_01"), Set.of(),
+        return validator.validate(ContentType.ALIMTALK, json.readTree(payload), Set.of("HB_POINT_01"),
                 Map.of("customer_name", "홍길동"));
     }
 
     private java.util.List<String> sms(String payload) {
-        return validator.validate(ContentType.SMS, json.readTree(payload), Set.of(), Set.of("1588-0000"),
+        return validator.validate(ContentType.SMS, json.readTree(payload), Set.of(),
                 Map.of("customer_name", "홍길동"));
     }
 
@@ -52,7 +52,11 @@ class BulkRowValidatorTest {
     @Test
     void smsRowErrorsUseTheSingleByteRule() {
         assertThat(sms("{\"sender\":\"02\",\"body\":\"\",\"customerCenter\":false,\"optOut\":false}"))
-                .containsExactly("등록되지 않은 발신번호", "본문 없음");
+                .containsExactly("본문 없음");
+        // the 발신자 column is optional free text: blank or any value is never an error
+        assertThat(sms("{\"sender\":\"\",\"body\":\"안내\",\"customerCenter\":false,\"optOut\":false}")).isEmpty();
+        assertThat(sms("{\"sender\":\"마케팅팀\",\"body\":\"안내\",\"customerCenter\":false,\"optOut\":false}"))
+                .isEmpty();
         // 1,973 + 27 = 2,000 (LMS); 1,974 + 27 = 2,001 over LMS: a warning, never an error
         String lms = "{\"sender\":\"1588-0000\",\"body\":\"" + "a".repeat(1973) + "\",\"customerCenter\":false,"
                 + "\"optOut\":true}";

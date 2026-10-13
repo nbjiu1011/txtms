@@ -10,6 +10,7 @@ import type { Project } from "@/entities/project";
 import type { ArchiveLine } from "@/entities/request";
 import type { WorkViewProps } from "@/widgets/app-shell";
 import { ContentArchiveView } from "./content-archive-view";
+import { chooseValue } from "@/shared/common/testing";
 
 type Query = Record<string, unknown>;
 
@@ -94,7 +95,7 @@ describe("ContentArchiveView paging", () => {
     await waitFor(() => expect(line(1)).toBeTruthy());
     fireEvent.click(screen.getByRole("button", { name: "다음" }));
     await screen.findByText("2 / 3");
-    fireEvent.change(screen.getByLabelText("유형"), { target: { value: "SMS" } });
+    chooseValue(screen.getByLabelText("유형"), "SMS");
     await waitFor(() => expect(lastQuery(get)).toMatchObject({ type: "SMS", page: 0, size: 20 }));
     await waitFor(() => expect(screen.getAllByRole("listitem")).toHaveLength(3));
     expect(screen.queryByRole("button", { name: "다음" })).toBeNull();

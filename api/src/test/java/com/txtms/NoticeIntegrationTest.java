@@ -165,4 +165,37 @@ class NoticeIntegrationTest extends IntegrationTestBase {
         expect(201, admin, post(base), Map.of("scope", "CUSTOMER", "title", "서식 많은 공지", "body",
                 "<p><strong>" + "가".repeat(9_000) + "</strong></p>"));
     }
+
+    @Test
+    void detailFollowsTheListRulesAndAdminsAlsoReadWithdrawnNotices() throws Exception {
+        Tenant t = newTenant();
+        Tenant other = newTenant();
+        Login admin = login(t.admin());
+        Login req = login(t.requester());
+        String base = "/api/customers/" + t.customerId() + "/notices";
+        long wide = expect(201, admin, post(base), Map.of("scope", "CUSTOMER", "title", "전체 공지", "body",
+                "<p>본문</p>")).path("id").asLong();
+        long project = expect(201, admin, post(base), Map.of("scope", "PROJECT", "projectId", t.projectId(),
+                "title", "프로젝트 공지", "body", "본문")).path("id").asLong();
+
+        JsonNode detail = getJson(req, "/api/notices/" + wide);
+        assertThat(detail.path("title").asString()).isEqualTo("전체 공지");
+        assertThat(detail.path("body").asString()).isEqualTo("<p>본문</p>");
+        assertThat(detail.path("logs").isArray()).isTrue();
+        getJson(req, "/api/notices/" + project);
+
+        // withdrawn: gone for members, still readable (with the withdrawal log) for the customer's admins
+        expect(200, admin, post("/api/notices/" + wide + "/withdraw"), null);
+        expect(404, req, get("/api/notices/" + wide), null);
+        JsonNode withdrawn = getJson(admin, "/api/notices/" + wide);
+        assertThat(withdrawn.path("withdrawn").asBoolean()).isTrue();
+        assertThat(withdrawn.path("logs").get(0).path("action").asString()).isEqualTo("철회");
+
+        // other customers, outsiders of the project and operators do not learn that it exists
+        expect(404, login(other.admin()), get("/api/notices/" + project), null);
+        expect(404, login(other.requester()), get("/api/notices/" + project), null);
+        expect(404, login(outsider(t)), get("/api/notices/" + project), null);
+        expect(404, login(JUNG_OPERATOR), get("/api/notices/" + project), null);
+        expect(404, req, get("/api/notices/999999999"), null);
+    }
 }

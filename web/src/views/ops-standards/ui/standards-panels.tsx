@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatDateTime } from "@/shared/lib";
-import { Button, Checkbox, Empty, Panel, PanelBody, PanelHeader, Table, Tag, tableClasses, toast } from "@/shared/ui";
+import { Empty, Panel, PanelBody, PanelHeader, Table, Tag, tableClasses, toast } from "@/shared/ui";
+import { Button, Checkbox } from "@/shared/common";
 import { datasetScopeLabel, opsApi, type Dataset } from "@/entities/ops";
 import { CONTENT_TYPE_LABEL, type ContentType, type ContentTypeSetting } from "@/entities/request";
 import { invalidateOps } from "@/features/ops-admin";
@@ -12,7 +13,7 @@ import styles from "./ops-standards.module.css";
 /** Fixed descriptions of the reference types table (H:1632). */
 const TYPE_INPUTS: Record<ContentType, string> = {
   ALIMTALK: "승인 템플릿, 본문, 변수, 버튼",
-  SMS: "발신번호, 본문, 고객센터·수신거부 안내 여부",
+  SMS: "발신번호(선택), 본문, 고객센터·수신거부 안내 여부",
   RCS: "제목, 본문, 이미지, 이미지 설명, 카드 수, 버튼",
   FREEFORM: "직접 입력 텍스트, 변수, 선택 제목, 첨부파일",
 };

@@ -1,7 +1,8 @@
 "use client";
 
 import type { KeyboardEvent, MouseEvent } from "react";
-import { Button, Icon, IconButton } from "@/shared/ui";
+import { Icon } from "@/shared/ui";
+import { Button, IconButton } from "@/shared/common";
 import type { CardView } from "../model/card";
 import { fieldLabel } from "../model/field-label";
 import type { GroupState } from "../model/run";

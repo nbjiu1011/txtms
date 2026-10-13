@@ -2,7 +2,8 @@
 
 import { useId, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Button, ErrorDetails, Field, KeyValueList, Modal, Select, toast, useServerError } from "@/shared/ui";
+import { ErrorDetails, KeyValueList, toast } from "@/shared/ui";
+import { Button, Field, Modal, Select, useServerError } from "@/shared/common";
 import { opsApi } from "@/entities/ops";
 import type { Project } from "@/entities/project";
 import { CONTENT_TYPE_LABEL, type ContentType, type ContentTypeSetting } from "@/entities/request";

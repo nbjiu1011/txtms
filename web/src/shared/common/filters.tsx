@@ -1,18 +1,17 @@
 import type { ReactNode } from "react";
 import { cn } from "@/shared/lib";
-import { Input } from "./form";
-import styles from "./filters.module.css";
+import { Input } from "./field";
 
 /** Class names of controls inside a `FilterBar` (compact inputs, reset button offset). */
 export const filterClasses = {
   /** Input / select inside a filter field (min-height 32, auto width). */
-  control: styles.ctl,
+  control: "min-h-8 w-auto px-2 py-[5px]",
   /** Ghost `초기화` button aligned with the controls' baseline. */
-  reset: styles.reset,
+  reset: "mb-[3px]",
   /** Checkbox label aligned with the controls. */
-  check: styles.check,
+  check: "mb-[7px]",
   /** Row of controls under one label (e.g. two dates without a separator). */
-  range: styles.range,
+  range: "flex items-center gap-2",
 };
 
 export interface FilterBarProps {
@@ -25,11 +24,20 @@ export interface FilterBarProps {
 /** `.filters` — raised bar of labelled filter controls above a list. */
 export function FilterBar({ label, children, className }: FilterBarProps) {
   return (
-    <div className={cn(styles.filters, className)} role="search" aria-label={label}>
+    <div
+      className={cn(
+        "mb-4 flex flex-wrap items-end gap-2 rounded-md border border-transparent bg-surface p-3.5 shadow-lift",
+        className,
+      )}
+      role="search"
+      aria-label={label}
+    >
       {children}
     </div>
   );
 }
+
+const FIELD = "flex flex-col gap-1 [&>label]:text-[12px] [&>label]:text-sub";
 
 export interface FilterFieldProps {
   label: string;
@@ -41,10 +49,16 @@ export interface FilterFieldProps {
   className?: string;
 }
 
-/** `.filters .f` — label above one control. */
+/** `.filters .f` — label above one control. A growing field stretches its control to the full width. */
 export function FilterField({ label, htmlFor, grow, children, className }: FilterFieldProps) {
   return (
-    <div className={cn(styles.f, grow && styles.grow, className)}>
+    <div
+      className={cn(
+        FIELD,
+        grow && "min-w-[200px] flex-1 [&_[role=combobox]]:w-full [&_input]:w-full",
+        className,
+      )}
+    >
       <label htmlFor={htmlFor}>{label}</label>
       {children}
     </div>
@@ -61,20 +75,20 @@ export interface DateRangeFilterProps {
 /** Two date inputs `시작 ~ 끝` under one label. */
 export function DateRangeFilter({ label, from, to, onChange }: DateRangeFilterProps) {
   return (
-    <div className={styles.f} role="group" aria-label={label}>
+    <div className={FIELD} role="group" aria-label={label}>
       <label>{label}</label>
-      <div className={styles.range}>
+      <div className={filterClasses.range}>
         <Input
           type="date"
-          className={styles.ctl}
+          className={filterClasses.control}
           aria-label={`${label} 시작`}
           value={from}
           onChange={(e) => onChange(e.target.value, to)}
         />
-        <span className={styles.tilde}>~</span>
+        <span className="text-faint">~</span>
         <Input
           type="date"
-          className={styles.ctl}
+          className={filterClasses.control}
           aria-label={`${label} 끝`}
           value={to}
           onChange={(e) => onChange(from, e.target.value)}

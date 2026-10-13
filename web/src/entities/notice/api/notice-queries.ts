@@ -4,6 +4,7 @@ import type { Notice, NoticeUpsert } from "../model/types";
 
 export const noticeKeys = {
   all: queryKeys.all("notices"),
+  detail: (id: number) => queryKeys.detail("notices", id),
   visible: (customerId: number, page: number, size: number) => queryKeys.list("notices", { customerId, page, size }),
   managed: (customerId: number, page: number, size: number) =>
     queryKeys.list("notices", { customerId, manage: true, page, size }),
@@ -26,6 +27,15 @@ export function useManagedNotices(customerId: number | null, page: number, size:
     queryFn: () => http.get<Page<Notice>>(`/customers/${customerId}/notices/manage`, { query: { page, size } }),
     enabled: customerId !== null,
     placeholderData: keepPreviousData,
+  });
+}
+
+/** One notice (detail pages): readable like the list; the customer's admins also read withdrawn ones. */
+export function useNotice(id: number | null) {
+  return useQuery({
+    queryKey: noticeKeys.detail(id ?? -1),
+    queryFn: () => http.get<Notice>(`/notices/${id}`),
+    enabled: id !== null,
   });
 }
 

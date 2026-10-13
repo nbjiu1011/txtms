@@ -1,5 +1,6 @@
 import { formatDate } from "@/shared/lib";
-import { Avatar, Bar, Button, Empty, ListItem, Panel, PanelBody, PanelHeader, StatusChip, Tag } from "@/shared/ui";
+import { Avatar, Bar, Empty, ListItem, Panel, PanelBody, PanelHeader, StatusChip, Tag } from "@/shared/ui";
+import { Button } from "@/shared/common";
 import type { DashboardTodo, WorkloadRow } from "@/entities/dashboard";
 import { noticeScopeText, type NoticeSummary } from "@/entities/notice";
 import type { Project } from "@/entities/project";

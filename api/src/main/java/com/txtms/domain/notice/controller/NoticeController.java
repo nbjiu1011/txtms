@@ -36,6 +36,12 @@ public class NoticeController {
         return notices.list(auth, customerId, PageQuery.of(page, size));
     }
 
+    /** One notice the caller may read (admins: withdrawn ones too). */
+    @GetMapping("/notices/{noticeId}")
+    public NoticeResponse detail(@AuthenticationPrincipal AuthUser auth, @PathVariable long noticeId) {
+        return notices.detail(auth, noticeId);
+    }
+
     /** Customer admin: every notice of the customer, withdrawn ones included. */
     @GetMapping("/customers/{customerId}/notices/manage")
     public PageResponse<NoticeResponse> manage(@AuthenticationPrincipal AuthUser auth, @PathVariable long customerId,

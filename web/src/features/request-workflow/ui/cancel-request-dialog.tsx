@@ -1,7 +1,8 @@
 "use client";
 
 import { isApiError } from "@/shared/api";
-import { Modal, toast } from "@/shared/ui";
+import { toast } from "@/shared/ui";
+import { Modal } from "@/shared/common";
 import { requestApi, type RequestDetail } from "@/entities/request";
 
 export interface CancelRequestDialogProps {

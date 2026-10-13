@@ -1,7 +1,8 @@
 "use client";
 
 import { formatDateTime } from "@/shared/lib";
-import { Button, Empty, Seg } from "@/shared/ui";
+import { Empty } from "@/shared/ui";
+import { Button, Seg } from "@/shared/common";
 import {
   buildHistoryTimeline,
   historyTargetLabel,

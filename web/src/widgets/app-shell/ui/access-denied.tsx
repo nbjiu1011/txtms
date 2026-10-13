@@ -1,4 +1,5 @@
-import { Button, Icon, Page } from "@/shared/ui";
+import { Icon, Page } from "@/shared/ui";
+import { Button } from "@/shared/common";
 import styles from "./app-shell.module.css";
 
 export interface AccessDeniedProps {

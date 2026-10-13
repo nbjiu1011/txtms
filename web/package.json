@@ -28,9 +28,11 @@
     "dompurify": "^3.4.16",
     "next": "16.4.0",
     "quill": "^2.0.3",
+    "radix-ui": "^1.8.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-hook-form": "^7.89.0",
+    "tailwind-merge": "^3.7.0",
     "zod": "^4.6.5",
     "zustand": "^5.0.15"
   },

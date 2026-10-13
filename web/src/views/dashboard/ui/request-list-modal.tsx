@@ -1,6 +1,7 @@
 "use client";
 
-import { Button, Empty, ListItem, Modal, Panel } from "@/shared/ui";
+import { Empty, ListItem, Panel } from "@/shared/ui";
+import { Button, Modal } from "@/shared/common";
 import { formatDate } from "@/shared/lib";
 import { RequestStatusChip, useRequests, type RequestListParams } from "@/entities/request";
 import styles from "./dashboard.module.css";

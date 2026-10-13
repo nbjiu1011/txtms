@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useId } from "react";
 import { formatDate } from "@/shared/lib";
-import { Button, Field, Input, KeyValueList, Panel, PanelBody, PanelHeader, SaveIndicator, Select, Textarea } from "@/shared/ui";
+import { KeyValueList, Panel, PanelBody, PanelHeader, SaveIndicator } from "@/shared/ui";
+import { Button, Field, Input, Select, Textarea } from "@/shared/common";
 import {
   CONTENT_TYPE_LABEL,
   RequestStatusChip,

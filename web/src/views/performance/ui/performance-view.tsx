@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { kstDateKey } from "@/shared/lib";
-import { Avatar, Bar, Button, Empty, Kpi, KpiGrid, Page, PageHeader, Panel, PanelBody, PanelHeader, Table } from "@/shared/ui";
+import { Avatar, Bar, Empty, Kpi, KpiGrid, Page, PageHeader, Panel, PanelBody, PanelHeader, Table } from "@/shared/ui";
+import { Button } from "@/shared/common";
 import { usePerformance, type Performance } from "@/entities/dashboard";
 import { isCustomerAdmin } from "@/entities/me";
 import { useUserDirectory, type UserDirectory } from "@/entities/user";

@@ -189,8 +189,6 @@ public abstract class IntegrationTestBase {
                 projectId, ids[0], projectId, ids[1], projectId, ids[2], projectId, ids[3]);
         jdbc.update("INSERT INTO project_templates (project_id, sort_order, code, name) VALUES (?, 0, 'HB_POINT_01', "
                 + "'포인트 적립 안내')", projectId);
-        jdbc.update("INSERT INTO project_senders (project_id, sort_order, sender_number) VALUES (?, 0, '1588-0000')",
-                projectId);
         jdbc.update("INSERT INTO variables (project_id, var_key, description, var_type, value, active, deleted, "
                 + "created_by, created_at, updated_at) VALUES (?, 'customer_name', '고객명', 'TEXT', '홍길동', 1, 0, ?, ?, ?)",
                 projectId, ids[4], now, now);

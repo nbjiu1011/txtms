@@ -2,12 +2,12 @@
 
 import { useId, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Banner, Checkbox, ErrorDetails, Field, Input, Modal, Select, toast } from "@/shared/ui";
+import { Banner, ErrorDetails, toast } from "@/shared/ui";
+import { Checkbox, Field, Input, Modal, Select, useServerError } from "@/shared/common";
 import type { Customer } from "@/entities/customer";
 import { projectApi, projectKeys, type Project } from "@/entities/project";
 import type { UserSummary } from "@/entities/user";
 import { initialProjectForm, projectBody, projectFormProblem, type ProjectForm } from "../model/project-form";
-import { useServerError } from "@/shared/ui";
 import styles from "./admin.module.css";
 
 export interface ProjectEditDialogProps {

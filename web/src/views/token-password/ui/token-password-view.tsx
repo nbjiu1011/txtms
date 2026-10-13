@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { queryKeys } from "@/shared/api";
 import { AUTH_PATHS } from "@/shared/config/routes";
-import { Button } from "@/shared/ui";
+import { Button } from "@/shared/common";
 import type { AuthTokenKind } from "@/entities/me";
 import { authApi, TokenPasswordForm } from "@/features/auth";
 import { AuthLayout, SimpleHero } from "@/widgets/auth-layout";

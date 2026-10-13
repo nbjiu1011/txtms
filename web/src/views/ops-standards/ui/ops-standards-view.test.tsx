@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useViewIntent } from "@/shared/lib";
 import { useToastStore } from "@/shared/ui";
@@ -9,6 +9,7 @@ import type { ContentTypeSetting } from "@/entities/request";
 import { requestOpsIntent } from "@/features/ops-admin";
 import type { WorkViewProps } from "@/widgets/app-shell";
 import { OpsStandardsView } from "./ops-standards-view";
+import { chooseValue, optionLabels, selectValue } from "@/shared/common/testing";
 
 const customer = (id: number, name: string, patch: Partial<OpsCustomer> = {}): OpsCustomer => ({
   id,
@@ -99,7 +100,7 @@ function setup() {
 }
 
 const lastToast = () => useToastStore.getState().message;
-const cell = (label: string) => screen.getByLabelText(label) as HTMLSelectElement;
+const cell = (label: string) => screen.getByLabelText(label);
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -110,15 +111,15 @@ afterEach(() => {
 describe("유효 데이터셋 배정 matrix", () => {
   it("shows one select per customer × Phase 1 type with versions and confirmation state (no RCS)", () => {
     setup();
-    expect(cell("한빛카드 알림톡 데이터셋").value).toBe("1");
-    expect(within(cell("한빛카드 알림톡 데이터셋")).getAllByRole("option").map((o) => o.textContent)).toEqual([
+    expect(selectValue(cell("한빛카드 알림톡 데이터셋"))).toBe("1");
+    expect(optionLabels(cell("한빛카드 알림톡 데이터셋"))).toEqual([
       "미배정",
       "v2  규칙 5개",
       "v1  규칙 3개",
     ]);
     expect(screen.getAllByText("10월 2일 확인 정우진").length).toBe(2);
     expect(screen.getByRole("button", { name: "한빛카드 문자 확인 처리" })).toBeTruthy();
-    expect(cell("도담생명 문자 데이터셋").value).toBe("");
+    expect(selectValue(cell("도담생명 문자 데이터셋"))).toBe("");
     // RCS is deferred from Phase 1: no column even though the API row exists in the fixture
     expect(screen.queryByLabelText("한빛카드 RCS 데이터셋")).toBeNull();
     expect(screen.queryByRole("columnheader", { name: "RCS" })).toBeNull();
@@ -129,7 +130,7 @@ describe("유효 데이터셋 배정 matrix", () => {
   it("assigns a new combination", async () => {
     const assign = vi.spyOn(opsApi, "assign").mockResolvedValue(assignment(2, "SMS", 3, false));
     setup();
-    fireEvent.change(cell("도담생명 문자 데이터셋"), { target: { value: "3" } });
+    chooseValue(cell("도담생명 문자 데이터셋"), "3");
     await waitFor(() => expect(assign).toHaveBeenCalledWith(2, "SMS", 3));
     await waitFor(() => expect(lastToast()).toBe("문자 v1을 연결했습니다. 확인 처리까지 해 주세요"));
   });
@@ -137,9 +138,9 @@ describe("유효 데이터셋 배정 matrix", () => {
   it("changes the version of an existing assignment and ignores the same one", async () => {
     const assign = vi.spyOn(opsApi, "assign").mockResolvedValue(assignment(1, "ALIMTALK", 2, false));
     setup();
-    fireEvent.change(cell("한빛카드 알림톡 데이터셋"), { target: { value: "1" } });
+    chooseValue(cell("한빛카드 알림톡 데이터셋"), "1");
     expect(assign).not.toHaveBeenCalled();
-    fireEvent.change(cell("한빛카드 알림톡 데이터셋"), { target: { value: "2" } });
+    chooseValue(cell("한빛카드 알림톡 데이터셋"), "2");
     await waitFor(() => expect(assign).toHaveBeenCalledWith(1, "ALIMTALK", 2));
     await waitFor(() => expect(lastToast()).toBe("알림톡 v2을 연결했습니다. 확인 처리까지 해 주세요"));
   });
@@ -147,7 +148,7 @@ describe("유효 데이터셋 배정 matrix", () => {
   it("unassigns with 미배정", async () => {
     const unassign = vi.spyOn(opsApi, "unassign").mockResolvedValue(undefined);
     setup();
-    fireEvent.change(cell("한빛카드 문자 데이터셋"), { target: { value: "" } });
+    chooseValue(cell("한빛카드 문자 데이터셋"), "");
     await waitFor(() => expect(unassign).toHaveBeenCalledWith(1, "SMS"));
     await waitFor(() => expect(lastToast()).toMatch(/^배정을 해제했습니다/));
   });
@@ -162,7 +163,7 @@ describe("유효 데이터셋 배정 matrix", () => {
   it("shows a server refusal as a toast", async () => {
     vi.spyOn(opsApi, "assign").mockRejectedValue(new Error("문자 데이터셋만 배정할 수 있습니다"));
     setup();
-    fireEvent.change(cell("도담생명 자유입력형 데이터셋"), { target: { value: "5" } });
+    chooseValue(cell("도담생명 자유입력형 데이터셋"), "5");
     await waitFor(() => expect(lastToast()).toBe("문자 데이터셋만 배정할 수 있습니다"));
   });
 

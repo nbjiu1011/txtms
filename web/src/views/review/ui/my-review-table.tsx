@@ -1,7 +1,8 @@
 "use client";
 
 import { LIST_PAGE_SIZE, useClampPage, useListPage } from "@/shared/lib";
-import { Button, Empty, Pager, Panel, Table, Tag, tableClasses } from "@/shared/ui";
+import { Empty, Panel, Table, Tag, tableClasses } from "@/shared/ui";
+import { Button, Pager } from "@/shared/common";
 import { RequestStatusChip, useRequests } from "@/entities/request";
 import { toMyReviewRow, type MineFilter } from "../model/review-rows";
 import styles from "./review.module.css";

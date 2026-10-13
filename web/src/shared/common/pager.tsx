@@ -1,5 +1,4 @@
 import { Button } from "./button";
-import styles from "./pager.module.css";
 
 export interface PagerProps {
   /** Zero-based page number. */
@@ -12,7 +11,7 @@ export interface PagerProps {
 export function Pager({ page, totalPages, onPage }: PagerProps) {
   if (totalPages <= 1) return null;
   return (
-    <div className={styles.pager}>
+    <div className="flex items-center justify-end gap-2 border-t border-line px-3.5 py-2.5 text-[12px] text-sub">
       <span>
         {page + 1} / {totalPages}
       </span>

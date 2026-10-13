@@ -1,6 +1,7 @@
 "use client";
 
-import { Page, PageHeader, Panel, PanelBody, PanelHeader, Seg, Tag } from "@/shared/ui";
+import { Page, PageHeader, Panel, PanelBody, PanelHeader, Tag } from "@/shared/ui";
+import { Seg } from "@/shared/common";
 import { CustomerSettingsForm } from "@/features/customer-admin";
 import type { WorkViewProps } from "@/widgets/app-shell";
 import styles from "./admin-customer.module.css";

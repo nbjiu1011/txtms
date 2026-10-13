@@ -116,7 +116,7 @@ class DashboardIntegrationTest extends IntegrationTestBase {
         JsonNode project = getJson(login(JUNG_OPERATOR), "/api/projects/" + p1);
         assertThat(project.path("leadUserId").asLong()).isEqualTo(userId(LEE_LEAD));
         assertThat(project.path("templates")).hasSize(3);
-        assertThat(project.path("senders").get(1).asString()).isEqualTo("02-3456-7000");
+        assertThat(project.has("senders")).isFalse();
         assertThat(project.path("variablesRevision").asInt()).isEqualTo(6);
     }
 
@@ -184,7 +184,11 @@ class DashboardIntegrationTest extends IntegrationTestBase {
         JsonNode guide = getJson(kim, "/api/guides/SMS");
         assertThat(guide.path("goodExpressions").get(0).path("avoid").asString()).isEqualTo("금일");
         assertThat(guide.path("goodExpressions").get(0).path("prefer").asString()).isEqualTo("오늘");
-        assertThat(guide.path("checklist")).hasSize(4);
+        // V8 dropped the sender-registry wording from the seeded SMS guide
+        assertThat(guide.path("checklist")).hasSize(3);
+        assertThat(guide.path("checklist").toString()).doesNotContain("발신번호");
+        assertThat(guide.path("principles").asString()).doesNotContain("발신번호")
+                .endsWith("수신거부 안내를 포함합니다.");
     }
 
     private static JsonNode kpi(JsonNode dash, String view) {

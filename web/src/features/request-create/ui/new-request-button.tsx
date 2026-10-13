@@ -1,6 +1,7 @@
 "use client";
 
-import { Button, Icon } from "@/shared/ui";
+import { Icon } from "@/shared/ui";
+import { Button } from "@/shared/common";
 import { useRequestCreate, type OpenRequestTab } from "../model/use-request-create";
 
 export interface NewRequestButtonProps {

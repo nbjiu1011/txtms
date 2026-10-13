@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Empty, Page, PageHeader, Seg, SubTabs } from "@/shared/ui";
+import { Empty, Page, PageHeader } from "@/shared/ui";
+import { Seg, SubTabs } from "@/shared/common";
 import { projectRoles } from "@/entities/me";
 import { useRequestActionIntent } from "@/entities/request";
 import { useUserDirectory } from "@/entities/user";

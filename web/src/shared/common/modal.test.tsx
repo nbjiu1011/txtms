@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Modal, type ModalProps } from "./modal";
-import { useToastStore } from "./toast";
+import { useToastStore } from "@/shared/ui";
 
 function Harness(props: Partial<ModalProps> & { withInput?: boolean }) {
   const { withInput = true, ...rest } = props;
@@ -65,7 +65,8 @@ describe("Modal", () => {
     const dialog = screen.getByRole("dialog");
     await user.click(dialog);
     expect(screen.getByRole("dialog")).toBeTruthy();
-    fireEvent.click(dialog.parentElement as HTMLElement);
+    // radix dismisses on a pointer down outside the dialog (the scrim)
+    await user.click(dialog.parentElement as HTMLElement);
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 

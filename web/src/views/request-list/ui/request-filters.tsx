@@ -10,7 +10,7 @@ import {
   Input,
   Select,
   filterClasses,
-} from "@/shared/ui";
+} from "@/shared/common";
 import {
   OFFERED_CONTENT_TYPES,
   CONTENT_TYPE_LABEL,

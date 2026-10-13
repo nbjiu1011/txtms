@@ -1,6 +1,7 @@
 "use client";
 
-import { Avatar, Button, Empty, Table, Tag } from "@/shared/ui";
+import { Avatar, Empty, Table, Tag } from "@/shared/ui";
+import { Button } from "@/shared/common";
 import type { Project } from "@/entities/project";
 import type { Member } from "@/entities/user";
 import { memberRoleText } from "../model/member-rows";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, DateRangeFilter, FilterBar, FilterField, Input, Select, filterClasses } from "@/shared/ui";
+import { Button, DateRangeFilter, FilterBar, FilterField, Input, Select, filterClasses } from "@/shared/common";
 import { OFFERED_CONTENT_TYPES, CONTENT_TYPE_LABEL, REQUEST_STATUS_LABEL, type ContentType, type FinalStatus } from "@/entities/request";
 import { ARCHIVE_STATUS_OPTIONS, EMPTY_ARCHIVE_FILTERS, type ArchiveFilters } from "../model/archive-view-model";
 import styles from "./content-archive.module.css";

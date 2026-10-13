@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Button, ReadOnlyBox } from "@/shared/ui";
+import { ReadOnlyBox } from "@/shared/ui";
+import { Button } from "@/shared/common";
 import { useCorrectionDataset } from "@/entities/correction";
 import { cardView } from "../model/card";
 import { countRuns, type CorrectionRun } from "../model/run";

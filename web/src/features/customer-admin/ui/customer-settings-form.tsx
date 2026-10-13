@@ -3,7 +3,8 @@
 import { useId, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { isApiError } from "@/shared/api";
-import { Field, Input, Select, toast } from "@/shared/ui";
+import { toast } from "@/shared/ui";
+import { Field, Input, Select } from "@/shared/common";
 import {
   NOTIFY_CHANNELS,
   NOTIFY_CHANNEL_LABEL,

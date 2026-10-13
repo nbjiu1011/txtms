@@ -11,7 +11,7 @@ import {
 import { parseRulesJson, xlsxFileProblem } from "./dataset-form";
 import { opsInviteStep, type OpsInviteForm } from "./invite-form";
 import { decodeOpsIntent, encodeOpsIntent, todoTarget } from "./ops-intent";
-import { firstProblem, normalizeSending, sameSenders, sameTemplates, sendingProblems } from "./sending-form";
+import { firstProblem, normalizeTemplates, sameTemplates, templateProblems } from "./template-form";
 
 const existing = [{ name: "한빛카드", domain: "hanbitcard.co.kr" }];
 
@@ -115,42 +115,51 @@ describe("operator invitation (J:216 + J:289)", () => {
   });
 });
 
-describe("templates and senders editor (contract §12 PUT templates|senders)", () => {
+describe("알림톡 template editor (contract §12 PUT templates)", () => {
   it("reports problems keyed like the API fieldErrors", () => {
-    const problems = sendingProblems({
+    const problems = templateProblems({
       templates: [
         { code: "HB_POINT_01", name: "포인트" },
         { code: "hb_point_01", name: "중복" },
         { code: "한글코드", name: "" },
         { code: "", name: "이름" },
       ],
-      senders: ["1588-0000", "1588-0000", "12345", ""],
     });
     expect(problems).toEqual({
       "templates.1.code": "템플릿 코드 hb_point_01이(가) 중복됩니다",
       "templates.2.code": "템플릿 코드는 영문, 숫자, _, -만 쓸 수 있습니다",
       "templates.2.name": "템플릿 이름을 입력하세요",
       "templates.3.code": "템플릿 코드를 입력하세요",
-      "senders.1": "발신번호 1588-0000이(가) 중복됩니다",
-      "senders.2": "발신번호 형식을 확인하세요 (예: 1588-0000, 02-3456-7000)",
-      "senders.3": "발신번호를 입력하세요",
     });
     expect(firstProblem(problems)).toBe("템플릿 코드 hb_point_01이(가) 중복됩니다");
   });
 
-  it("accepts area, mobile and representative numbers with or without hyphens", () => {
-    const ok = sendingProblems({ templates: [], senders: ["02-3456-7000", "0313456789", "010-1234-5678", "15880000"] });
-    expect(ok).toEqual({});
-    expect(sendingProblems({ templates: [{ code: "A".repeat(51), name: "x" }], senders: [] })).toEqual({
+  it("limits code and name length and the number of templates", () => {
+    expect(templateProblems({ templates: [] })).toEqual({});
+    expect(templateProblems({ templates: [{ code: "A".repeat(51), name: "x".repeat(101) }] })).toEqual({
       "templates.0.code": "템플릿 코드는 최대 50자입니다",
+      "templates.0.name": "템플릿 이름은 최대 100자입니다",
     });
+    const many = Array.from({ length: 101 }, (_, i) => ({ code: `T${i}`, name: "안내" }));
+    expect(templateProblems({ templates: many })).toEqual({ templates: "템플릿은 최대 100개입니다" });
   });
 
   it("trims values and compares lists in order", () => {
-    const next = normalizeSending({ templates: [{ code: " A1 ", name: " 안내 " }], senders: [" 1588-0000 "] });
-    expect(next).toEqual({ templates: [{ code: "A1", name: "안내" }], senders: ["1588-0000"] });
+    const next = normalizeTemplates({ templates: [{ code: " A1 ", name: " 안내 " }] });
+    expect(next).toEqual({ templates: [{ code: "A1", name: "안내" }] });
     expect(sameTemplates(next.templates, [{ code: "A1", name: "안내" }])).toBe(true);
-    expect(sameSenders(["1", "2"], ["2", "1"])).toBe(false);
+    expect(
+      sameTemplates(
+        [
+          { code: "A", name: "a" },
+          { code: "B", name: "b" },
+        ],
+        [
+          { code: "B", name: "b" },
+          { code: "A", name: "a" },
+        ],
+      ),
+    ).toBe(false);
   });
 });
 

@@ -7,7 +7,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { chromium, expect } from "@playwright/test";
-import { reportConsole, watchConsole } from "./helpers.mjs";
+import { pick, reportConsole, selectValueIs, watchConsole } from "./helpers.mjs";
 
 const BASE = process.env.BASE ?? "http://localhost:4246";
 const FILES = process.env.FILES ?? "e2e/real/files";
@@ -86,7 +86,7 @@ await step("fix info", async () => {
 await step("edit alimtalk content + variable", async () => {
   await main.getByRole("tab", { name: /콘텐츠/ }).click();
   await main.getByLabel("콘텐츠 제목").fill("포인트 안내");
-  await main.getByLabel("승인 템플릿").selectOption({ index: 1 });
+  await pick(main.getByLabel("승인 템플릿"), { index: 1 });
   const body = main.getByLabel("본문");
   await body.fill("님, 포인트가 적립되었습니다.");
   await body.evaluate((el) => el.setSelectionRange(0, 0));
@@ -121,7 +121,7 @@ await step("register variable in picker", async () => {
   await shot("06-variable-duplicate");
   const key = `m1_${Date.now().toString(36)}`;
   await picker.getByLabel("변수 키").fill(key);
-  await picker.getByLabel("자료형").selectOption("NUMBER");
+  await pick(picker.getByLabel("자료형"), "NUMBER");
   await picker.getByLabel("값").fill("숫자아님");
   await picker.getByRole("button", { name: "등록" }).click();
   await expect(picker.getByText("정수 또는 소수를 입력하세요")).toBeVisible();
@@ -188,14 +188,14 @@ await step("freeform draft: type change + uploads", async () => {
   await page.getByRole("tab", { name: /대시보드/ }).click();
   await page.getByRole("button", { name: /새 요청/ }).first().click();
   await page.waitForURL((u) => u.pathname.startsWith("/requests/REQ-") && !u.pathname.endsWith(cloneId));
-  await main.getByLabel("유형").selectOption("FREEFORM");
-  await expect(main.getByLabel("유형")).toHaveValue("FREEFORM");
+  await pick(main.getByLabel("유형"), "FREEFORM");
+  await selectValueIs(main.getByLabel("유형"), "FREEFORM");
   await main.getByRole("tab", { name: /콘텐츠/ }).click();
   await main.getByLabel("첨부파일 선택").setInputFiles([join(FILES, "약관 개정안.pdf"), join(FILES, "script.js"), join(FILES, "notes.txt")]);
   await expect(main.getByText(/약관 개정안\.pdf · 업로드 완료/)).toBeVisible();
   await expect(main.getByText(/script.js · 검사 실패 · 허용 형식/)).toBeVisible();
   await expect(main.getByText(/notes\.txt · 업로드 완료/)).toBeVisible();
-  await main.getByLabel("첨부 검사 결과", { exact: true }).selectOption("UNSAFE");
+  await pick(main.getByLabel("첨부 검사 결과", { exact: true }), "UNSAFE");
   await main.getByLabel("첨부파일 선택").setInputFiles([join(FILES, "notes.txt")]);
   await expect(main.getByText(/notes\.txt · 안전하지 않은 파일로 등록 차단/).first()).toBeVisible();
   await main.getByLabel("약관 개정안.pdf 전체 분량").fill("14");
@@ -215,12 +215,12 @@ await step("freeform draft: type change + uploads", async () => {
 
 await step("rcs: type change with confirm + image", async () => {
   await main.getByRole("tab", { name: "요청 정보" }).click();
-  await main.getByLabel("유형").selectOption("RCS");
+  await pick(main.getByLabel("유형"), "RCS");
   const dlg = page.getByRole("dialog", { name: "유형을 바꿀까요?" });
   await dlg.getByRole("button", { name: "유형 바꾸기" }).click();
   await main.getByRole("tab", { name: /콘텐츠/ }).click();
-  await main.getByLabel("카드 수").selectOption("2");
-  await main.getByLabel("첨부 검사 결과", { exact: true }).selectOption("SAFE");
+  await pick(main.getByLabel("카드 수"), "2");
+  await pick(main.getByLabel("첨부 검사 결과", { exact: true }), "SAFE");
   await main.getByLabel("카드 1 이미지 선택").setInputFiles(join(FILES, "card.png"));
   await expect(main.getByText("이미지 교체").first()).toBeVisible();
   await main.locator("textarea[data-path='cards.0.body']").fill("첫 카드 본문");

@@ -193,7 +193,6 @@ export const opsApi = {
     http.post<OpsInvited>(`/ops/customers/${customerId}/invitations`, body),
   putTemplates: (projectId: number, templates: ProjectTemplate[]) =>
     http.put<Project>(`/ops/projects/${projectId}/templates`, templates),
-  putSenders: (projectId: number, senders: string[]) => http.put<Project>(`/ops/projects/${projectId}/senders`, senders),
   setContentTypeActive: (type: ContentType, active: boolean) =>
     http.patch<ContentTypeSetting>(`/ops/content-types/${type}`, { active }),
   createDataset: (body: DatasetCreate) => http.post<Dataset>("/ops/datasets", body),

@@ -227,8 +227,8 @@ added projects). Intended differences: data, enum labels for variable types, no 
 요청 / 콘텐츠 show the operator's no-content state → 고객사 생성 (required toast, `도메인 형식을 확인하세요`, duplicate domain of
 한빛카드, the normalised domain shown under the field) → 초기 설정·시드 opens on the new customer with its 기본 프로젝트 and no
 sample actions → 첫 고객사 관리자 초대 of an external address (warning, first click = confirmation toast, second click
-invites, result modal with the queued mail) → 초기 업무 사용자 초대 (company domain, 요청자) → 발신 정보 (row validation, then a
-template and a sender saved) → 유효 데이터셋 배정 for all four types (an older version first, then the newest — the
+invites, result modal with the queued mail) → 초기 업무 사용자 초대 (company domain, 요청자) → 알림톡 템플릿 (row validation, then a
+template saved) → 유효 데이터셋 배정 for all four types (an older version first, then the newest — the
 confirmation resets — and 확인 처리) → 미배정 + 최신 배포본 시드 (assign + confirm) → 유형 관리 RCS off (matrix select disabled)
 and on → 데이터셋 등록: JSON rows refused with `{행}행: …` details, then the sample XLSX
 (`api/src/main/resources/demo/correction-sample-dataset.xlsx`) as a new 자유입력형 version and its rules → 샘플 요청 생성 and
@@ -240,7 +240,7 @@ customer; the content types are restored even when a step fails. Screenshots `op
 screens and modals 3–6.5% differing pixels — dev DB data (more customers and versions, E2E leftovers). Intended
 differences: no `내 지원 접근` KPI / panel (Phase 2); 고객사 관리 is a paged list with a separate detail tab (user
 decision 2026-10-08, the reference shows the selected customer under the list), plus a customer filter on 운영 이력; 초기 설정·시드 adds the 메일 발송 대기함 and 프로젝트
-발신 정보 panels and a 데이터셋 등록 button, without the 공통 row (Phase 2); the assignment matrix has no 공통 column; the
+알림톡 템플릿 panels and a 데이터셋 등록 button, without the 공통 row (Phase 2); the assignment matrix has no 공통 column; the
 dataset modal takes an XLSX upload or JSON in the contract's 7-column keys instead of the reference's `mode/p/s/r` JSON;
 목업 시드 checkboxes are read-only (Phase 2).
 
@@ -267,7 +267,7 @@ src/
 │                  XLSX/ZIP export), variable-picker, bulk-import, text-correction (panel, cards,
 │                  apply/restore offsets, freshness, 건의하기), customer-admin (project, variable, invite, roles,
 │                  deactivation, email, notice and settings forms; row actions), ops-admin (customer create /
-│                  deactivate, setup project / invitations, templates and senders, dataset register / rules /
+│                  deactivate, setup project / invitations, 알림톡 templates, dataset register / rules /
 │                  seed, samples, demo reset, operator hand-offs)
 ├─ entities/       me, customer, project, user, request, variable, correction, dashboard,
 │                  notification, notice, audit, ops — contract types + label maps (+ small queries)
@@ -426,7 +426,7 @@ URL scheme (`src/shared/config/routes.ts`, `pathToTab` / `tabToPath`):
 - **콘텐츠** (`views/content-archive`): one row per lineage with the latest completion (title, version, request, type,
   status, date, campaign, server preview); the toggle reads `이력` without linked entries, else `이력 {n}` / `접기`;
   expanded rows list `과거 완료본` and open `후속 요청` with links to their requests. 복사 uses `latest.resolvedText`.
-- Filter bars use `FilterBar` / `FilterField` / `DateRangeFilter` from `shared/ui` (request list and archive).
+- Filter bars use `FilterBar` / `FilterField` / `DateRangeFilter` from `shared/common` (request list and archive).
 
 ### Text correction (M4)
 
@@ -523,10 +523,11 @@ URL scheme (`src/shared/config/routes.ts`, `pathToTab` / `tabToPath`):
 - **초기 설정·시드** (`views/ops-setup`; the customer select also switches the top bar like the reference, an inactive
   customer stays a local selection with a banner): 초기 프로젝트·사용자 steps (관리자 초대 / 프로젝트 생성 / 사용자 초대 /
   배정 화면; pending invitations listed as `초대 대기 {email}`; projects and members from the operator lists, so an
-  inactive customer still shows them, 발신 정보 then read-only), 유형별 교정 규칙 시드 (assigned vs newest version, 최신 배포본 시드 = assign + confirm, 데이터셋 등록), 메일
+  inactive customer still shows them, 알림톡 템플릿 then read-only), 유형별 교정 규칙 시드 (assigned vs newest version, 최신 배포본 시드 = assign + confirm, 데이터셋 등록), 메일
   발송 대기함 of the selected customer (`GET /api/ops/outbox?customerId=`, 5 per page, mail kind, `링크 가림` and the note that links show in demo mode
-  only), 프로젝트 발신 정보 (알림톡 templates and 문자 senders per project; the editor validates rows like the API and puts
-  `templates.{i}.code|name` / `senders.{i}` errors under the row; only changed lists are sent), 샘플 요청·콘텐츠 (sample
+  only), 프로젝트 알림톡 템플릿 (알림톡 template codes per project — 문자 has no registered sender list, its 발신번호 is optional
+  free text; the editor validates rows like the API and puts `templates.{i}.code|name` errors under the row; an unchanged
+  list is not sent), 샘플 요청·콘텐츠 (sample
   customers only — others get the reason and no actions), 시드 실행 이력 (`GET /api/ops/setup-logs`, 20 per page).
   Invitations: first admin (`admin: true`) or business user (project + role) with the external-domain confirmation of
   사용자 초대, then a result modal with the queued mail (found by the invitation's `mailId`).
@@ -537,22 +538,34 @@ URL scheme (`src/shared/config/routes.ts`, `pathToTab` / `tabToPath`):
   refusals are listed from `details`).
 - Every operator write invalidates the `ops` query keys plus the shell lists (customers, projects, users, content types).
 
-## shared/ui components
+## Shared components
 
-Button (default/pri/ok/warn/ghost, sm) · IconButton (badge) · Tag (hot/flag/recall/fill) · StatusChip ·
-TypeChip · RoundBadge · Avatar · AvatarStack · Banner (ask/info/danger/done/appr/wait) · Panel/PanelHeader/
-PanelBody · FilterBar/FilterField/DateRangeFilter (+ `filterClasses`) · Table (+ `tableClasses`) · KpiGrid/Kpi · SubTabs · Seg · ListItem (`nestedActions` for rows with buttons) · Empty (+ EmptyArt) · Field/
-Label/Hint/ErrorMessage/Input/Select/Textarea/Checkbox · Modal (focus trap, Escape, scrim, busy-safe async
-`onOk`, 560/900, ok variant default/pri/ok/warn) · Popover (+ header/body/section/item) · Drawer · Toaster/`toast()` (single, 2.8s,
-`role=status`) · LockBar · ReadOnlyBox · KeyValueList · Bar · SaveIndicator · ProgressTrack · BrandMark ·
-Page/PageHeader (`rawEyebrow` for the dashboard date) · Icon (all reference icons + `send` for 건의하기) · TypeGlyph ·
-ErrorDetails (server refusal message + `details`) · Pager (이전 / 다음) · `useServerError` (modal refusals: toast,
-field messages cleared on edit, details). ListItem takes `extra` / `expanded` (accordion rows), Kpi an omitted
-`tone` (no accent stripe).
+Styled with Tailwind utilities on the design tokens of `app/globals.css` (no preflight; `cn()` = clsx +
+tailwind-merge, so a caller's `className` wins over the component default). Interactive parts are built on
+[radix-ui](https://www.radix-ui.com/primitives) (focus trap, Escape, outside click, roving focus, ARIA).
+
+- `shared/common` — controls: Button (default/pri/ok/warn/ghost, sm, `asChild` for links) · IconButton (badge) ·
+  Field/Label/Hint/ErrorMessage/Input/Textarea · Select (radix Select; native `<option>` children,
+  `onChange(e => e.target.value)`, `value=""` options supported) · Checkbox (radix Checkbox,
+  `onChange(e => e.target.checked)`) · SubTabs (radix Tabs, tab list only) · Seg (radix ToggleGroup, `role=radio`) ·
+  Modal (radix Dialog: focus trap + return, Escape, scrim, busy-safe async `onOk`, 560/900, ok variant
+  default/pri/ok/warn) · Drawer (non-modal radix Dialog) · Popover (radix Popover on an `anchor` element,
+  + header/body/section/item) · FilterBar/FilterField/DateRangeFilter (+ `filterClasses`) · Pager (이전 / 다음) ·
+  `useServerError` (modal refusals: toast, field messages cleared on edit, details). Test helpers for the radix
+  controls (`chooseValue`, `chooseOption`, `selectValue`, `optionLabels`) are in `shared/common/testing.ts`;
+  end-to-end scripts use `pick()` / `selectValueIs()` from `e2e/real/helpers.mjs`.
+- `shared/ui` — display: Tag (hot/flag/recall/fill) · StatusChip · TypeChip · RoundBadge · Avatar · AvatarStack ·
+  Banner (ask/info/danger/done/appr/wait) · Panel/PanelHeader/PanelBody · Table (+ `tableClasses`) · KpiGrid/Kpi ·
+  ListItem (`nestedActions` for rows with buttons, `extra` / `expanded` for accordion rows) · Empty (+ EmptyArt) ·
+  Toaster/`toast()` (single, 2.8s, `role=status`) · LockBar · ReadOnlyBox · KeyValueList · Bar · SaveIndicator ·
+  ProgressTrack · BrandMark · Page/PageHeader (`rawEyebrow` for the dashboard date) · Icon (all reference icons +
+  `send` for 건의하기) · TypeGlyph · ErrorDetails (server refusal message + `details`). Kpi takes an omitted `tone`
+  (no accent stripe). The rich text editor/viewer is a separate entry, `@/shared/ui/rich-text` (Quill CSS).
+- `shared/lib` — `useMounted`, `useEscapeLayer` (the mobile menu; radix overlays handle Escape first).
 
 Accessibility fixes over the reference (no visual change): tab title button is the `role=tab`
-(`aria-selected`) with the close button as a sibling, `aria-current` on the active menu, `aria-selected` /
-`aria-pressed` on sub tabs and segments, modal focus trap + focus return, labelled popovers, unread count in
+(`aria-selected`) with the close button as a sibling, `aria-current` on the active menu, `role=tab` +
+`aria-selected` on sub tabs (radix Tabs), `role=radio` + `aria-checked` on segments (radix ToggleGroup), modal focus trap + focus return, labelled popovers, unread count in
 the bell's accessible name, Escape/outside click closes the mobile menu, the work tabs are a `nav` whose
 `tablist` (a `display: contents` wrapper) owns the tabs only — the `+` button sits next to it —, rows with their own
 buttons (content list, 배정 대기) make only the leading + title part the `role=button` (no nested interactive

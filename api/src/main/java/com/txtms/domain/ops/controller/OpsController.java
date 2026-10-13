@@ -144,12 +144,6 @@ public class OpsController {
         return setup.replaceTemplates(auth, id, body);
     }
 
-    @PutMapping("/projects/{id}/senders")
-    public ProjectResponse senders(@AuthenticationPrincipal AuthUser auth, @PathVariable long id,
-            @RequestBody(required = false) List<String> body) {
-        return setup.replaceSenders(auth, id, body);
-    }
-
     @GetMapping("/setup-logs")
     public PageResponse<SetupLogEntry> setupLogs(@AuthenticationPrincipal AuthUser auth,
             @RequestParam(required = false) Long customerId, @RequestParam(required = false) Integer page,

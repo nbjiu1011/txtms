@@ -4,7 +4,8 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { isApiError } from "@/shared/api";
-import { Field, Input, Modal, toast } from "@/shared/ui";
+import { toast } from "@/shared/ui";
+import { Field, Input, Modal } from "@/shared/common";
 import { authApi } from "../api/auth-api";
 import { passwordResetRequestSchema, type PasswordResetRequestValues } from "../model/schemas";
 

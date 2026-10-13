@@ -1,7 +1,8 @@
 "use client";
 
 import { cn } from "@/shared/lib";
-import { Button, Icon } from "@/shared/ui";
+import { Icon } from "@/shared/ui";
+import { Button } from "@/shared/common";
 import { ContentTypeChip, type Content, type RequestDetail } from "@/entities/request";
 import type { UserDirectory } from "@/entities/user";
 import styles from "./work.module.css";

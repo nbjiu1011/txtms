@@ -1,7 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { useViewIntent } from "@/shared/lib";
 import type { Me } from "@/entities/me";
 import { noticeKeys, type Notice } from "@/entities/notice";
 import type { Project } from "@/entities/project";
@@ -62,27 +61,18 @@ function setup(me: Partial<Me>) {
 }
 
 describe("NoticesView", () => {
-  it("lists scope, author, time and 수정됨; rows toggle their body", () => {
-    setup({});
+  it("lists scope, author, time and 수정됨; a row opens the notice's detail tab", () => {
+    const { openTab } = setup({});
     expect(screen.getByText(/^고객사 전체 공지\s+강민호\s+10\/5 09:00$/)).toBeTruthy();
     expect(screen.getByText(/^프로젝트 공지\s+카드 혜택 알림\s+강민호\s+10\/3 11:00\s+수정됨$/)).toBeTruthy();
     expect(screen.queryByText("본문 1")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /공지 1/ }));
-    expect(screen.getByText("본문 1")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /공지 1/ }));
-    expect(screen.queryByText("본문 1")).toBeNull();
+    expect(openTab).toHaveBeenCalledWith({ route: "notice", params: { id: "1" } });
     expect(screen.queryByRole("button", { name: "공지 관리" })).toBeNull();
   });
 
-  it("expands the notice a dashboard row asked for; admins get 공지 관리", () => {
-    act(() => useViewIntent.getState().request("notices", "2"));
+  it("admins get 공지 관리", () => {
     const { openTab } = setup({ adminCustomerIds: [1] });
-    expect(screen.getByText("본문 2")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /공지 2/ }).getAttribute("aria-expanded")).toBe("true");
-    fireEvent.click(screen.getByRole("button", { name: /공지 1/ }));
-    expect(useViewIntent.getState().intents.notices).toBeUndefined();
-    expect(screen.getByText("본문 1")).toBeTruthy();
-    expect(screen.queryByText("본문 2")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "공지 관리" }));
     expect(openTab).toHaveBeenCalledWith({ route: "adminNotices", params: {} });
   });

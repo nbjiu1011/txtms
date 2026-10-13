@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { FilterBar, FilterField, Input, Select, filterClasses } from "@/shared/ui";
+import { FilterBar, FilterField, Input, Select, filterClasses } from "@/shared/common";
 import type { Project } from "@/entities/project";
 import {
   PERIOD_OPTIONS,

@@ -1,6 +1,6 @@
 import { formatDateTime } from "@/shared/lib";
 import { FINAL_STATUSES, REQUEST_STATUS_LABEL, type RequestDetail } from "@/entities/request";
-import type { BannerTone } from "@/shared/ui";
+import { type BannerTone } from "@/shared/ui";
 
 export type BannerAction = "answer" | "decideRecall" | "showResult";
 

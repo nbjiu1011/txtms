@@ -1,16 +1,7 @@
 "use client";
 
-import {
-  Avatar,
-  Button,
-  KeyValueList,
-  Page,
-  PageHeader,
-  Panel,
-  PanelBody,
-  PanelHeader,
-  Tag,
-} from "@/shared/ui";
+import { Avatar, KeyValueList, Page, PageHeader, Panel, PanelBody, PanelHeader, Tag } from "@/shared/ui";
+import { Button } from "@/shared/common";
 import { LEAD_ROLE_LABEL } from "@/entities/project";
 import { NO_ROLE_LABEL, useSessionStore } from "@/entities/me";
 import { PasswordChangeForm, logout } from "@/features/auth";

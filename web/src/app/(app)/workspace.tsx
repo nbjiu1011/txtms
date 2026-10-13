@@ -9,6 +9,7 @@ import { AdminVariablesView } from "@/views/admin-variables";
 import { ApprovalView } from "@/views/approval";
 import { ContentArchiveView } from "@/views/content-archive";
 import { DashboardView } from "@/views/dashboard";
+import { AdminNoticeDetailView, NoticeDetailView } from "@/views/notice-detail";
 import { NoticesView } from "@/views/notices";
 import { OpsCustomerDetailView, OpsCustomersView } from "@/views/ops-customers";
 import { OpsHomeView } from "@/views/ops-home";
@@ -36,11 +37,13 @@ const VIEWS: WorkViewRegistry = {
   contents: ContentArchiveView,
   performance: PerformanceView,
   notices: NoticesView,
+  notice: NoticeDetailView,
   adminProjects: AdminProjectsView,
   adminVariables: AdminVariablesView,
   adminUsers: AdminUsersView,
   adminCustomer: AdminCustomerView,
   adminNotices: AdminNoticesView,
+  adminNotice: AdminNoticeDetailView,
   opsCustomers: OpsCustomersView,
   opsCustomer: OpsCustomerDetailView,
   opsSetup: OpsSetupView,

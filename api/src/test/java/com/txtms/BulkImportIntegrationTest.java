@@ -141,14 +141,16 @@ class BulkImportIntegrationTest extends IntegrationTestBase {
         byte[] file = xlsx(
                 new String[] {"발신자", "본문", "수신거부문구포함"},
                 new String[] {"1588-0000", "안내 문자", "y"},
-                new String[] {"02-1234", "안내", "예"},
-                new String[] {"1588-0000", "a".repeat(1974), "Y"});
+                new String[] {"", "안내", "예"},
+                new String[] {"고객지원팀", "a".repeat(1974), "Y"});
         JsonNode rows = read(upload(req, "/api/requests/" + sms + "/bulk-import/preview", "s.xlsx", file, null))
                 .path("rows");
         assertThat(rows.get(0).path("errors")).isEmpty();
         assertThat(rows.get(0).path("payload").path("optOut").asBoolean()).isTrue();
         assertThat(rows.get(0).path("payload").path("customerCenter").asBoolean()).isFalse();
-        assertThat(rows.get(1).path("errors").toString()).isEqualTo("[\"등록되지 않은 발신번호\",\"수신거부 값은 Y 또는 N\"]");
+        // the 발신자 column is free text: an empty cell is no error
+        assertThat(rows.get(1).path("errors").toString()).isEqualTo("[\"수신거부 값은 Y 또는 N\"]");
+        assertThat(rows.get(1).path("payload").path("sender").asString()).isEmpty();
         // 1,974 + the opt-out line (27) = 2,001 bytes: a warning only
         assertThat(rows.get(2).path("errors")).isEmpty();
         assertThat(rows.get(2).path("warnings").toString()).isEqualTo("[\"LMS 2,000바이트 초과 (2,001바이트)\"]");

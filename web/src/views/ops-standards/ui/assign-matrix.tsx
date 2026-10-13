@@ -3,7 +3,8 @@
 import { useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatDate } from "@/shared/lib";
-import { Button, Panel, PanelBody, PanelHeader, Select, Table, Tag, tableClasses, toast } from "@/shared/ui";
+import { Panel, PanelBody, PanelHeader, Table, Tag, tableClasses, toast } from "@/shared/ui";
+import { Button, Select } from "@/shared/common";
 import {
   ASSIGNABLE_TYPES,
   assignmentOf,

@@ -3,19 +3,8 @@
 import { useId, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatDateTime } from "@/shared/lib";
-import {
-  Empty,
-  ErrorDetails,
-  Field,
-  Modal,
-  ReadOnlyBox,
-  Seg,
-  Select,
-  Table,
-  Textarea,
-  toast,
-  useServerError,
-} from "@/shared/ui";
+import { Empty, ErrorDetails, ReadOnlyBox, Table, toast } from "@/shared/ui";
+import { Field, Modal, Seg, Select, Textarea, useServerError } from "@/shared/common";
 import {
   ASSIGNABLE_TYPES,
   datasetScopeLabel,

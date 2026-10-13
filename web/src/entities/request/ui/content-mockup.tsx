@@ -73,7 +73,7 @@ function Sms({ payload, values, smsSpec }: ContentMockupProps & { payload: SmsPa
   return (
     <div className={`${styles.phoneIn} ${styles.sms}`}>
       <div className={styles.topT}>
-        {payload.sender || "발신번호 미선택"}
+        {payload.sender || "발신번호"}
         {kind ? ` ${kind === "SMS" ? "SMS" : "LMS"}` : ""}
       </div>
       <div className={styles.bubble}>

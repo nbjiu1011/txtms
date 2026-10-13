@@ -1,4 +1,4 @@
-import type { ButtonVariant } from "@/shared/ui";
+import { type ButtonVariant } from "@/shared/common";
 import type { RequestAction } from "@/entities/request";
 
 export interface HeaderActionButton {

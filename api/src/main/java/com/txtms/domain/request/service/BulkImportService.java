@@ -119,7 +119,7 @@ public class BulkImportService {
                 }
             } else {
                 String optOut = v.get(2).toUpperCase(Locale.ROOT);
-                payload.put("sender", v.get(0));
+                payload.put("sender", v.get(0)); // 발신자: optional free text
                 payload.put("body", v.get(1));
                 payload.put("customerCenter", false);
                 payload.put("optOut", optOut.equals("Y"));
@@ -127,8 +127,7 @@ public class BulkImportService {
                     errors.add("수신거부 값은 Y 또는 N");
                 }
             }
-            errors.addAll(0, rowValidator.validate(type, payload, rules.templates(), rules.senders(),
-                    rules.variables()));
+            errors.addAll(0, rowValidator.validate(type, payload, rules.templates(), rules.variables()));
             rows.add(new BulkPreviewResponse.Row(r.rowNumber(), "대량 등록 " + r.rowNumber() + "행",
                     json.writeValueAsString(payload), List.copyOf(errors),
                     List.copyOf(rowValidator.warnings(type, payload))));
@@ -157,7 +156,7 @@ public class BulkImportService {
         for (int i = 0; i < body.rows().size(); i++) {
             BulkCommitBody.Row row = body.rows().get(i);
             ObjectNode payload = normalizer.normalize(r.getType(), row.payload());
-            List<String> errors = rowValidator.validate(r.getType(), payload, rules.templates(), rules.senders(),
+            List<String> errors = rowValidator.validate(r.getType(), payload, rules.templates(),
                     rules.variables());
             if (!errors.isEmpty()) {
                 String label = row.title() == null || row.title().isBlank() ? (i + 1) + "번째 행" : row.title();
@@ -181,7 +180,7 @@ public class BulkImportService {
     private record RawRow(int rowNumber, List<String> values) {
     }
 
-    private record Rules(Set<String> templates, Set<String> senders, Map<String, String> variables) {
+    private record Rules(Set<String> templates, Map<String, String> variables) {
     }
 
     private Ctx context(AuthUser auth, String id) {
@@ -197,7 +196,7 @@ public class BulkImportService {
         Project p = ctx.project();
         Set<String> templates = new HashSet<>();
         p.getTemplates().stream().map(ProjectTemplate::getCode).forEach(templates::add);
-        return new Rules(templates, new HashSet<>(p.getSenders()), variables.activeValues(p.getId()));
+        return new Rules(templates, variables.activeValues(p.getId()));
     }
 
     private static void requireBulkType(ContentType type) {

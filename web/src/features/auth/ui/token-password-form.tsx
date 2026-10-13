@@ -3,7 +3,8 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { isApiError } from "@/shared/api";
-import { Button, Field, Input, toast } from "@/shared/ui";
+import { toast } from "@/shared/ui";
+import { Button, Field, Input } from "@/shared/common";
 import type { AuthTokenKind } from "@/entities/me";
 import { authApi } from "../api/auth-api";
 import {

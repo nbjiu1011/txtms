@@ -62,7 +62,6 @@ describe("performance project and reviewer options", () => {
     active: true,
     leadUserId: 3,
     templates: [],
-    senders: [],
     members,
     variablesRevision: 0,
   });

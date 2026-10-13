@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { computePopoverPosition } from "@/shared/ui";
 import { formatDate, formatDateTime } from "./format";
 import { safeNextPath } from "./safe-redirect";
 
@@ -26,13 +25,3 @@ describe("format", () => {
   });
 });
 
-describe("computePopoverPosition", () => {
-  const rect = (right: number, bottom: number) => ({ right, bottom }) as DOMRect;
-  it("aligns the right edge to the anchor, 6px below", () => {
-    expect(computePopoverPosition(rect(1000, 40), 380, 1440)).toEqual({ x: 620, y: 46 });
-  });
-  it("clamps 8px inside the viewport", () => {
-    expect(computePopoverPosition(rect(100, 40), 380, 1440).x).toBe(8);
-    expect(computePopoverPosition(rect(1438, 40), 300, 1440).x).toBe(1132);
-  });
-});

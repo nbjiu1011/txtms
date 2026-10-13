@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { LIST_PAGE_SIZE, useClampPage, useListPage } from "@/shared/lib";
-import { Button, Empty, Icon, Page, PageHeader, Pager, Panel, Table, Tag, tableClasses } from "@/shared/ui";
+import { Empty, Icon, Page, PageHeader, Panel, Table, Tag, tableClasses } from "@/shared/ui";
+import { Button, Pager } from "@/shared/common";
 import { useManagedProjects, type Project } from "@/entities/project";
 import { useCustomerUsers, useUserDirectory, type UserDirectory, type UserSummary } from "@/entities/user";
 import { ProjectEditDialog } from "@/features/customer-admin";

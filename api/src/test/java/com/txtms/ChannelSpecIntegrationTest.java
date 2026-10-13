@@ -110,18 +110,18 @@ class ChannelSpecIntegrationTest extends IntegrationTestBase {
         assertThat(strings(check.path("warnings"))).containsExactly("C1 콘텐츠 1: LMS 2,000바이트 초과 (2,024바이트)",
                 "C1 콘텐츠 1: EUC-KR로 표현할 수 없는 문자: 똠, 😀");
 
-        // a missing item fails the check while the warnings are still reported
+        // a failing rule fails the check while the warnings are still reported (84 + "#{nope}" 7 = 91 bytes)
         expect(200, req, put("/api/requests/" + id + "/contents/C1"), Map.of("payload", Map.of(
-                "sender", "", "body", "가".repeat(46), "customerCenter", false, "optOut", false)));
+                "sender", "1588-0000", "body", "가".repeat(42) + "#{nope}", "customerCenter", false, "optOut", false)));
         check = expect(200, req, post("/api/requests/" + id + "/submit-check"), null);
         assertThat(check.path("ok").asBoolean()).isFalse();
-        assertThat(strings(check.path("details"))).containsExactly("C1 콘텐츠 1: 발신번호");
+        assertThat(strings(check.path("details"))).containsExactly("C1: 등록되지 않았거나 비활성 변수 nope");
         assertThat(strings(check.path("warnings")))
-                .containsExactly("C1 콘텐츠 1: SMS 90바이트 초과 — LMS 예상 전환 (92바이트)");
+                .containsExactly("C1 콘텐츠 1: SMS 90바이트 초과 — LMS 예상 전환 (91바이트)");
 
-        // within the short SMS limit: no warnings, submit succeeds
+        // within the short SMS limit: no warnings, submit succeeds; the sender is optional (no registered numbers)
         expect(200, req, put("/api/requests/" + id + "/contents/C1"), Map.of("payload", Map.of(
-                "sender", "1588-0000", "body", "가".repeat(45), "customerCenter", false, "optOut", false)));
+                "sender", "", "body", "가".repeat(45), "customerCenter", false, "optOut", false)));
         check = expect(200, req, post("/api/requests/" + id + "/submit-check"), null);
         assertThat(check.path("ok").asBoolean()).isTrue();
         assertThat(check.path("warnings")).isEmpty();

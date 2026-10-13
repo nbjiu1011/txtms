@@ -2,7 +2,8 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useClampPage, useListPage } from "@/shared/lib";
-import { Button, Empty, Page, PageHeader, Pager, Panel } from "@/shared/ui";
+import { Empty, Page, PageHeader, Panel } from "@/shared/ui";
+import { Button, Pager } from "@/shared/common";
 import { isCustomerAdmin, projectRoles } from "@/entities/me";
 import {
   EMPTY_REQUEST_FILTERS,

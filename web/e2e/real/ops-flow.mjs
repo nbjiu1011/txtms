@@ -3,7 +3,7 @@
  *   node e2e/real/ops-flow.mjs            (BASE=http://localhost:4246, API_ORIGIN=http://localhost:4245)
  * 정우진 (u5) reads the ops dashboard, creates a throwaway customer (domain normalisation, format and
  * duplicate refusals), finds its default project in 초기 설정·시드, invites the first admin with the
- * external-domain confirmation and a business user, sets the project's templates and senders, assigns
+ * external-domain confirmation and a business user, sets the project's 알림톡 templates, assigns
  * and confirms datasets for all four types (change, unassign, seed), switches a content type off and on
  * again, registers a dataset version (JSON row errors, then the sample XLSX), creates and clears a
  * sample request on 한빛카드, reads 운영 이력 / 설정 이력 / 발송 대기함, cancels the 시연 데이터 초기화
@@ -12,7 +12,7 @@
  * type is restored.
  */
 import { expect } from "@playwright/test";
-import { BASE, apiAs, dialog, log, main, startRun, toastSeen } from "./helpers.mjs";
+import { BASE, apiAs, dialog, log, main, pick, selectValueIs, startRun, toastSeen } from "./helpers.mjs";
 
 const OPS = 5;
 const XLSX = "E:/workspace/txtms/api/src/main/resources/demo/correction-sample-dataset.xlsx";
@@ -102,7 +102,7 @@ try {
     await toastSeen(ops, "고객사를 만들었습니다. 초기 설정을 이어서 진행하세요");
     await ops.waitForURL(/\/ops\/setup$/);
     customerId = (await apiAs(OPS, "GET", "/ops/customers/options")).find((c) => c.domain === DOMAIN).id;
-    await expect(m().getByRole("combobox", { name: "고객사 선택" })).toHaveValue(String(customerId));
+    await selectValueIs(m().getByRole("combobox", { name: "고객사 선택" }), String(customerId));
   });
 
   await step("초기 설정: default project, steps, real customer has no sample actions", async () => {
@@ -140,7 +140,7 @@ try {
     const d = dialog(ops, "초기 업무 사용자 초대");
     await d.getByLabel(/이메일/).fill(MEMBER_EMAIL);
     await d.getByLabel(/^이름/).fill(`요청${stamp.slice(-3)}`);
-    await d.getByLabel("역할").selectOption("REQUESTER");
+    await pick(d.getByLabel("역할"), "REQUESTER");
     await d.getByRole("button", { name: "초대 링크 생성" }).click();
     await dialog(ops, "초대 링크 생성 완료").getByRole("button", { name: "닫기" }).first().click();
     // pending invitations come from the setup working data (`GET /api/ops/customers/{id}/setup-context`)
@@ -148,9 +148,9 @@ try {
     await expect(m().getByText(`· 초대 대기 ${ADMIN_EMAIL}`, { exact: false })).toBeVisible();
   });
 
-  await step("발신 정보: row validation, then templates and senders saved", async () => {
-    await m().getByRole("row", { name: /^기본 프로젝트/ }).getByRole("button", { name: "발신 정보" }).click();
-    const d = dialog(ops, "기본 프로젝트 발신 정보");
+  await step("알림톡 템플릿: row validation, then templates saved", async () => {
+    await m().getByRole("row", { name: /^기본 프로젝트/ }).getByRole("button", { name: "알림톡 템플릿" }).click();
+    const d = dialog(ops, "기본 프로젝트 알림톡 템플릿");
     await d.getByRole("button", { name: "템플릿 추가" }).click();
     await d.getByLabel("템플릿 1 코드", { exact: true }).fill("잘못된 코드");
     await d.getByRole("button", { name: "저장" }).click();
@@ -158,16 +158,14 @@ try {
     await expect(d.getByText("템플릿 이름을 입력하세요")).toBeVisible();
     await d.getByLabel("템플릿 1 코드", { exact: true }).fill(TEMPLATE);
     await d.getByLabel("템플릿 1 이름", { exact: true }).fill("가입 안내");
-    await d.getByRole("button", { name: "발신번호 추가" }).click();
-    await d.getByLabel("발신번호 1", { exact: true }).fill("1588-1234");
-    await shot(ops, "sending-modal");
+    await shot(ops, "template-modal");
     await d.getByRole("button", { name: "저장" }).click();
-    await toastSeen(ops, "발신 정보를 저장했습니다");
+    await toastSeen(ops, "알림톡 템플릿을 저장했습니다");
     const row = m().getByRole("row", { name: /^기본 프로젝트/ });
     await expect(row.getByText(TEMPLATE)).toBeVisible();
-    await expect(row.getByText("1588-1234")).toBeVisible();
     const [project] = await apiAs(OPS, "GET", `/customers/${customerId}/projects`);
-    if (project.templates[0]?.code !== TEMPLATE || project.senders[0] !== "1588-1234") throw new Error("sending info not saved");
+    if (project.templates[0]?.code !== TEMPLATE) throw new Error("templates not saved");
+    if ("senders" in project) throw new Error("project still exposes senders");
   });
 
   await step("배정 화면: assign all four types, change a version, confirm", async () => {
@@ -186,12 +184,12 @@ try {
       });
     }
     const older = (await datasetsOf(changeType))[1];
-    await sel(changeType).selectOption(String(older.id));
+    await pick(sel(changeType), String(older.id));
     await toastSeen(ops, `${LABEL[changeType]} v${older.version}을 연결했습니다. 확인 처리까지 해 주세요`);
-    await expect(sel(changeType)).toHaveValue(String(older.id));
+    await selectValueIs(sel(changeType), String(older.id));
     for (const type of TYPES) {
       const latest = (await datasetsOf(type))[0];
-      await sel(type).selectOption(String(latest.id));
+      await pick(sel(type), String(latest.id));
       await toastSeen(ops, `${LABEL[type]} v${latest.version}을 연결했습니다`);
       await expect(sel(type)).toBeEnabled();
     }
@@ -206,10 +204,10 @@ try {
   });
 
   await step("unassign 자유입력형, then 최신 배포본 시드 from 초기 설정 (assign + confirm)", async () => {
-    await m().getByLabel(`${NAME} 자유입력형 데이터셋`).selectOption("");
+    await pick(m().getByLabel(`${NAME} 자유입력형 데이터셋`), "");
     await toastSeen(ops, "배정을 해제했습니다");
     await go("/ops/setup", "초기 설정·시드");
-    await m().getByRole("combobox", { name: "고객사 선택" }).selectOption(String(customerId));
+    await pick(m().getByRole("combobox", { name: "고객사 선택" }), String(customerId));
     const row = m().getByRole("row", { name: /^자유입력형/ });
     await expect(row.getByText("미배정")).toBeVisible();
     await row.getByRole("button", { name: "최신 배포본 시드" }).click();
@@ -244,8 +242,8 @@ try {
     const before = (await datasetsOf("FREEFORM"))[0];
     await m().getByRole("button", { name: "데이터셋 등록" }).click();
     const d = dialog(ops, "교정 데이터셋 시드 등록");
-    await d.getByLabel("유형").selectOption("FREEFORM");
-    await d.getByRole("button", { name: "JSON 붙여넣기" }).click();
+    await pick(d.getByLabel("유형"), "FREEFORM");
+    await d.getByRole("radio", { name: "JSON 붙여넣기" }).click();
     await d
       .getByLabel(/규칙 JSON 배열/)
       .fill('[{"ruleId":"","originalExpr":"되요","recommendedExpr":"돼요"},{"ruleId":"B","originalExpr":"a","originalPattern":"b"}]');
@@ -255,7 +253,7 @@ try {
     await expect(alert.getByText("1행: rule_id를 입력하세요")).toBeVisible();
     await expect(alert.getByText("2행: original_expr와 original_pattern 중 하나만 입력하세요")).toBeVisible();
     await shot(ops, "dataset-row-errors");
-    await d.getByRole("button", { name: "XLSX 파일" }).click();
+    await d.getByRole("radio", { name: "XLSX 파일" }).click();
     await d.getByLabel(/규칙 파일/).setInputFiles(XLSX);
     await d.getByRole("button", { name: "등록" }).click();
     await toastSeen(ops, `자유입력형 v${before.version + 1} 데이터셋을 등록했습니다`);
@@ -271,11 +269,11 @@ try {
 
   await step("샘플: create and clear a sample request on 한빛카드", async () => {
     await go("/ops/setup", "초기 설정·시드");
-    await m().getByRole("combobox", { name: "고객사 선택" }).selectOption({ label: "한빛카드" });
+    await pick(m().getByRole("combobox", { name: "고객사 선택" }), { label: "한빛카드" });
     const panel = m().getByRole("region", { name: "샘플 요청·콘텐츠" });
     await panel.getByRole("button", { name: "샘플 요청 생성" }).click();
     const d = dialog(ops, "샘플 요청·콘텐츠 생성");
-    await d.getByLabel("콘텐츠 유형").selectOption("ALIMTALK");
+    await pick(d.getByLabel("콘텐츠 유형"), "ALIMTALK");
     await shot(ops, "sample-modal");
     await d.getByRole("button", { name: "생성" }).click();
     await toastSeen(ops, "샘플 요청을 만들었습니다");
@@ -292,15 +290,15 @@ try {
 
   await step("logs: 운영 이력 of the test customer, outbox mail, setup log", async () => {
     await go("/ops/customers", "고객사 관리");
-    await m().getByRole("combobox", { name: "운영 이력 고객사" }).selectOption(String(customerId));
+    await pick(m().getByRole("combobox", { name: "운영 이력 고객사" }), String(customerId));
     for (const action of ["유효 데이터셋 확인", "유효 데이터셋 해제", "유효 데이터셋 변경"]) {
       await expect(m().getByRole("cell", { name: action, exact: true }).first()).toBeVisible();
     }
     await shot(ops, "customers");
-    // older entries (고객사 생성, 사용자 초대, 발신 정보) may be on the next pages (20 per page)
+    // older entries (고객사 생성, 사용자 초대, 알림톡 템플릿) may be on the next pages (20 per page)
     const seen = new Set();
     for (let i = 0; i < 4; i++) {
-      for (const action of ["고객사 생성", "사용자 초대", "프로젝트 발신 정보 변경"]) {
+      for (const action of ["고객사 생성", "사용자 초대", "프로젝트 알림톡 템플릿 변경"]) {
         if (await m().getByRole("cell", { name: action, exact: true }).count()) seen.add(action);
       }
       const next = m().getByRole("button", { name: "다음" });
@@ -310,7 +308,7 @@ try {
     }
     if (seen.size !== 3) throw new Error(`운영 이력 missing: only ${[...seen].join(", ")}`);
     await go("/ops/setup", "초기 설정·시드");
-    await m().getByRole("combobox", { name: "고객사 선택" }).selectOption(String(customerId));
+    await pick(m().getByRole("combobox", { name: "고객사 선택" }), String(customerId));
     await expect(m().getByRole("cell", { name: "템플릿 등록" })).toBeVisible();
     await expect(m().getByRole("cell", { name: "초대 링크 생성" }).first()).toBeVisible();
     const outbox = m().getByRole("region", { name: "메일 발송 대기함" });

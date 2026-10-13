@@ -10,6 +10,7 @@ import { decodeOpsIntent, requestOpsIntent } from "@/features/ops-admin";
 import type { WorkViewProps } from "@/widgets/app-shell";
 import { memberCounts, setupSteps } from "../model/setup-steps";
 import { OpsSetupView } from "./ops-setup-view";
+import { chooseValue, selectValue } from "@/shared/common/testing";
 
 const customer = (id: number, name: string, patch: Partial<OpsCustomer> = {}): OpsCustomer => ({
   id,
@@ -43,7 +44,6 @@ const project = (id: number, customerId: number, patch: Partial<Project> = {}): 
   active: true,
   leadUserId: null,
   templates: [],
-  senders: [],
   members: [],
   variablesRevision: 0,
   ...patch,
@@ -78,7 +78,6 @@ function setup(customerId: number) {
     project(1, 1, {
       name: "카드 혜택 알림",
       templates: [{ code: "HB_POINT_01", name: "포인트" }],
-      senders: ["1588-0000"],
       members: [
         { userId: 1, roles: ["REQUESTER"] },
         { userId: 3, roles: ["REVIEWER"] },
@@ -144,26 +143,25 @@ describe("초기 설정·시드", () => {
   it("explains instead of offering sample actions for a real customer (dashboard hand-off)", () => {
     requestOpsIntent("opsSetup", { customerId: 3 });
     setup(1);
-    expect(screen.getByRole("combobox", { name: "고객사 선택" })).toHaveProperty("value", "3");
+    expect(selectValue(screen.getByRole("combobox", { name: "고객사 선택" }))).toBe("3");
     const panel = samplePanel();
     expect(within(panel).queryByRole("button")).toBeNull();
     expect(within(panel).getByText(/샘플 데이터 작업은 샘플 고객사에서만 가능합니다/)).toBeTruthy();
     expect(screen.getByText("첫 고객사 관리자 초대 필요")).toBeTruthy();
   });
 
-  it("shows the four steps with done marks and the sending info per project", () => {
+  it("shows the four steps with done marks and the 알림톡 templates per project", () => {
     setup(1);
     const steps = screen.getByRole("list", { name: "초기 설정 단계" });
     expect(within(steps).getAllByText("완료").length).toBe(4);
     expect(within(steps).getByText("요청자 1명, 검수자 1명, 승인자 0명")).toBeTruthy();
     const row = screen.getByRole("row", { name: /카드 혜택 알림/ });
     expect(within(row).getByText("HB_POINT_01")).toBeTruthy();
-    expect(within(row).getByText("1588-0000")).toBeTruthy();
   });
 
   it("switches the customer with the select and opens the assignment matrix for it", () => {
     const { openTab } = setup(1);
-    fireEvent.change(screen.getByRole("combobox", { name: "고객사 선택" }), { target: { value: "3" } });
+    chooseValue(screen.getByRole("combobox", { name: "고객사 선택" }), "3");
     expect(screen.getByText("미배정 문자, RCS")).toBeTruthy();
     // pending invitations come from the operator members list (contract §14.7)
     expect(screen.getByText("아직 수락한 관리자가 없습니다. · 초대 대기 admin@c3.com")).toBeTruthy();

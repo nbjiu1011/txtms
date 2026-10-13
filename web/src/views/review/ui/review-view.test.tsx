@@ -114,7 +114,7 @@ describe("ReviewView paging", () => {
     expect(await screen.findByText("MY_ASSIGNED_ACTIVE 21")).toBeTruthy();
     expect(screen.getByText("2 / 2")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "완료" }));
+    fireEvent.click(screen.getByRole("radio", { name: "완료" }));
     expect(await screen.findByText("MY_ASSIGNED_DONE 1")).toBeTruthy();
     expect(screen.getByText("1 / 3")).toBeTruthy();
     await waitFor(() => expect(queries(get, "MY_ASSIGNED_DONE").every((q) => q.page === 0)).toBe(true));

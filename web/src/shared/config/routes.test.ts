@@ -31,6 +31,13 @@ describe("pathToTab", () => {
     });
   });
 
+  it("parses notice detail paths", () => {
+    expect(pathToTab("/notices/7")).toEqual({ route: "notice", params: { id: "7" } });
+    expect(pathToTab("/admin/notices/7")).toEqual({ route: "adminNotice", params: { id: "7" } });
+    expect(pathToTab("/notices/x")).toBeNull();
+    expect(pathToTab("/admin/notices/7/logs")).toBeNull();
+  });
+
   it("parses customer detail paths (numeric ids only)", () => {
     expect(pathToTab("/ops/customers/12")).toEqual({ route: "opsCustomer", params: { id: "12" } });
     expect(pathToTab("/ops/customers/abc")).toBeNull();
@@ -65,7 +72,7 @@ describe("tabToPath", () => {
           ? { route, params: { id: "REQ-2609-101" } }
           : route === "content"
             ? { route, params: { id: "REQ-2609-101", key: "C1" } }
-            : route === "opsCustomer"
+            : route === "opsCustomer" || route === "notice" || route === "adminNotice"
               ? { route, params: { id: "3" } }
               : { route, params: {} };
       expect(pathToTab(tabToPath(ref))).toEqual(ref);
@@ -83,6 +90,8 @@ describe("tabIdentity", () => {
     expect(tabIdentity({ route: "content", params: { id: "R1", key: "C1" } })).toBe("content:R1:C1");
     expect(tabIdentity({ route: "requests", params: {} })).toBe("requests");
     expect(tabIdentity({ route: "opsCustomer", params: { id: "3" } })).toBe("opsCustomer:3");
+    expect(tabIdentity({ route: "notice", params: { id: "3" } })).toBe("notice:3");
+    expect(tabIdentity({ route: "adminNotice", params: { id: "3" } })).toBe("adminNotice:3");
   });
 });
 

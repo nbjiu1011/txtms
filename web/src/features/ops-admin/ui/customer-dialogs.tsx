@@ -2,18 +2,8 @@
 
 import { useId, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  Checkbox,
-  ErrorDetails,
-  Field,
-  Input,
-  KeyValueList,
-  Modal,
-  Tag,
-  Textarea,
-  toast,
-  useServerError,
-} from "@/shared/ui";
+import { ErrorDetails, KeyValueList, Tag, toast } from "@/shared/ui";
+import { Checkbox, Field, Input, Modal, Textarea, useServerError } from "@/shared/common";
 import { useWorkContextStore } from "@/entities/me";
 import { opsApi, type OpsCustomer } from "@/entities/ops";
 import {

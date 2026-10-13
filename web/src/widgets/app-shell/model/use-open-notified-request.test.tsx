@@ -35,7 +35,7 @@ describe("useOpenNotifiedRequest", () => {
   it("switches the context to the request's customer/project and opens its tab", async () => {
     respond({
       "/api/requests/REQ-2609-101": [200, request101U2],
-      "/api/projects/1": [200, { id: 1, customerId: 5, name: "p", active: true, leadUserId: 3, templates: [], senders: [], members: [], variablesRevision: 1 }],
+      "/api/projects/1": [200, { id: 1, customerId: 5, name: "p", active: true, leadUserId: 3, templates: [], members: [], variablesRevision: 1 }],
     });
     useWorkContextStore.setState({ customerId: 1, projectId: 2 });
     const { open, navigate } = setup();

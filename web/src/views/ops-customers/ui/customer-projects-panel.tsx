@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { LIST_PAGE_SIZE, useClampPage } from "@/shared/lib";
-import { Button, Empty, Pager, Panel, PanelHeader, Table, Tag, tableClasses } from "@/shared/ui";
+import { Empty, Panel, PanelHeader, Table, Tag, tableClasses } from "@/shared/ui";
+import { Button, Pager } from "@/shared/common";
 import { useOpsCustomerProjects } from "@/entities/ops";
 import styles from "./ops-customers.module.css";
 
@@ -41,7 +42,6 @@ export function CustomerProjectsPanel({ customerId, userName }: CustomerProjects
                 <th>대표 검수자</th>
                 <th>구성원</th>
                 <th>알림톡 템플릿</th>
-                <th>발신번호</th>
                 <th>상태</th>
               </tr>
             </thead>
@@ -58,7 +58,6 @@ export function CustomerProjectsPanel({ customerId, userName }: CustomerProjects
                   </td>
                   <td className={styles.num}>{p.members.filter((m) => m.roles.length > 0).length}명</td>
                   <td className={styles.num}>{p.templates.length}개</td>
-                  <td className={styles.num}>{p.senders.length}개</td>
                   <td>{p.active ? <Tag>사용</Tag> : <Tag variant="hot">중지</Tag>}</td>
                 </tr>
               ))}

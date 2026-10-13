@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { cn, formatDateTime } from "@/shared/lib";
-import { Empty, Field, Modal, ReadOnlyBox, Select } from "@/shared/ui";
+import { Empty, ReadOnlyBox } from "@/shared/ui";
+import { Field, Modal, Select } from "@/shared/common";
 import { textFields, useContentVersion, type Content, type ContentType } from "@/entities/request";
 import type { UserDirectory } from "@/entities/user";
 import styles from "./tabs.module.css";

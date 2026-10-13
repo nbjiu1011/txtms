@@ -2,7 +2,8 @@
 
 import { Fragment, useState } from "react";
 import { LIST_PAGE_SIZE, formatDate, useClampPage, useListPage } from "@/shared/lib";
-import { Button, Empty, Icon, Page, PageHeader, Pager, Panel, Table, Tag, tableClasses } from "@/shared/ui";
+import { Empty, Icon, Page, PageHeader, Panel, Table, Tag, tableClasses } from "@/shared/ui";
+import { Button, Pager } from "@/shared/common";
 import { noticeScopeText, useManagedNotices, type Notice } from "@/entities/notice";
 import { useUserDirectory } from "@/entities/user";
 import { NoticeEditDialog, WithdrawNoticeDialog } from "@/features/customer-admin";
@@ -12,7 +13,7 @@ import styles from "./admin-notices.module.css";
 type Editing = { notice: Notice | null } | null;
 
 /** `noticeAdmin` tab — 공지 관리 (reference `vNoticeAdmin`; operator notices are Phase 2). */
-export function AdminNoticesView({ context }: WorkViewProps) {
+export function AdminNoticesView({ context, openTab }: WorkViewProps) {
   const { customer, customerId, projects, projectId } = context;
   const [page, setPage] = useListPage(String(customerId));
   const notices = useManagedNotices(customerId, page, LIST_PAGE_SIZE);
@@ -61,7 +62,16 @@ export function AdminNoticesView({ context }: WorkViewProps) {
               <tbody>
                 {notices.data.content.map((n) => (
                   <tr key={n.id}>
-                    <td className={tableClasses.ttl}>{n.title}</td>
+                    <td className={tableClasses.ttl}>
+                      <button
+                        type="button"
+                        className={styles.titleBtn}
+                        aria-label={`${n.title} 상세 보기`}
+                        onClick={() => openTab({ route: "adminNotice", params: { id: String(n.id) } })}
+                      >
+                        {n.title}
+                      </button>
+                    </td>
                     <td>{noticeScopeText(n, projectName)}</td>
                     <td>{`${users.name(n.authorId)}  ${formatDate(n.createdAt)}`}</td>
                     <td className={styles.log}>

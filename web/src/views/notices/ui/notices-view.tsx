@@ -1,34 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { LIST_PAGE_SIZE, formatDateTime, useClampPage, useListPage, useViewIntent } from "@/shared/lib";
-import { Button, Empty, ListItem, Page, PageHeader, Pager, Panel } from "@/shared/ui";
-import { RichTextView } from "@/shared/ui/rich-text";
+import { LIST_PAGE_SIZE, formatDateTime, useClampPage, useListPage } from "@/shared/lib";
+import { Empty, ListItem, Page, PageHeader, Panel } from "@/shared/ui";
+import { Button, Pager } from "@/shared/common";
 import { isCustomerAdmin } from "@/entities/me";
 import { noticeScopeText, useNotices, type Notice } from "@/entities/notice";
 import { useUserDirectory } from "@/entities/user";
 import type { WorkViewProps } from "@/widgets/app-shell";
-import styles from "./notices.module.css";
 
-/** View-intent key (= route key): the dashboard asks this tab to expand a notice (payload = notice id). */
-const NOTICES_INTENT = "notices";
-
-/** `notices` tab — notices of the user's scope as an accordion (reference `vNotices`). */
+/** `notices` tab — notices of the user's scope (reference `vNotices`); a row opens the notice's detail tab. */
 export function NoticesView({ me, context, openTab }: WorkViewProps) {
   const { customerId, projects } = context;
   const [page, setPage] = useListPage(String(customerId));
   const notices = useNotices(customerId, page, LIST_PAGE_SIZE);
   useClampPage(page, notices.isPlaceholderData ? undefined : notices.data?.page.totalPages, setPage);
   const users = useUserDirectory(customerId);
-  const [openId, setOpenId] = useState<number | null>(null);
-  // A dashboard notice row opens this tab with that notice expanded; it stays the expanded one
-  // until the user toggles a row (the intent is consumed then).
-  const intent = useViewIntent((s) => s.intents[NOTICES_INTENT]);
-  const shownId = intent !== undefined && Number.isFinite(Number(intent)) ? Number(intent) : openId;
-  const toggle = (id: number) => {
-    useViewIntent.getState().consume(NOTICES_INTENT);
-    setOpenId(shownId === id ? null : id);
-  };
 
   const projectName = (id: number) => projects.find((p) => p.id === id)?.name;
   const meta = (n: Notice) =>
@@ -45,7 +31,7 @@ export function NoticesView({ me, context, openTab }: WorkViewProps) {
           ) : undefined
         }
       />
-      <Panel className={styles.list} aria-busy={notices.isFetching}>
+      <Panel aria-busy={notices.isFetching}>
         {notices.isPending ? (
           <Empty plain title="공지를 불러오는 중입니다" />
         ) : notices.isError ? (
@@ -63,9 +49,7 @@ export function NoticesView({ me, context, openTab }: WorkViewProps) {
                 key={n.id}
                 title={n.title}
                 meta={meta(n)}
-                expanded={shownId === n.id}
-                extra={shownId === n.id ? <RichTextView className={styles.body} value={n.body} /> : null}
-                onClick={() => toggle(n.id)}
+                onClick={() => openTab({ route: "notice", params: { id: String(n.id) } })}
               />
             ))}
             <Pager page={page} totalPages={notices.data.page.totalPages} onPage={setPage} />

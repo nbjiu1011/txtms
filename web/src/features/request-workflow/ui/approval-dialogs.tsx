@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Field, Input, ListItem, Modal, Panel, Select, Tag, Textarea, toast } from "@/shared/ui";
+import { ListItem, Panel, Tag, toast } from "@/shared/ui";
+import { Field, Input, Modal, Select, Textarea } from "@/shared/common";
 import { requestApi, type RequestDetail } from "@/entities/request";
 import { firstMissing } from "../model/assignment-form";
 import { handleWorkflowError, modalResult } from "../model/workflow-error";

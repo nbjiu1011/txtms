@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { formatDateTime } from "@/shared/lib";
-import { Button, Empty, Pager, Panel, PanelHeader, Table } from "@/shared/ui";
+import { Empty, Panel, PanelHeader, Table } from "@/shared/ui";
+import { Button, Pager } from "@/shared/common";
 import { useCustomerAuditLogs } from "@/entities/audit";
 
 import styles from "./admin-users.module.css";

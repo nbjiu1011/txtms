@@ -1,7 +1,8 @@
 "use client";
 
 import { LIST_PAGE_SIZE, useClampPage, useListPage } from "@/shared/lib";
-import { Button, Empty, ListItem, Pager, Panel, PanelBody, PanelHeader } from "@/shared/ui";
+import { Empty, ListItem, Panel, PanelBody, PanelHeader } from "@/shared/ui";
+import { Button, Pager } from "@/shared/common";
 import { useWorkload } from "@/entities/dashboard";
 import {
   RequestStatusChip,

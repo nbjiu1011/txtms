@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { isApiError } from "@/shared/api";
-import { Button, Empty, Page, PageHeader, Panel } from "@/shared/ui";
+import { Empty, Page, PageHeader, Panel } from "@/shared/ui";
+import { Button } from "@/shared/common";
 import { useOpsCustomer, useOpsSetupContext } from "@/entities/ops";
 import { DeactivateCustomerDialog, continueToSetup } from "@/features/ops-admin";
 import type { WorkViewProps } from "@/widgets/app-shell";

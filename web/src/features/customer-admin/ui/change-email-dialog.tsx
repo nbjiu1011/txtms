@@ -3,13 +3,13 @@
 import { useId, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { serverFormError } from "@/shared/api";
-import { Banner, ErrorDetails, Field, Input, Modal, toast } from "@/shared/ui";
+import { Banner, ErrorDetails, toast } from "@/shared/ui";
+import { Field, Input, Modal, useServerError } from "@/shared/common";
 import { memberApi, type Member } from "@/entities/user";
 import { isEmailFormat, isExternalEmail } from "@/shared/lib";
 import { EMAIL_CHANGE_EXTERNAL_TOAST } from "@/entities/user";
 import { normalizeEmail } from "../model/invite-form";
 import { invalidateUserData } from "../model/invalidate";
-import { useServerError } from "@/shared/ui";
 
 /** An accepted user's new address takes effect only after the user opens the link mailed to it. */
 export const EMAIL_CHANGE_REQUESTED_TOAST = "새 주소로 확인 메일을 보냈습니다. 사용자가 확인하면 변경됩니다";

@@ -570,7 +570,7 @@ public class RequestCommandService {
         project.getTemplates().stream().map(ProjectTemplate::getCode).forEach(templates::add);
         return new SubmitValidator.Input(r.info(), r.getType(),
                 !checkActivity || contentTypes.isActive(r.getType()), !checkActivity || project.isActive(),
-                templates, new HashSet<>(project.getSenders()), variables.activeValues(project.getId()), inputs);
+                templates, variables.activeValues(project.getId()), inputs);
     }
 
     /** Cancel before assignment: back to draft, round kept, lead reviewer notified. */

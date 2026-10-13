@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Field, Hint, Select, Textarea, toast } from "@/shared/ui";
+import { toast } from "@/shared/ui";
+import { Button, Field, Hint, Select, Textarea } from "@/shared/common";
 import { requestApi, type ContentRef, type RequestDetail } from "@/entities/request";
 import { handleWorkflowError } from "../model/workflow-error";
 import styles from "./thread.module.css";

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { isApiError } from "@/shared/api";
-import { Button, Checkbox, Field, Input, toast } from "@/shared/ui";
+import { toast } from "@/shared/ui";
+import { Button, Checkbox, Field, Input } from "@/shared/common";
 import { authApi } from "../api/auth-api";
 import { loginSchema, type LoginValues } from "../model/schemas";
 import { applySession } from "../model/session";
@@ -21,6 +22,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   const [resetOpen, setResetOpen] = useState(false);
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LoginValues>({
@@ -63,7 +65,22 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             {...register("password")}
           />
         </Field>
-        <Checkbox id="lg-remember" label="로그인 유지 (최대 14일)" labelClassName={styles.remember} {...register("remember")} />
+        <Controller
+          control={control}
+          name="remember"
+          render={({ field }) => (
+            <Checkbox
+              id="lg-remember"
+              label="로그인 유지 (최대 14일)"
+              labelClassName={styles.remember}
+              name={field.name}
+              checked={field.value}
+              onChange={(e) => field.onChange(e.target.checked)}
+              onBlur={field.onBlur}
+              ref={field.ref}
+            />
+          )}
+        />
         <div className={styles.row}>
           <Button type="submit" variant="pri" disabled={isSubmitting}>
             로그인

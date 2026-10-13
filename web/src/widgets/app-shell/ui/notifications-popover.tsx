@@ -1,7 +1,7 @@
 "use client";
 
 import { cn, formatDateTime } from "@/shared/lib";
-import { Button, Popover, PopoverBody, PopoverHeader } from "@/shared/ui";
+import { Button, Popover, PopoverBody, PopoverHeader } from "@/shared/common";
 import {
   useMarkAllNotificationsRead,
   useMarkNotificationRead,

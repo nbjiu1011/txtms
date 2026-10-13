@@ -4,7 +4,7 @@ import "quill/dist/quill.snow.css";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import type Quill from "quill";
 import { cn } from "@/shared/lib";
-import { toast } from "../overlay/toast";
+import { toast } from "../toast";
 import {
   RICH_TEXT_IMAGE_MAX_BYTES,
   RICH_TEXT_IMAGE_TOO_LARGE,

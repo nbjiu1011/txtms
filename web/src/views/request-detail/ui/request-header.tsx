@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { formatDate, formatDateTime } from "@/shared/lib";
-import { Avatar, AvatarStack, Button, Icon, ProgressTrack, RoundBadge, SubTabs, Tag, type SubTabItem } from "@/shared/ui";
+import { Avatar, AvatarStack, Icon, ProgressTrack, RoundBadge, Tag } from "@/shared/ui";
+import { Button, SubTabs, type SubTabItem } from "@/shared/common";
 import {
   CONTENT_TYPE_LABEL,
   ContentTypeChip,

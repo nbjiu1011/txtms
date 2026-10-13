@@ -1,7 +1,8 @@
 "use client";
 
 import { useId } from "react";
-import { Button, Checkbox, Field, Icon, Input, Label, Select, Textarea } from "@/shared/ui";
+import { Icon } from "@/shared/ui";
+import { Button, Checkbox, Field, Input, Label, Select, Textarea } from "@/shared/common";
 import {
   MAX_ALIMTALK_BUTTONS_STORED,
   addAlimtalkButton,
@@ -82,7 +83,6 @@ export function ContentEditor(props: ContentEditorProps) {
       return (
         <SmsFields
           payload={payload as SmsPayload}
-          project={project}
           disabled={disabled}
           onPayload={edit}
           spec={spec}
@@ -191,31 +191,24 @@ function AlimtalkFields({ payload, project, disabled, onPayload, spec, values }:
   );
 }
 
-type SmsFieldsProps = FieldsProps<SmsPayload> & SpecProps & { project: Project | null };
+type SmsFieldsProps = FieldsProps<SmsPayload> & SpecProps;
 
-function SmsFields({ payload, project, disabled, onPayload, spec, values }: SmsFieldsProps) {
+function SmsFields({ payload, disabled, onPayload, spec, values }: SmsFieldsProps) {
   const id = useId();
-  const senders = project?.senders ?? [];
   const check = checkSms(payload, spec?.sms ?? null, values);
   return (
     <>
-      <Field label="발신번호" required htmlFor={`${id}-sender`}>
-        <Select
+      {/* optional free text: the service never sends, so there is no registered-number list */}
+      <Field label="발신번호" htmlFor={`${id}-sender`}>
+        <Input
           id={`${id}-sender`}
+          placeholder="예: 1588-0000"
+          inputMode="tel"
           value={payload.sender}
           disabled={disabled}
+          readOnly={!onPayload}
           onChange={(e) => onPayload?.({ ...payload, sender: e.target.value })}
-        >
-          <option value="">등록된 발신번호 선택</option>
-          {senders.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-          {payload.sender && !senders.includes(payload.sender) ? (
-            <option value={payload.sender}>{payload.sender}</option>
-          ) : null}
-        </Select>
+        />
       </Field>
       <Field label="본문" required htmlFor={`${id}-body`}>
         <Textarea id={`${id}-body`} rows={8} value={payload.body} disabled={disabled} {...bindText(payload, "body", onPayload)} />

@@ -1,7 +1,8 @@
 "use client";
 
 import type { Ref } from "react";
-import { Button, Icon, Input, LockBar, SaveIndicator, Tag } from "@/shared/ui";
+import { Icon, LockBar, SaveIndicator, Tag } from "@/shared/ui";
+import { Button, Input } from "@/shared/common";
 import type { Content } from "@/entities/request";
 import type { DraftSession } from "../model/draft-session";
 import type { RevisionBuffer } from "../model/revision-session";

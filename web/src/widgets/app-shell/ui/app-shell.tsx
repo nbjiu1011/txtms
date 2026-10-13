@@ -19,7 +19,8 @@ import {
   type RouteKey,
   type TabRef,
 } from "@/shared/config/routes";
-import { ESCAPE_PRIORITY, toast, useEscapeLayer } from "@/shared/ui";
+import { toast } from "@/shared/ui";
+import { ESCAPE_PRIORITY, useEscapeLayer } from "@/shared/lib";
 import { canAccessRoute, useSessionStore, type AccessContext, type Me } from "@/entities/me";
 import { MAX_TABS, TAB_LIMIT_MESSAGE, findTab, type WorkTab } from "../model/tab-model";
 import { getActiveTab, hasDirtyTab, useTabStore } from "../model/tab-store";

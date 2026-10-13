@@ -1,6 +1,7 @@
 "use client";
 
-import { Avatar, Popover, PopoverBody, PopoverHeader, PopoverItem, PopoverSection, Tag } from "@/shared/ui";
+import { Avatar, Tag } from "@/shared/ui";
+import { Popover, PopoverBody, PopoverHeader, PopoverItem, PopoverSection } from "@/shared/common";
 import type { Me } from "@/entities/me";
 import { logout, useDemoPersonas, useSwitchPersona } from "@/features/auth";
 import styles from "./app-shell.module.css";

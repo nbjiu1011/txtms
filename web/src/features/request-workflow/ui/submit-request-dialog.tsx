@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState, useLayoutEffect } from "react";
 import { isApiError, type FieldError } from "@/shared/api";
-import { Modal, toast } from "@/shared/ui";
+import { toast } from "@/shared/ui";
+import { Modal } from "@/shared/common";
 import { requestApi, type RequestDetail } from "@/entities/request";
 import styles from "./workflow.module.css";
 

@@ -6,7 +6,17 @@
  * 한가을 u6 reviewer, 최민아 u4 approver. Screenshots go to e2e/real/out (gitignored).
  */
 import { expect } from "@playwright/test";
-import { BASE, dialog, log, main, roundIs as round, startRun, statusIs as status, toastSeen } from "./helpers.mjs";
+import {
+  BASE,
+  dialog,
+  log,
+  main,
+  pick,
+  roundIs as round,
+  startRun,
+  statusIs as status,
+  toastSeen,
+} from "./helpers.mjs";
 
 const { persona, step, shot, close } = await startRun("review");
 const stamp = Date.now().toString(36);
@@ -32,7 +42,7 @@ await step("u1 creates and submits a request", async () => {
   await m.getByLabel("대상 고객").fill("카드 보유 고객");
   await m.getByLabel("배경").fill("M2 점검");
   await m.getByRole("tab", { name: /콘텐츠/ }).click();
-  await m.getByLabel("승인 템플릿").selectOption({ index: 1 });
+  await pick(m.getByLabel("승인 템플릿"), { index: 1 });
   await m.getByLabel("본문").fill("고객님, 10월 포인트가 적립되었습니다.");
   await expect(m.getByRole("status").filter({ hasText: /^저장됨/ }).first()).toBeVisible({ timeout: 10_000 });
   await u1.getByRole("button", { name: "검수 요청" }).click();
@@ -58,9 +68,9 @@ await step("u3 assigns 박지훈 (primary) + 한가을 from 배정 관리", asyn
   await d.getByRole("button", { name: "배정", exact: true }).click();
   await toastSeen(u3, "검수자를 한 명 이상 고르세요");
   await d.getByRole("checkbox", { name: /박지훈/ }).check();
-  await expect(d.getByRole("button", { name: "박지훈", pressed: true })).toBeVisible();
+  await expect(d.getByRole("radio", { name: "박지훈", checked: true })).toBeVisible();
   await d.getByRole("checkbox", { name: /한가을/ }).check();
-  await d.getByRole("button", { name: "박지훈", exact: true }).click();
+  await d.getByRole("radio", { name: "박지훈", exact: true }).click();
   await shot(u3, "02-assign-modal");
   await d.getByRole("button", { name: "배정", exact: true }).click();
   await status(u3, "검수 중");
@@ -218,8 +228,8 @@ await step("u3 assigns again from the request header (박지훈 primary + 이도
   await u3.getByRole("button", { name: "검수자 배정" }).click();
   const d = dialog(u3, "검수자 배정");
   for (const n of ["박지훈", "이도현"]) await d.getByRole("checkbox", { name: new RegExp(n) }).check();
-  await d.getByRole("button", { name: "박지훈", exact: true }).click();
-  await d.getByLabel("긴급도").selectOption("URGENT");
+  await d.getByRole("radio", { name: "박지훈", exact: true }).click();
+  await pick(d.getByLabel("긴급도"), "URGENT");
   await d.getByRole("button", { name: "배정", exact: true }).click();
   await status(u3, "검수 중");
 });

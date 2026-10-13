@@ -18,6 +18,8 @@ import {
   dialog,
   log,
   main,
+  pick,
+  selectValueIs,
   startRun,
   statusIs,
   submitThroughApi,
@@ -89,14 +91,14 @@ await step("create; submit-check lists missing items before the confirmation", a
 await step("fill C1 (with a variable) and C2, submit", async () => {
   await m().getByRole("tab", { name: /콘텐츠/ }).click();
   await m().getByLabel("콘텐츠 제목").fill(C1_TITLE);
-  await m().getByLabel("승인 템플릿").selectOption({ index: 1 });
+  await pick(m().getByLabel("승인 템플릿"), { index: 1 });
   await m().getByLabel("본문").fill(C1_BODY);
   await saved();
   await m().getByRole("button", { name: "콘텐츠 추가" }).click();
   await expect(m().getByText("콘텐츠 2건")).toBeVisible();
   await expect(m().getByText("C2 v1", { exact: true })).toBeVisible();
   await m().getByLabel("콘텐츠 제목").fill(C2_TITLE);
-  await m().getByLabel("승인 템플릿").selectOption({ index: 1 });
+  await pick(m().getByLabel("승인 템플릿"), { index: 1 });
   await m().getByLabel("본문").fill(C2_BODY);
   await saved();
   await page.getByRole("button", { name: "검수 요청" }).click();
@@ -229,14 +231,14 @@ await step("archive: filters (campaign, type, status, completion date, reset)", 
   await page.goto(`${BASE}/contents`);
   const f = m().getByRole("search", { name: "콘텐츠 검색 조건" });
   await f.getByLabel("문안, 파일명, 본문").fill("");
-  await f.getByLabel("캠페인").selectOption(CAMPAIGN);
+  await pick(f.getByLabel("캠페인"), CAMPAIGN);
   await expect(lines()).toHaveCount(2);
-  await f.getByLabel("유형").selectOption("SMS");
+  await pick(f.getByLabel("유형"), "SMS");
   await expect(m().getByText("보관된 완료 콘텐츠가 없습니다")).toBeVisible();
-  await f.getByLabel("유형").selectOption("ALIMTALK");
-  await f.getByLabel("요청 상태").selectOption("REVIEW_COMPLETED");
+  await pick(f.getByLabel("유형"), "ALIMTALK");
+  await pick(f.getByLabel("요청 상태"), "REVIEW_COMPLETED");
   await expect(m().getByText("보관된 완료 콘텐츠가 없습니다")).toBeVisible();
-  await f.getByLabel("요청 상태").selectOption("APPROVED");
+  await pick(f.getByLabel("요청 상태"), "APPROVED");
   await expect(lines()).toHaveCount(2);
   await f.getByLabel("완료일 시작").fill(TODAY);
   await f.getByLabel("완료일 끝").fill(TODAY);
@@ -246,7 +248,7 @@ await step("archive: filters (campaign, type, status, completion date, reset)", 
   await expect(m().getByText("보관된 완료 콘텐츠가 없습니다")).toBeVisible();
   await shot(page, "04-archive-filtered-empty");
   await f.getByRole("button", { name: "초기화" }).click();
-  await expect(f.getByLabel("캠페인")).toHaveValue("");
+  await selectValueIs(f.getByLabel("캠페인"), "");
   await expect(lines().first()).toBeVisible();
   const next = m().getByRole("button", { name: "다음" });
   if (await next.isVisible()) {
@@ -283,21 +285,21 @@ await step("자유입력형 uploads: FILE_UNSAFE / FILE_SCAN_FAILED / SAFE", asy
   await m().getByLabel("목적").fill("첨부 반출 확인");
   await m().getByLabel("대상 고객").fill("전체 회원");
   await m().getByLabel("배경").fill("M3 점검");
-  await m().getByLabel("유형").selectOption("FREEFORM");
-  await expect(m().getByLabel("유형")).toHaveValue("FREEFORM");
+  await pick(m().getByLabel("유형"), "FREEFORM");
+  await selectValueIs(m().getByLabel("유형"), "FREEFORM");
   await m().getByRole("tab", { name: /콘텐츠/ }).click();
   const scan = m().getByLabel("첨부 검사 결과", { exact: true });
   const input = m().getByLabel("첨부파일 선택");
-  await scan.selectOption("UNSAFE");
+  await pick(scan, "UNSAFE");
   await input.setInputFiles(join(FILES, "notes.txt"));
   await expect(m().getByText(/notes\.txt · 안전하지 않은 파일로 등록 차단/).first()).toBeVisible();
-  await scan.selectOption("FAILED");
+  await pick(scan, "FAILED");
   await input.setInputFiles(join(FILES, "notes.txt"));
   await expect(m().getByText(/notes\.txt · 검사 실패/).first()).toBeVisible();
   // the response listener reads the body asynchronously: wait for it instead of reading the list at once
   await expect.poll(() => errorCodes.some((c) => c.includes("FILE_UNSAFE"))).toBe(true);
   await expect.poll(() => errorCodes.some((c) => c.includes("FILE_SCAN_FAILED"))).toBe(true);
-  await scan.selectOption("SAFE");
+  await pick(scan, "SAFE");
   await input.setInputFiles(join(FILES, "약관 개정안.pdf"));
   await expect(m().getByText(/약관 개정안\.pdf · 업로드 완료/)).toBeVisible();
   await m().getByLabel("약관 개정안.pdf 전체 분량").fill("14");

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { formatKstToday, useViewIntent } from "@/shared/lib";
-import { Banner, Button, Empty, Kpi, KpiGrid, Page, PageHeader, Panel } from "@/shared/ui";
+import { Banner, Empty, Kpi, KpiGrid, Page, PageHeader, Panel } from "@/shared/ui";
+import { Button } from "@/shared/common";
 import { useDashboard } from "@/entities/dashboard";
 import { projectRoles } from "@/entities/me";
 import {
@@ -147,10 +148,7 @@ export function DashboardView({ me, context, openTab }: WorkViewProps) {
             notices={data.notices}
             projects={context.projects}
             onShowAll={() => openTab({ route: "notices", params: {} })}
-            onOpen={(id) => {
-              useViewIntent.getState().request("notices", String(id));
-              openTab({ route: "notices", params: {} });
-            }}
+            onOpen={(id) => openTab({ route: "notice", params: { id: String(id) } })}
           />
         </div>
       </div>

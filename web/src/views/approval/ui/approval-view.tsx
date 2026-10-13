@@ -1,19 +1,8 @@
 "use client";
 
 import { LIST_PAGE_SIZE, useClampPage, useListPage } from "@/shared/lib";
-import {
-  Banner,
-  Button,
-  Empty,
-  ListItem,
-  Page,
-  PageHeader,
-  Pager,
-  Panel,
-  PanelHeader,
-  Table,
-  tableClasses,
-} from "@/shared/ui";
+import { Banner, Empty, ListItem, Page, PageHeader, Panel, PanelHeader, Table, tableClasses } from "@/shared/ui";
+import { Button, Pager } from "@/shared/common";
 import { RequestStatusChip, useRequests } from "@/entities/request";
 import { useUserDirectory } from "@/entities/user";
 import type { WorkViewProps } from "@/widgets/app-shell";

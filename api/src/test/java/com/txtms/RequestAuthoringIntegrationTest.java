@@ -391,7 +391,7 @@ class RequestAuthoringIntegrationTest extends IntegrationTestBase {
                 "body", "가".repeat(990) + " #{customer_name} #{unknown_key}", "customerCenter", true, "optOut", true)));
         long rv = getJson(req, "/api/requests/" + sms).path("rowVersion").asLong();
         assertThat(strings(expect(400, req, post("/api/requests/" + sms + "/submit"), Map.of("rowVersion", rv))
-                .path("details"))).containsExactly("C1: 등록된 발신번호", "C1: 등록되지 않았거나 비활성 변수 unknown_key");
+                .path("details"))).containsExactly("C1: 등록되지 않았거나 비활성 변수 unknown_key");
 
         String alim = create(req, t.projectId(), "ALIMTALK").path("id").asString();
         expect(200, req, patch("/api/requests/" + alim), info("알림톡"));

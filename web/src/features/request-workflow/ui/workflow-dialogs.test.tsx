@@ -9,6 +9,7 @@ import { AssignDialog } from "./assign-dialog";
 import { CompleteDialog } from "./complete-dialog";
 import { RecallDecisionDialog } from "./recall-dialogs";
 import type { ReviewerCandidate } from "./reviewer-picker";
+import { chooseValue } from "@/shared/common/testing";
 
 vi.mock("@/shared/ui", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/shared/ui")>()),
@@ -55,10 +56,10 @@ describe("AssignDialog", () => {
     expect(assign).not.toHaveBeenCalled();
 
     fireEvent.click(within(dialog).getByRole("checkbox", { name: /한가을/ }));
-    expect(within(dialog).getByRole("button", { name: "한가을", pressed: true })).toBeTruthy();
+    expect(within(dialog).getByRole("radio", { name: "한가을", checked: true })).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("checkbox", { name: /박지훈/ }));
-    fireEvent.click(within(dialog).getByRole("button", { name: "박지훈" }));
-    fireEvent.change(within(dialog).getByLabelText("긴급도"), { target: { value: "URGENT" } });
+    fireEvent.click(within(dialog).getByRole("radio", { name: "박지훈" }));
+    chooseValue(within(dialog).getByLabelText("긴급도"), "URGENT");
     fireEvent.click(within(dialog).getByRole("button", { name: "배정" }));
     await waitFor(() => expect(common.onDone).toHaveBeenCalled());
     expect(assign).toHaveBeenCalledWith(waiting.id, 9, {
@@ -77,7 +78,7 @@ describe("AssignDialog", () => {
     fireEvent.change(within(dialog).getByLabelText("인수인계 내용"), { target: { value: "C2 문안 확인 중" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "변경" }));
     await waitFor(() => expect(toast).toHaveBeenCalledWith("변경된 검수자나 주담당이 없습니다"));
-    fireEvent.click(within(dialog).getByRole("button", { name: "한가을" }));
+    fireEvent.click(within(dialog).getByRole("radio", { name: "한가을" }));
     fireEvent.click(within(dialog).getByRole("button", { name: "변경" }));
     await waitFor(() => expect(change).toHaveBeenCalled());
     expect(change.mock.calls[0][2]).toEqual({ reviewerIds: [2, 6], primaryReviewerId: 6, reason: "휴가", handover: "C2 문안 확인 중" });

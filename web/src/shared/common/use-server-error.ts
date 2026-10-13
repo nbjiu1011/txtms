@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { serverFormError, type ServerFormError } from "@/shared/api";
-import { toast } from "./overlay/toast";
+import { toast } from "@/shared/ui";
 
 const EMPTY: ServerFormError = { code: "", message: "", fields: {}, details: [] };
 

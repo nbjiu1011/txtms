@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/shared/api";
 import { useToastStore } from "@/shared/ui";
@@ -12,6 +12,7 @@ import { DeactivateUserDialog } from "./deactivate-user-dialog";
 import { InviteUserDialog } from "./invite-user-dialog";
 import { NoticeEditDialog, WithdrawNoticeDialog } from "./notice-edit-dialog";
 import { RoleEditDialog } from "./role-edit-dialog";
+import { chooseValue, optionLabels, selectValue } from "@/shared/common/testing";
 
 function wrap(node: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -25,7 +26,6 @@ const project = (id: number, name: string, leadUserId: number | null = null): Pr
   active: true,
   leadUserId,
   templates: [],
-  senders: [],
   members: [],
   variablesRevision: 0,
 });
@@ -56,7 +56,7 @@ describe("InviteUserDialog", () => {
     fireEvent.change(screen.getByLabelText(/이메일/), { target: { value: "kim@partner.com" } });
     fireEvent.change(screen.getByLabelText(/^이름/), { target: { value: "김협력" } });
     expect(screen.getByText("외부 도메인 이메일입니다. 초대 대상을 확인하세요.")).toBeTruthy();
-    expect(screen.getByRole("option", { name: "승인자" })).toBeTruthy();
+    expect(optionLabels(screen.getByLabelText("역할"))).toContain("승인자");
 
     fireEvent.click(screen.getByRole("button", { name: "초대 링크 생성" }));
     await waitFor(() => expect(lastToast()).toMatch(/회사 도메인과 다른 이메일입니다/));
@@ -259,10 +259,10 @@ describe("DeactivateUserDialog", () => {
     expect(screen.getByText("REQ-1")).toBeTruthy();
     expect(screen.getByText("카드 혜택 알림")).toBeTruthy();
     const select = screen.getByLabelText(/대체자/);
-    expect(within(select).getAllByRole("option").map((o) => o.textContent)).toEqual(["선택", "사용자2"]);
+    expect(optionLabels(select)).toEqual(["선택", "사용자2"]);
     fireEvent.click(screen.getByRole("button", { name: "비활성화" }));
     await waitFor(() => expect(lastToast()).toBe("대체자을(를) 입력하세요"));
-    fireEvent.change(select, { target: { value: "2" } });
+    chooseValue(select, "2");
     fireEvent.change(screen.getByLabelText(/인수인계 내용/), { target: { value: "C1 검토 중" } });
     fireEvent.click(screen.getByRole("button", { name: "비활성화" }));
     await waitFor(() => expect(deactivate).toHaveBeenCalledWith(1, 6, { substituteUserId: 2, handover: "C1 검토 중" }));
@@ -314,8 +314,9 @@ describe("Notice edit and withdraw", () => {
     fireEvent.click(screen.getByRole("button", { name: "게시" }));
     await waitFor(() => expect(lastToast()).toBe("내용을(를) 입력하세요"));
     editor.innerHTML = "<p>안내합니다</p>";
-    await act(async () => {}); // the editor reports changes from a MutationObserver
-    fireEvent.change(screen.getByLabelText("공지 범위"), { target: { value: "CUSTOMER" } });
+    // the editor reports changes from a MutationObserver; Quill drops `ql-blank` in the same update
+    await waitFor(() => expect(editor.classList.contains("ql-blank")).toBe(false));
+    chooseValue(screen.getByLabelText("공지 범위"), "CUSTOMER");
     expect(screen.getByText("고객사 전체 구성원에게 보이며 프로젝트나 역할로 거르지 않습니다.")).toBeTruthy();
     expect(screen.queryByLabelText("프로젝트")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "게시" }));
@@ -328,7 +329,7 @@ describe("Notice edit and withdraw", () => {
   it("edits with the notice's values and reports the kept history", async () => {
     const update = vi.spyOn(noticeApi, "update").mockResolvedValue({ ...notice, edited: true });
     wrap(<NoticeEditDialog open onClose={vi.fn()} customer={customer} projects={projects} currentProjectId={1} notice={notice} />);
-    expect((screen.getByLabelText("프로젝트") as HTMLSelectElement).value).toBe("2");
+    expect(selectValue(screen.getByLabelText("프로젝트"))).toBe("2");
     // a plain-text notice loads as paragraphs; untouched, its body is sent back as it was
     expect((await screen.findByRole("textbox", { name: "내용" })).innerHTML).toBe("<p>본문</p>");
     fireEvent.change(screen.getByLabelText(/제목/), { target: { value: "점검 안내 (수정)" } });

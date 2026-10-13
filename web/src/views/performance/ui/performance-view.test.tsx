@@ -8,6 +8,7 @@ import type { Project } from "@/entities/project";
 import { userKeys, type UserSummary } from "@/entities/user";
 import type { WorkViewProps } from "@/widgets/app-shell";
 import { PerformanceView } from "./performance-view";
+import { chooseValue, optionLabels } from "@/shared/common/testing";
 
 const empty: Performance = {
   fromDate: "2026-09-08",
@@ -61,10 +62,10 @@ describe("PerformanceView", () => {
     expect(firstQuery).toMatchObject({ customerId: 1, projectId: 1 });
 
     // Only the led project is listed (+ 권한 있는 전체); the user filter goes to the query.
-    const projectSelect = screen.getByLabelText("프로젝트") as HTMLSelectElement;
-    expect([...projectSelect.options].map((o) => o.textContent)).toEqual(["카드 혜택 알림", "권한 있는 전체"]);
-    fireEvent.change(projectSelect, { target: { value: "all" } });
-    fireEvent.change(screen.getByLabelText("사용자"), { target: { value: "2" } });
+    const projectSelect = screen.getByLabelText("프로젝트");
+    expect(optionLabels(projectSelect)).toEqual(["카드 혜택 알림", "권한 있는 전체"]);
+    chooseValue(projectSelect, "all");
+    chooseValue(screen.getByLabelText("사용자"), "2");
     fireEvent.change(screen.getByLabelText("집계 종료일"), { target: { value: "2026-09-30" } });
     await waitFor(() => {
       const last = get.mock.calls.at(-1)?.[1]?.query as Record<string, unknown>;

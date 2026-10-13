@@ -28,7 +28,6 @@ export interface Project {
   active: boolean;
   leadUserId: number | null;
   templates: ProjectTemplate[];
-  senders: string[];
   members: ProjectMember[];
   variablesRevision: number;
   /**

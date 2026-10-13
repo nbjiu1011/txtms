@@ -31,7 +31,7 @@ public final class BulkRowValidator {
         return type == ContentType.ALIMTALK ? ALIMTALK_HEADER : SMS_HEADER;
     }
 
-    public List<String> validate(ContentType type, JsonNode payload, Set<String> templateCodes, Set<String> senders,
+    public List<String> validate(ContentType type, JsonNode payload, Set<String> templateCodes,
             Map<String, String> variables) {
         List<String> errors = new ArrayList<>();
         if (type == ContentType.ALIMTALK) {
@@ -54,10 +54,8 @@ public final class BulkRowValidator {
                 }
             }
         } else if (type == ContentType.SMS) {
+            // the 발신자 column is optional free text (no registered sender numbers)
             String body = str(payload, "body");
-            if (!senders.contains(str(payload, "sender"))) {
-                errors.add("등록되지 않은 발신번호");
-            }
             if (body.isBlank()) {
                 errors.add("본문 없음");
             }

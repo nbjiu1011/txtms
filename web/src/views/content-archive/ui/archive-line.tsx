@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { formatDate } from "@/shared/lib";
-import { Button, Icon } from "@/shared/ui";
+import { Icon } from "@/shared/ui";
+import { Button } from "@/shared/common";
 import { RequestStatusChip, VariableText, type ArchiveLine } from "@/entities/request";
 import { canCopyLine, lineMeta, lineToggleLabel } from "../model/archive-view-model";
 import styles from "./content-archive.module.css";

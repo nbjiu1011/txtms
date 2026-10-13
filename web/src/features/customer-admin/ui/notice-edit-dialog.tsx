@@ -2,7 +2,8 @@
 
 import { useId, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ErrorDetails, Field, Input, Modal, Select, toast } from "@/shared/ui";
+import { ErrorDetails, toast } from "@/shared/ui";
+import { Field, Input, Modal, Select, useServerError } from "@/shared/common";
 import { RichTextEditor } from "@/shared/ui/rich-text";
 import { dashboardKeys } from "@/entities/dashboard";
 import { noticeApi, noticeKeys, type Notice, type NoticeScope } from "@/entities/notice";
@@ -15,7 +16,6 @@ import {
   noticeFormProblem,
   type NoticeForm,
 } from "../model/notice-form";
-import { useServerError } from "@/shared/ui";
 import styles from "./admin.module.css";
 
 export interface NoticeEditDialogProps {

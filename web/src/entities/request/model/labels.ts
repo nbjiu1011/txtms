@@ -1,4 +1,4 @@
-import type { StatusTone, TypeTone } from "@/shared/ui";
+import { type StatusTone, type TypeTone } from "@/shared/ui";
 import type { ContentType, FileScanStatus, FileUnit, RequestStatus, Urgency } from "./types";
 
 /** Screen labels of `RequestStatus` (contract §0.5). */

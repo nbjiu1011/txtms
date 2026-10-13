@@ -17,8 +17,8 @@ import com.txtms.domain.project.dto.ProjectResponse;
 import com.txtms.domain.project.entity.Project;
 import com.txtms.domain.project.service.ProjectAccess;
 import com.txtms.domain.project.service.ProjectAdminService;
-import com.txtms.domain.project.service.ProjectAdminService.SendingChange;
-import com.txtms.domain.project.service.ProjectSendingRules;
+import com.txtms.domain.project.service.ProjectAdminService.TemplateChange;
+import com.txtms.domain.project.service.ProjectTemplateRules;
 import com.txtms.domain.user.dto.MemberBodies.SetupInvitationBody;
 import com.txtms.domain.user.dto.MemberResponse;
 import com.txtms.domain.user.entity.User;
@@ -32,8 +32,8 @@ import com.txtms.global.security.AuthUser;
 
 /**
  * Initial setup of a customer by the operator (actions.md §2.14 {@code seedProject}/{@code seedUser}, screens-b §16)
- * and the operator-managed project sending information (Alimtalk templates, SMS sender numbers) and content types
- * (§17). Writes need an active customer; every step is audited and written to the setup log.
+ * and the operator-managed project Alimtalk templates and content types (§17). Writes need an active customer; every
+ * step is audited and written to the setup log.
  */
 @Service
 @Transactional
@@ -102,7 +102,7 @@ public class OpsSetupService {
 
     /**
      * Projects of a customer in id order (stopped projects and inactive customers included). Project metadata only
-     * (templates, senders, roles); no request or content data and no {@code activeRequestCount}.
+     * (templates, roles); no request or content data and no {@code activeRequestCount}.
      */
     @Transactional(readOnly = true)
     public PageResponse<ProjectResponse> projects(AuthUser auth, long customerId, PageQuery page) {
@@ -121,33 +121,20 @@ public class OpsSetupService {
                 .map(ProjectResponse::of).toList(), members.membersOf(customer));
     }
 
-    /** Alimtalk templates of a project; audited {@code 프로젝트 발신 정보 변경}, setup log {@code 템플릿 등록}. */
+    /** Alimtalk templates of a project; audited {@code 프로젝트 알림톡 템플릿 변경}, setup log {@code 템플릿 등록}. */
     public ProjectResponse replaceTemplates(AuthUser auth, long projectId, List<TemplateBody> body) {
         User operator = operators.require(auth);
         Project project = projectOfActiveCustomer(projectId);
-        List<ProjectSendingRules.TemplateInput> input = body == null ? null
-                : body.stream().map(t -> t == null ? null : new ProjectSendingRules.TemplateInput(t.code(), t.name()))
+        List<ProjectTemplateRules.TemplateInput> input = body == null ? null
+                : body.stream()
+                        .map(t -> t == null ? null : new ProjectTemplateRules.TemplateInput(t.code(), t.name()))
                         .toList();
-        SendingChange change = projectAdmin.replaceTemplates(project.getId(), input);
+        TemplateChange change = projectAdmin.replaceTemplates(project.getId(), input);
         if (change.changed()) {
-            audit.record(operator.getId(), project.getCustomerId(), "프로젝트 발신 정보 변경", project.getName(),
+            audit.record(operator.getId(), project.getCustomerId(), "프로젝트 알림톡 템플릿 변경", project.getName(),
                     "알림톡 템플릿 " + change.before() + " → " + change.after());
             setupLogs.record(project.getCustomerId(), operator.getId(), "템플릿 등록", project.getName(),
                     "템플릿 " + change.project().getTemplates().size() + "개");
-        }
-        return ProjectResponse.of(change.project());
-    }
-
-    /** SMS sender numbers of a project; audited {@code 프로젝트 발신 정보 변경}, setup log {@code 발신번호 등록}. */
-    public ProjectResponse replaceSenders(AuthUser auth, long projectId, List<String> body) {
-        User operator = operators.require(auth);
-        Project project = projectOfActiveCustomer(projectId);
-        SendingChange change = projectAdmin.replaceSenders(project.getId(), body);
-        if (change.changed()) {
-            audit.record(operator.getId(), project.getCustomerId(), "프로젝트 발신 정보 변경", project.getName(),
-                    "발신번호 " + change.before() + " → " + change.after());
-            setupLogs.record(project.getCustomerId(), operator.getId(), "발신번호 등록", project.getName(),
-                    "발신번호 " + change.project().getSenders().size() + "개");
         }
         return ProjectResponse.of(change.project());
     }

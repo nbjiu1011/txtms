@@ -14,11 +14,13 @@ export const ROUTE_KEYS = [
   "contents",
   "performance",
   "notices",
+  "notice",
   "adminProjects",
   "adminVariables",
   "adminUsers",
   "adminCustomer",
   "adminNotices",
+  "adminNotice",
   "opsCustomers",
   "opsCustomer",
   "opsSetup",
@@ -76,6 +78,7 @@ export const ROUTES: Record<RouteKey, RouteDef> = {
     enabled: true,
   },
   notices: { key: "notices", title: "공지", icon: "mega", group: "work", access: "always", enabled: true },
+  notice: { key: "notice", title: "공지", icon: null, group: null, access: "always", enabled: true },
   adminProjects: {
     key: "adminProjects",
     title: "프로젝트 관리",
@@ -113,6 +116,14 @@ export const ROUTES: Record<RouteKey, RouteDef> = {
     title: "공지 관리",
     icon: "mega",
     group: "admin",
+    access: "admin",
+    enabled: true,
+  },
+  adminNotice: {
+    key: "adminNotice",
+    title: "공지 관리",
+    icon: null,
+    group: null,
     access: "admin",
     enabled: true,
   },
@@ -163,7 +174,7 @@ export const ADMIN_MENU: readonly RouteKey[] = [
 export const OPS_MENU: readonly RouteKey[] = ["opsCustomers", "opsSetup", "opsStandards"];
 
 export interface TabParams {
-  /** Request id (`REQ-2610-121`) for `request` / `content`; numeric customer id for `opsCustomer`. */
+  /** Request id (`REQ-2610-121`) for `request` / `content`; numeric id for the detail routes of `ID_ROUTES`. */
   id?: string;
   /** Content key (`C1`) for `content`. */
   key?: string;
@@ -198,6 +209,23 @@ const PATH_TO_STATIC = new Map<string, RouteKey>(
   Object.entries(STATIC_PATHS).map(([key, path]) => [path as string, key as RouteKey]),
 );
 
+/** Detail tabs of a numeric id: `{base}/{id}`, one tab per id. */
+const ID_ROUTES = {
+  notice: "/notices",
+  adminNotice: "/admin/notices",
+  opsCustomer: "/ops/customers",
+} as const satisfies Partial<Record<RouteKey, string>>;
+
+type IdRoute = keyof typeof ID_ROUTES;
+
+function isIdRoute(route: RouteKey): route is IdRoute {
+  return route in ID_ROUTES;
+}
+
+const BASE_TO_ID_ROUTE = new Map<string, IdRoute>(
+  (Object.entries(ID_ROUTES) as [IdRoute, string][]).map(([route, base]) => [base, route]),
+);
+
 export const AUTH_PATHS = {
   login: "/login",
   /** Temporary sign-up (development server only: the API answers 404 elsewhere). */
@@ -224,10 +252,14 @@ export function pathToTab(pathname: string): TabRef | null {
   const staticRoute = PATH_TO_STATIC.get(path);
   if (staticRoute) return { route: staticRoute, params: {} };
 
-  const parts = path.split("/").filter(Boolean);
-  if (parts[0] === "ops" && parts[1] === "customers" && parts.length === 3) {
-    return isCustomerId(parts[2]) ? { route: "opsCustomer", params: { id: parts[2] } } : null;
+  const slash = path.lastIndexOf("/");
+  const idRoute = slash > 0 ? BASE_TO_ID_ROUTE.get(path.slice(0, slash)) : undefined;
+  if (idRoute) {
+    const id = path.slice(slash + 1);
+    return isNumericId(id) ? { route: idRoute, params: { id } } : null;
   }
+
+  const parts = path.split("/").filter(Boolean);
   if (parts[0] !== "requests") return null;
   if (parts.length === 2) {
     const id = safeDecode(parts[1]);
@@ -241,14 +273,14 @@ export function pathToTab(pathname: string): TabRef | null {
   return null;
 }
 
-/** Customer ids in paths and persisted tabs are positive integers. */
-function isCustomerId(value: unknown): value is string {
+/** Ids of the detail routes in paths and persisted tabs are positive integers. */
+function isNumericId(value: unknown): value is string {
   return typeof value === "string" && /^[1-9]\d{0,17}$/.test(value);
 }
 
 /** Builds the pathname for a tab reference. */
 export function tabToPath(tab: TabRef): string {
-  if (tab.route === "opsCustomer") return `/ops/customers/${tab.params.id ?? ""}`;
+  if (isIdRoute(tab.route)) return `${ID_ROUTES[tab.route]}/${tab.params.id ?? ""}`;
   if (tab.route === "request") {
     return `/requests/${encodeURIComponent(tab.params.id ?? "")}`;
   }
@@ -258,9 +290,9 @@ export function tabToPath(tab: TabRef): string {
   return STATIC_PATHS[tab.route] ?? "/";
 }
 
-/** Identity used for tab reuse: one tab per request, per request content, per customer, or per menu route. */
+/** Identity used for tab reuse: one tab per request, per request content, per detail id, or per menu route. */
 export function tabIdentity(tab: TabRef): string {
-  if (tab.route === "opsCustomer") return `opsCustomer:${tab.params.id ?? ""}`;
+  if (isIdRoute(tab.route)) return `${tab.route}:${tab.params.id ?? ""}`;
   if (tab.route === "request") return `request:${tab.params.id ?? ""}`;
   if (tab.route === "content") return `content:${tab.params.id ?? ""}:${tab.params.key ?? ""}`;
   return tab.route;
@@ -278,7 +310,7 @@ export function isValidTabRef(value: unknown): value is TabRef {
   const params = (ref.params ?? {}) as TabParams;
   if (typeof params !== "object") return false;
   if (ref.route === "request") return typeof params.id === "string" && params.id.length > 0;
-  if (ref.route === "opsCustomer") return isCustomerId(params.id);
+  if (isIdRoute(ref.route)) return isNumericId(params.id);
   if (ref.route === "content") {
     return typeof params.id === "string" && params.id.length > 0 && typeof params.key === "string" && params.key.length > 0;
   }

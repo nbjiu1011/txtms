@@ -10,6 +10,7 @@ import { requestKeys, type RequestSummary } from "@/entities/request";
 import type { UserSummary } from "@/entities/user";
 import type { WorkViewProps } from "@/widgets/app-shell";
 import { RequestListView } from "./request-list-view";
+import { chooseValue } from "@/shared/common/testing";
 
 type Query = Record<string, unknown>;
 
@@ -97,7 +98,7 @@ describe("RequestListView paging", () => {
     await screen.findByText("테스트 요청 1");
     fireEvent.click(screen.getByRole("button", { name: "다음" }));
     await screen.findByText("2 / 3");
-    fireEvent.change(screen.getByLabelText("유형"), { target: { value: "SMS" } });
+    chooseValue(screen.getByLabelText("유형"), "SMS");
     await waitFor(() => expect(lastQuery(get)).toMatchObject({ type: "SMS", page: 0, size: 20 }));
     await waitFor(() => expect(screen.queryByText("2 / 3")).toBeNull());
     expect(await screen.findByText("테스트 요청 3")).toBeTruthy();

@@ -3,14 +3,14 @@
 import { useId, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { serverFormError } from "@/shared/api";
-import { Banner, ErrorDetails, Field, Input, Modal, Select, toast } from "@/shared/ui";
+import { Banner, ErrorDetails, toast } from "@/shared/ui";
+import { Field, Input, Modal, Select, useServerError } from "@/shared/common";
 import type { Customer } from "@/entities/customer";
 import type { Project, ProjectRole } from "@/entities/project";
 import { memberApi } from "@/entities/user";
 import { isExternalEmail } from "@/shared/lib";
 import { INVITE_DONE_TOAST, inviteRoleOptions, inviteStep, normalizeEmail, type InviteForm } from "../model/invite-form";
 import { invalidateUserData } from "../model/invalidate";
-import { useServerError } from "@/shared/ui";
 import styles from "./admin.module.css";
 
 export interface InviteUserDialogProps {

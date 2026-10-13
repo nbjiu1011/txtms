@@ -10,27 +10,23 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import com.txtms.domain.project.entity.ProjectTemplate;
-import com.txtms.domain.project.service.ProjectSendingRules.TemplateInput;
+import com.txtms.domain.project.service.ProjectTemplateRules.TemplateInput;
 import com.txtms.global.exception.BusinessException;
 import com.txtms.global.exception.ErrorCode;
 
-/** Operator-set templates and sender numbers of a project (contract §12). */
-class ProjectSendingRulesTest {
+/** Operator-set Alimtalk templates of a project (contract §12). */
+class ProjectTemplateRulesTest {
 
     private static BusinessException templatesFail(List<TemplateInput> input) {
-        return catchThrowableOfType(BusinessException.class, () -> ProjectSendingRules.templates(input));
-    }
-
-    private static BusinessException sendersFail(List<String> input) {
-        return catchThrowableOfType(BusinessException.class, () -> ProjectSendingRules.senders(input));
+        return catchThrowableOfType(BusinessException.class, () -> ProjectTemplateRules.templates(input));
     }
 
     @Test
     void templatesAreTrimmedAndKeepTheirOrder() {
-        assertThat(ProjectSendingRules.templates(List.of(new TemplateInput(" HB_B-2 ", " 청구 안내 "),
+        assertThat(ProjectTemplateRules.templates(List.of(new TemplateInput(" HB_B-2 ", " 청구 안내 "),
                 new TemplateInput("HB_A", "적립 안내")))).containsExactly(new ProjectTemplate("HB_B-2", "청구 안내"),
                         new ProjectTemplate("HB_A", "적립 안내"));
-        assertThat(ProjectSendingRules.templates(List.of())).isEmpty();
+        assertThat(ProjectTemplateRules.templates(List.of())).isEmpty();
     }
 
     @Test
@@ -54,31 +50,9 @@ class ProjectSendingRulesTest {
     }
 
     @Test
-    void senderNumbersInKoreanFormatsAreAccepted() {
-        assertThat(ProjectSendingRules.senders(List.of(" 1588-0000 ", "02-3456-7000", "031-123-4567",
-                "010-1234-5678", "080-000-0000", "15880000", "0212345678")))
-                .containsExactly("1588-0000", "02-3456-7000", "031-123-4567", "010-1234-5678", "080-000-0000",
-                        "15880000", "0212345678");
-    }
-
-    @Test
-    void invalidSenderNumbersAreRefused() {
-        assertThat(sendersFail(null).getMessage()).isEqualTo("발신번호 목록을 보내세요");
-        assertThat(sendersFail(List.of(" ")).getMessage()).isEqualTo("발신번호를 입력하세요");
-        for (String bad : new String[] {"12ab", "1588-00000", "2-3456-7000", "+82-2-3456-7000", "1588 0000",
-                "02-34-7000", "9999-0000"}) {
-            assertThat(sendersFail(List.of(bad)).getMessage()).as(bad).isEqualTo(ProjectSendingRules.SENDER_FORMAT);
-        }
-        BusinessException dup = sendersFail(List.of("1588-0000", "1588-0000"));
-        assertThat(dup.getMessage()).isEqualTo("발신번호 1588-0000이(가) 중복됩니다");
-        assertThat(dup.getFieldErrors().getFirst().field()).isEqualTo("senders.1");
-    }
-
-    @Test
     void auditLabels() {
-        assertThat(ProjectSendingRules.templateLabel(List.of())).isEqualTo("없음");
-        assertThat(ProjectSendingRules.templateLabel(List.of(new ProjectTemplate("A", "a"),
+        assertThat(ProjectTemplateRules.templateLabel(List.of())).isEqualTo("없음");
+        assertThat(ProjectTemplateRules.templateLabel(List.of(new ProjectTemplate("A", "a"),
                 new ProjectTemplate("B", "b")))).isEqualTo("A, B");
-        assertThat(ProjectSendingRules.senderLabel(List.of("1588-0000"))).isEqualTo("1588-0000");
     }
 }

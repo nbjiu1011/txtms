@@ -1,7 +1,7 @@
 "use client";
 
 import { kstDateKey } from "@/shared/lib";
-import { Modal } from "@/shared/ui";
+import { Modal } from "@/shared/common";
 import { exportBundle, type BundleExportKind } from "../model/export-bundle";
 
 export interface BundleExportDialogProps {

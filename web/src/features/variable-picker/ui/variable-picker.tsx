@@ -1,22 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { isApiError } from "@/shared/api";
 import { projectKeys } from "@/entities/project";
-import {
-  Button,
-  ErrorMessage,
-  Input,
-  Popover,
-  PopoverBody,
-  PopoverHeader,
-  PopoverItem,
-  Select,
-  toast,
-} from "@/shared/ui";
+import { toast } from "@/shared/ui";
+import { Button, ErrorMessage, Input, Popover, PopoverBody, PopoverHeader, PopoverItem, Select } from "@/shared/common";
 import {
   VARIABLE_TYPES,
   VARIABLE_TYPE_OPTION_LABEL,
@@ -109,6 +100,7 @@ function RegisterForm(props: { projectId: number; onRegistered: (key: string) =>
   const client = useQueryClient();
   const {
     register,
+    control,
     handleSubmit,
     setError,
     formState: { errors, isSubmitting },
@@ -154,13 +146,26 @@ function RegisterForm(props: { projectId: number; onRegistered: (key: string) =>
           {errors.key ? <ErrorMessage>{errors.key.message}</ErrorMessage> : null}
         </div>
         <div className={styles.cell}>
-          <Select aria-label="자료형" {...register("type")}>
-            {VARIABLE_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {VARIABLE_TYPE_OPTION_LABEL[t]}
-              </option>
-            ))}
-          </Select>
+          <Controller
+            control={control}
+            name="type"
+            render={({ field }) => (
+              <Select
+                aria-label="자료형"
+                name={field.name}
+                value={field.value}
+                onChange={(e) => field.onChange(e.target.value)}
+                onBlur={field.onBlur}
+                ref={field.ref}
+              >
+                {VARIABLE_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {VARIABLE_TYPE_OPTION_LABEL[t]}
+                  </option>
+                ))}
+              </Select>
+            )}
+          />
         </div>
       </div>
       <div className={styles.row}>

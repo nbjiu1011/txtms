@@ -1,6 +1,7 @@
 "use client";
 
-import { Avatar, Field, Seg } from "@/shared/ui";
+import { Avatar } from "@/shared/ui";
+import { Field, Seg } from "@/shared/common";
 import { toggleReviewer, type AssignmentForm } from "../model/assignment-form";
 import styles from "./workflow.module.css";
 

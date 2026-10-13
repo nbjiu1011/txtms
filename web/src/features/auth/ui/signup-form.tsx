@@ -1,10 +1,11 @@
 "use client";
 
-import { useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { isApiError } from "@/shared/api";
 import { cn } from "@/shared/lib";
-import { Button, Field, Input, Select, toast } from "@/shared/ui";
+import { toast } from "@/shared/ui";
+import { Button, Field, Input, Select } from "@/shared/common";
 import type { SignupCustomer, SignupRole } from "@/entities/me";
 import { authApi } from "../api/auth-api";
 import { PASSWORD_POLICY_TEXT } from "../model/schemas";
@@ -110,24 +111,33 @@ export function SignupForm({ customers, onSuccess }: SignupFormProps) {
           </legend>
           <div className={styles.row}>
             <Field label="고객사" htmlFor="signup-customer" required error={errors.customerId?.message}>
-              <Select
-                id="signup-customer"
-                aria-invalid={errors.customerId ? true : undefined}
-                {...register("customerId", {
-                  onChange: () => {
-                    setValue("projectId", "");
-                    clearErrors(["customerId", "projectId", "role"]);
-                  },
-                })}
-              >
-                <option value="">고객사 선택</option>
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                    {role === "APPROVER" && !c.approvalEnabled ? " (승인 단계 미사용)" : ""}
-                  </option>
-                ))}
-              </Select>
+              <Controller
+                control={control}
+                name="customerId"
+                render={({ field }) => (
+                  <Select
+                    id="signup-customer"
+                    aria-invalid={errors.customerId ? true : undefined}
+                    name={field.name}
+                    value={field.value}
+                    onChange={(e) => {
+                      field.onChange(e.target.value);
+                      setValue("projectId", "");
+                      clearErrors(["customerId", "projectId", "role"]);
+                    }}
+                    onBlur={field.onBlur}
+                    ref={field.ref}
+                  >
+                    <option value="">고객사 선택</option>
+                    {customers.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                        {role === "APPROVER" && !c.approvalEnabled ? " (승인 단계 미사용)" : ""}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              />
             </Field>
             {scope === "project" ? (
               <Field
@@ -137,19 +147,32 @@ export function SignupForm({ customers, onSuccess }: SignupFormProps) {
                 error={errors.projectId?.message}
                 hint={customer && customer.projects.length === 0 ? "이 고객사에는 사용 중인 프로젝트가 없습니다" : undefined}
               >
-                <Select
-                  id="signup-project"
-                  disabled={!customer}
-                  aria-invalid={errors.projectId ? true : undefined}
-                  {...register("projectId", { onChange: () => clearErrors("projectId") })}
-                >
-                  <option value="">{customer ? "프로젝트 선택" : "고객사를 먼저 고르세요"}</option>
-                  {customer?.projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </Select>
+                <Controller
+                  control={control}
+                  name="projectId"
+                  render={({ field }) => (
+                    <Select
+                      id="signup-project"
+                      disabled={!customer}
+                      aria-invalid={errors.projectId ? true : undefined}
+                      name={field.name}
+                      value={field.value}
+                      onChange={(e) => {
+                        field.onChange(e.target.value);
+                        clearErrors("projectId");
+                      }}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                    >
+                      <option value="">{customer ? "프로젝트 선택" : "고객사를 먼저 고르세요"}</option>
+                      {customer?.projects.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
+                />
               </Field>
             ) : null}
           </div>

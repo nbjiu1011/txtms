@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { formatDate } from "@/shared/lib";
-import { Field, Input, Modal, Select, Textarea, toast } from "@/shared/ui";
+import { toast } from "@/shared/ui";
+import { Field, Input, Modal, Select, Textarea } from "@/shared/common";
 import { URGENCIES, URGENCY_LABEL, requestApi, type RequestDetail, type Urgency } from "@/entities/request";
 import {
   initialAssignmentForm,

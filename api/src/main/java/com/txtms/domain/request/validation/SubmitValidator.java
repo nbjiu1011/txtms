@@ -34,7 +34,6 @@ public final class SubmitValidator {
             boolean typeActive,
             boolean projectActive,
             Set<String> templateCodes,
-            Set<String> senders,
             /** Active, not deleted variables of the project: key → current value. */
             Map<String, String> variables,
             List<ContentInput> contents) {
@@ -104,9 +103,7 @@ public final class SubmitValidator {
                     }
                 }
                 case SMS -> {
-                    if (blank(f, "sender")) {
-                        list.add(p + ": 발신번호");
-                    }
+                    // the sender is optional free text (no registered sender numbers; the service sends nothing)
                     if (blank(f, "body")) {
                         list.add(p + ": 본문");
                     }
@@ -158,9 +155,7 @@ public final class SubmitValidator {
                     }
                 }
                 case SMS -> {
-                    if (!blank(f, "sender") && !in.senders().contains(str(f, "sender"))) {
-                        list.add(label + ": 등록된 발신번호");
-                    }
+                    // nothing registered to compare with; byte length is a channel specification warning below
                 }
                 case RCS -> {
                     if (f.path("cards").isEmpty()) {

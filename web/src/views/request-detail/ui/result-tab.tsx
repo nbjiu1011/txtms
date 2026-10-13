@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { formatDateTime } from "@/shared/lib";
-import { Button, Empty, Icon, PageHeader, Panel, PanelBody, PanelHeader, Table, tableClasses } from "@/shared/ui";
+import { Empty, Icon, PageHeader, Panel, PanelBody, PanelHeader, Table, tableClasses } from "@/shared/ui";
+import { Button } from "@/shared/common";
 import {
   CONTENT_TYPE_LABEL,
   REQUEST_STATUS_LABEL,

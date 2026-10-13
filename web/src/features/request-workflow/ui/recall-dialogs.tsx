@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Field, Modal, Textarea, toast } from "@/shared/ui";
+import { toast } from "@/shared/ui";
+import { Field, Modal, Textarea } from "@/shared/common";
 import { requestApi, type RequestDetail } from "@/entities/request";
 import { firstMissing } from "../model/assignment-form";
 import { handleWorkflowError, modalResult } from "../model/workflow-error";

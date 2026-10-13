@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { isApiError } from "@/shared/api";
-import { Avatar, Banner, Checkbox, ListItem, Modal, Panel, Tag, toast } from "@/shared/ui";
+import { Avatar, Banner, ListItem, Panel, Tag, toast } from "@/shared/ui";
+import { Checkbox, Modal } from "@/shared/common";
 import { requestApi, type RequestDetail } from "@/entities/request";
 import type { UserDirectory } from "@/entities/user";
 import { coReviewerOpinions, coReviewerRole } from "../model/complete-check";

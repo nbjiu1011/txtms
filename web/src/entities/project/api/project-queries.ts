@@ -37,7 +37,7 @@ export function useManagedProjects(customerId: number | null, page: number, size
   });
 }
 
-/** One project (templates, senders, members, lead). */
+/** One project (알림톡 templates, members, lead). */
 export function useProject(id: number | null) {
   return useQuery({
     queryKey: projectKeys.detail(id ?? -1),

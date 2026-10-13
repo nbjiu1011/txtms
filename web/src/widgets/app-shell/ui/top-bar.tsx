@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Avatar, Icon, IconButton, Tag } from "@/shared/ui";
+import { Avatar, Icon, Tag } from "@/shared/ui";
+import { IconButton } from "@/shared/common";
 import { roleSummary, useWorkContextStore, type Me } from "@/entities/me";
 import { useNotifications } from "@/entities/notification";
 import type { WorkContext } from "../model/use-work-context";

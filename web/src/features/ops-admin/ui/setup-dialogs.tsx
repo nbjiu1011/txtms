@@ -3,7 +3,8 @@
 import { useId, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { firstMissing, isExternalEmail, normalizeEmail } from "@/shared/lib";
-import { ErrorDetails, Field, Input, Modal, Select, toast, useServerError } from "@/shared/ui";
+import { ErrorDetails, toast } from "@/shared/ui";
+import { Field, Input, Modal, Select, useServerError } from "@/shared/common";
 import { opsApi, type OpsCustomer } from "@/entities/ops";
 import type { Project, ProjectRole } from "@/entities/project";
 import type { UserSummary } from "@/entities/user";

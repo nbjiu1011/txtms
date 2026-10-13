@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { LIST_PAGE_SIZE, useClampPage } from "@/shared/lib";
-import { Button, Empty, Page, PageHeader, Pager, Panel, SubTabs } from "@/shared/ui";
+import { Empty, Page, PageHeader, Panel } from "@/shared/ui";
+import { Button, Pager, SubTabs } from "@/shared/common";
 import {
   useDatasetAssignments,
   useDatasets,

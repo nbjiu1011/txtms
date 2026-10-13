@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { isApiError } from "@/shared/api";
-import { Field, Input, Modal, Textarea, toast } from "@/shared/ui";
+import { toast } from "@/shared/ui";
+import { Field, Input, Modal, Textarea } from "@/shared/common";
 import { correctionApi } from "@/entities/correction";
 import type { GroupState } from "../model/run";
 import styles from "./correction.module.css";

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { LIST_PAGE_SIZE, useClampPage } from "@/shared/lib";
-import { Button, Empty, Icon, Page, PageHeader, Pager, Panel, Table, Tag, tableClasses } from "@/shared/ui";
+import { Empty, Icon, Page, PageHeader, Panel, Table, Tag, tableClasses } from "@/shared/ui";
+import { Button, Pager } from "@/shared/common";
 import { useOpsCustomerOptions, useOpsCustomers, type OpsCustomer } from "@/entities/ops";
 import { CreateCustomerDialog, DeactivateCustomerDialog, continueToSetup } from "@/features/ops-admin";
 import type { WorkViewProps } from "@/widgets/app-shell";

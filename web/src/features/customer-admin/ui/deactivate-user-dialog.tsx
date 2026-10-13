@@ -2,7 +2,8 @@
 
 import { useId, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ErrorDetails, Field, KeyValueList, Modal, Select, Textarea, toast } from "@/shared/ui";
+import { ErrorDetails, KeyValueList, toast } from "@/shared/ui";
+import { Field, Modal, Select, Textarea, useServerError } from "@/shared/common";
 import { memberApi, type DeactivationImpact, type Member } from "@/entities/user";
 import {
   blockingItems,
@@ -11,7 +12,6 @@ import {
   needsSubstitute,
 } from "../model/deactivation";
 import { invalidateUserData } from "../model/invalidate";
-import { useServerError } from "@/shared/ui";
 import styles from "./admin.module.css";
 
 export interface DeactivateUserDialogProps {

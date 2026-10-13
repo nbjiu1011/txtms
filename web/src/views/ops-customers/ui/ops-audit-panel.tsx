@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { LIST_PAGE_SIZE, formatDateTime } from "@/shared/lib";
-import { Button, Empty, Pager, Panel, PanelHeader, Select, Table } from "@/shared/ui";
+import { Empty, Panel, PanelHeader, Table } from "@/shared/ui";
+import { Button, Pager, Select } from "@/shared/common";
 import { useOpsAuditLogs, type OpsCustomer } from "@/entities/ops";
 import styles from "./ops-customers.module.css";
 

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useLayoutEffect } from "react";
-import { Button, Empty, Page, Panel, RoundBadge } from "@/shared/ui";
+import { Empty, Page, Panel, RoundBadge } from "@/shared/ui";
+import { Button } from "@/shared/common";
 import { projectRoles } from "@/entities/me";
 import { RequestStatusChip } from "@/entities/request";
 import { AccessDenied, type WorkViewProps } from "@/widgets/app-shell";

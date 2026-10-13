@@ -1,7 +1,11 @@
+/**
+ * Display — things that show state (chips, tags, panels, tables, empty states, toast).
+ * Controls the user operates live in `shared/common`, which may use this layer (never the reverse).
+ * The rich text editor/viewer is a separate entry (`@/shared/ui/rich-text`) so Quill's CSS is not
+ * pulled into every screen.
+ */
 export { Icon, ICON_NAMES, TypeGlyph, EmptyArt } from "./icons/icons";
 export type { IconName, IconProps, TypeGlyphName } from "./icons/icons";
-export { Button, IconButton, buttonClassName } from "./button";
-export type { ButtonProps, ButtonVariant, IconButtonProps } from "./button";
 export { Tag } from "./tag";
 export type { TagProps, TagVariant } from "./tag";
 export { StatusChip, TypeChip, RoundBadge } from "./chips";
@@ -20,28 +24,9 @@ export {
   SaveIndicator,
 } from "./surfaces";
 export type { BannerProps, BannerTone, SaveState } from "./surfaces";
-export { Empty, Kpi, KpiGrid, ListItem, ProgressTrack, Seg, SubTabs, Table, tableClasses } from "./data-display";
-export type { EmptyProps, KpiProps, ListItemProps, SubTabItem, TrackStep } from "./data-display";
-export { Checkbox, ErrorDetails, ErrorMessage, Field, Hint, Input, Label, Select, Textarea } from "./form";
-export type { CheckboxProps, ErrorDetailsProps, FieldProps, InputProps, SelectProps, TextareaProps } from "./form";
+export { Empty, Kpi, KpiGrid, ListItem, ProgressTrack, Table, tableClasses } from "./data-display";
+export type { EmptyProps, KpiProps, ListItemProps, TrackStep } from "./data-display";
+export { ErrorDetails } from "./error-details";
+export type { ErrorDetailsProps } from "./error-details";
 export { BrandMark, Page, PageHeader } from "./layout";
-export { DateRangeFilter, FilterBar, FilterField, filterClasses } from "./filters";
-export type { DateRangeFilterProps, FilterBarProps, FilterFieldProps } from "./filters";
-export { Modal } from "./overlay/modal";
-export type { ModalProps } from "./overlay/modal";
-export {
-  Drawer,
-  Popover,
-  PopoverBody,
-  PopoverHeader,
-  PopoverItem,
-  PopoverSection,
-  computePopoverPosition,
-} from "./overlay/popover";
-export type { PopoverProps } from "./overlay/popover";
-export { Toaster, toast, useToastStore, TOAST_DURATION_MS } from "./overlay/toast";
-export { ESCAPE_PRIORITY, useEscapeLayer } from "./overlay/escape-stack";
-export { useMounted } from "./overlay/use-mounted";
-export { Pager } from "./pager";
-export type { PagerProps } from "./pager";
-export { inlineError, useServerError } from "./use-server-error";
+export { Toaster, toast, useToastStore, TOAST_DURATION_MS } from "./toast";

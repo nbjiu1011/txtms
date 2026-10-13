@@ -38,7 +38,7 @@ import com.txtms.global.security.AuthUser;
  * Project management by the customer admin (actions.md §2.13 {@code projEdit}): name, lead reviewer (gets the
  * reviewer role; never a requester of the project), approver set (approval customers: at least one active approver;
  * other customers: none), active flag (deactivation refused while requests are in progress). Audited as
- * {@code 프로젝트 생성} / {@code 프로젝트 변경}. Templates and sender numbers are set by the operator (contract §12).
+ * {@code 프로젝트 생성} / {@code 프로젝트 변경}. Alimtalk templates are set by the operator (contract §12).
  */
 @Service
 @Transactional
@@ -158,8 +158,8 @@ public class ProjectAdminService {
 
     // ------------------------------------------------------------------ operator initial setup (contract §12)
 
-    /** Result of an operator change of a project's sending information ({@code changed} false = nothing to do). */
-    public record SendingChange(Project project, boolean changed, String before, String after) {
+    /** Result of an operator change of a project's Alimtalk templates ({@code changed} false = nothing to do). */
+    public record TemplateChange(Project project, boolean changed, String before, String after) {
     }
 
     /**
@@ -183,32 +183,18 @@ public class ProjectAdminService {
         return projects.save(project);
     }
 
-    /** Replaces the project's Alimtalk templates after {@link ProjectSendingRules#templates} validation. */
-    public SendingChange replaceTemplates(long projectId, List<ProjectSendingRules.TemplateInput> input) {
+    /** Replaces the project's Alimtalk templates after {@link ProjectTemplateRules#templates} validation. */
+    public TemplateChange replaceTemplates(long projectId, List<ProjectTemplateRules.TemplateInput> input) {
         Project project = projects.findById(projectId).orElseThrow(BusinessException::notFound);
-        List<ProjectTemplate> next = ProjectSendingRules.templates(input);
+        List<ProjectTemplate> next = ProjectTemplateRules.templates(input);
         List<ProjectTemplate> before = project.getTemplates();
         if (before.equals(next)) {
-            return new SendingChange(project, false, null, null);
+            return new TemplateChange(project, false, null, null);
         }
         project.replaceTemplates(next, clock.instant());
         projects.flush();
-        return new SendingChange(project, true, ProjectSendingRules.templateLabel(before),
-                ProjectSendingRules.templateLabel(next));
-    }
-
-    /** Replaces the project's SMS sender numbers after {@link ProjectSendingRules#senders} validation. */
-    public SendingChange replaceSenders(long projectId, List<String> input) {
-        Project project = projects.findById(projectId).orElseThrow(BusinessException::notFound);
-        List<String> next = ProjectSendingRules.senders(input);
-        List<String> before = project.getSenders();
-        if (before.equals(next)) {
-            return new SendingChange(project, false, null, null);
-        }
-        project.replaceSenders(next, clock.instant());
-        projects.flush();
-        return new SendingChange(project, true, ProjectSendingRules.senderLabel(before),
-                ProjectSendingRules.senderLabel(next));
+        return new TemplateChange(project, true, ProjectTemplateRules.templateLabel(before),
+                ProjectTemplateRules.templateLabel(next));
     }
 
     // ------------------------------------------------------------------ helpers

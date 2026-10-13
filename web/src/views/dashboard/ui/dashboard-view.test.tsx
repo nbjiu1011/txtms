@@ -116,14 +116,13 @@ describe("DashboardView", () => {
     expect(screen.getByRole("button", { name: "고객사 진행 중 7건" })).toBeTruthy();
   });
 
-  it("opens 접근·변경 기록 from the admin banner and a notice row expanded on 공지", () => {
+  it("opens 접근·변경 기록 from the admin banner and a notice row in its detail tab", () => {
     const { openTab } = setup(11, dashboardU11);
     fireEvent.click(screen.getByRole("button", { name: "접근 기록 보기" }));
     expect(useViewIntent.getState().intents.adminUsers).toBe("audit");
     expect(openTab).toHaveBeenLastCalledWith({ route: "adminUsers", params: {} });
     const notice = dashboardU11.notices[0];
     fireEvent.click(screen.getByRole("button", { name: new RegExp(notice.title) }));
-    expect(useViewIntent.getState().intents.notices).toBe(String(notice.id));
-    expect(openTab).toHaveBeenLastCalledWith({ route: "notices", params: {} });
+    expect(openTab).toHaveBeenLastCalledWith({ route: "notice", params: { id: String(notice.id) } });
   });
 });

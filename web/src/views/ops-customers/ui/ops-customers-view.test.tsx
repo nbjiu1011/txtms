@@ -42,7 +42,6 @@ const project = (id: number, patch: Partial<Project> = {}): Project => ({
   active: true,
   leadUserId: 31,
   templates: [{ code: "T1", name: "템플릿" }],
-  senders: ["1588-0000", "02-123-4567"],
   members: [{ userId: 31, roles: ["REVIEWER"] }],
   variablesRevision: 1,
   ...patch,
@@ -137,7 +136,7 @@ describe("고객사 상세", () => {
     expect(screen.getByText("미배정 문자")).toBeTruthy();
 
     expect(screen.getByText("고객 안내 알림톡")).toBeTruthy();
-    expect(screen.getByText("2개")).toBeTruthy();
+    expect(screen.queryByRole("columnheader", { name: "발신번호" })).toBeNull();
     expect(screen.getByText("고객 안내 알림톡: 검수자, 대표 검수자")).toBeTruthy();
     expect(screen.getByText("초대 대기")).toBeTruthy();
     expect(screen.getAllByText("한봄").length).toBeGreaterThan(0);

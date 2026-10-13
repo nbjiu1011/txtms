@@ -1,6 +1,7 @@
 "use client";
 
-import { Banner, Modal, Panel, PanelBody, Select } from "@/shared/ui";
+import { Banner, Panel, PanelBody } from "@/shared/ui";
+import { Modal, Select } from "@/shared/common";
 import type { ScanOutcome, DraftEditing } from "../model/use-draft-editing";
 import type { RevisionEditing } from "../model/use-revision-editing";
 import styles from "./tabs.module.css";

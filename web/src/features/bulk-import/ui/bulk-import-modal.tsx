@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { downloadFile, isApiError } from "@/shared/api";
-import { Button, Icon, Modal, Panel, Table, buttonClassName, toast } from "@/shared/ui";
+import { Icon, Panel, Table, toast } from "@/shared/ui";
+import { Button, Modal, buttonClassName } from "@/shared/common";
 import {
   CONTENT_TYPE_LABEL,
   requestApi,

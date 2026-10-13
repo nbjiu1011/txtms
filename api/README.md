@@ -451,7 +451,7 @@ curl -s -H "Authorization: Bearer $ADMIN" "http://localhost:4245/api/customers/1
 |---|---|
 | Dashboard | `GET /api/ops/dashboard` (KPIs, remaining setup steps with web route keys, customer rows, 6 newest audits) |
 | Customers | `GET`/`POST /api/ops/customers`, `POST /api/ops/customers/{id}/deactivate` (`{ reason }`), `POST …/reactivate` |
-| Initial setup | `POST /api/ops/customers/{id}/projects` (`{ name, leadUserId? }`), `POST …/invitations` (`{ email, name, dept, admin, projectId, role, externalDomainConfirmed }`, answers Member + `mailId`), `PUT /api/ops/projects/{id}/templates` (`[{ code, name }]`), `PUT /api/ops/projects/{id}/senders` (`[string]`), `GET /api/ops/setup-logs?customerId=` |
+| Initial setup | `POST /api/ops/customers/{id}/projects` (`{ name, leadUserId? }`), `POST …/invitations` (`{ email, name, dept, admin, projectId, role, externalDomainConfirmed }`, answers Member + `mailId`), `PUT /api/ops/projects/{id}/templates` (`[{ code, name }]`), `GET /api/ops/setup-logs?customerId=` |
 | Content types | `GET /api/ops/content-types`, `PATCH /api/ops/content-types/{type}` (`{ active }`) |
 | Sample data | `GET`/`POST /api/ops/customers/{id}/sample-requests`, `DELETE …/sample-data`, `POST /api/ops/sample-reset` |
 | Customer reads | `GET /api/ops/customers/{id}/members` (Member list as the customer admin sees it), `GET /api/ops/customers/{id}/projects` (projects without `activeRequestCount`); inactive customers included |
@@ -463,23 +463,25 @@ curl -s -H "Authorization: Bearer $ADMIN" "http://localhost:4245/api/customers/1
   Operators still get `NOT_FOUND` on request APIs; the operator API gives request counts only.
 - Services (`domain/ops/service`): `OpsCustomerService` (list, dashboard, create with the default project
   `기본 프로젝트`, deactivate/reactivate), `OpsSetupService` (projects, invitations via
-  `MemberAdminService.inviteForSetup`, templates/senders via `ProjectAdminService`, content types),
+  `MemberAdminService.inviteForSetup`, Alimtalk templates via `ProjectAdminService`, content types),
   `OpsSampleService` (samples, cleanup, reset), `OpsLogService`, `SetupLogService` (`setup_logs`). Pure rules:
-  `CustomerRules` (name, normalized domain, reason), `OpsDashboardRules` (KPIs and steps), `ProjectSendingRules`
-  (template codes, Korean sender numbers).
+  `CustomerRules` (name, normalized domain, reason), `OpsDashboardRules` (KPIs and steps), `ProjectTemplateRules`
+  (Alimtalk template codes and names).
 - Deactivation refuses customers with requests in progress, ends the sessions of the customer's users (next call
   401) and blocks sign-in until reactivation. Setup writes need an active customer.
 - `admin: true` invitations grant the customer admin right at once; it takes effect when the invitation is accepted
   (pending accounts cannot sign in). External domains need `externalDomainConfirmed`.
-- New projects get Alimtalk templates and SMS sender numbers only from the operator; the submit check compares
-  contents with these lists (audit `프로젝트 발신 정보 변경`).
+- New projects get Alimtalk templates only from the operator; the submit check compares contents with this list
+  (audit `프로젝트 알림톡 템플릿 변경`, setup log `템플릿 등록`; rows written before 2026-10-13 keep the old action
+  `프로젝트 발신 정보 변경`). Projects register no SMS sender numbers: the service never sends messages, so the SMS
+  `sender` (XLSX column `발신자`) is optional free text that is neither required nor compared with a list.
 - Samples (`requests.demo`): sample customers only. A sample is a draft `[샘플] {유형} 작성 연습` whose author is
   the project's first active requester (else the operator); clones and follow-ups of samples are samples too.
   `SampleRequestService.purge` deletes requests with every child row and, after the commit, stored objects no
   remaining row references. The reset (`POST /api/ops/sample-reset`) purges every request of every sample customer and
   `DemoDataSeeder.reseedSampleRequests` writes the 12 seed requests of 한빛카드/도담생명 again (fixed ids, now-relative
   times, history, bundles, seed notifications) in one transaction; customers that are not samples are never selected.
-- Audits: `고객사 생성/비활성/사용 재개`, `프로젝트 생성`, `사용자 초대`, `프로젝트 발신 정보 변경`, `콘텐츠 유형 변경`,
+- Audits: `고객사 생성/비활성/사용 재개`, `프로젝트 생성`, `사용자 초대`, `프로젝트 알림톡 템플릿 변경`, `콘텐츠 유형 변경`,
   `샘플 요청 생성`, `샘플 데이터 초기화`, `샘플 초기화`. `AuditLog` entries carry `actorName`.
 - Operator names: `OpsCustomer.createdByName` and the dataset assignment `assignedByName` / `checkedByName` are the
   current names of those users (null when the id is null or unknown), resolved in bulk like `actorName`.
@@ -487,7 +489,7 @@ curl -s -H "Authorization: Bearer $ADMIN" "http://localhost:4245/api/customers/1
   customer API answers `NOT_FOUND` for them) and return metadata only; they are not audited. `MemberAdminService.membersOf`
   serves both member lists. The operator invitation answers `OpsInvitation` = the Member keys + `mailId` (the outbox id;
   `MailSender.send` returns it); its link follows the operator outbox rule (full only in demo mode).
-- Tests: `CustomerRulesTest`, `OpsDashboardRulesTest`, `ProjectSendingRulesTest`, `OutboxMaskingTest` (unit);
+- Tests: `CustomerRulesTest`, `OpsDashboardRulesTest`, `ProjectTemplateRulesTest`, `OutboxMaskingTest` (unit);
   `OpsIntegrationTest` (onboarding up to an Alimtalk submission, operator reads of members/projects/outbox and operator
   names on a customer before and after deactivation, deactivation, content types, sample cleanup with a
   shared stored object, the reset with a dedicated sample tenant and a non-sample tenant that must stay unchanged).
@@ -504,6 +506,6 @@ curl -s -H "Authorization: Bearer $OP" -H "Content-Type: application/json" --dat
   http://localhost:4245/api/ops/customers                               # 201 OpsCustomer + 기본 프로젝트
 curl -s -H "Authorization: Bearer $OP" -H "Content-Type: application/json" --data-binary @admin-invite.json \
   http://localhost:4245/api/ops/customers/<id>/invitations             # 201 Member (admin, pending)
-curl -s -X PUT -H "Authorization: Bearer $OP" -H "Content-Type: application/json" -d '["1588-0000"]' \
-  http://localhost:4245/api/ops/projects/<projectId>/senders
+curl -s -X PUT -H "Authorization: Bearer $OP" -H "Content-Type: application/json" \
+  -d '[{"code":"HB_POINT_01","name":"Point notice"}]' http://localhost:4245/api/ops/projects/<projectId>/templates
 ```

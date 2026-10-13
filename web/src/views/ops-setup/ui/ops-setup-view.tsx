@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Banner, Button, Empty, Page, PageHeader, Panel, Select } from "@/shared/ui";
+import { Banner, Empty, Page, PageHeader, Panel } from "@/shared/ui";
+import { Button, Select } from "@/shared/common";
 import { useWorkContextStore } from "@/entities/me";
 import {
   assignmentOf,
@@ -22,21 +23,21 @@ import {
   SeedProjectDialog,
   SeedRuleDialog,
   SeedUserDialog,
-  SendingInfoDialog,
+  TemplateDialog,
   consumeOpsIntent,
   requestOpsIntent,
   useOpsIntent,
 } from "@/features/ops-admin";
 import type { WorkViewProps } from "@/widgets/app-shell";
 import { setupSteps } from "../model/setup-steps";
-import { RuleSeedPanel, SendingPanel, SetupStepsPanel } from "./setup-panels";
+import { RuleSeedPanel, SetupStepsPanel, TemplatePanel } from "./setup-panels";
 import { OpsOutboxPanel, SamplePanel, SeedLogPanel } from "./setup-records";
 import styles from "./ops-setup.module.css";
 
 type Dialog =
   | { kind: "project" }
   | { kind: "invite"; mode: "admin" | "member" }
-  | { kind: "sending"; project: Project }
+  | { kind: "templates"; project: Project }
   | { kind: "seed"; type: ContentType; latest: Dataset }
   | { kind: "register" }
   | { kind: "sample" }
@@ -151,11 +152,11 @@ export function OpsSetupView({ context, openTab }: WorkViewProps) {
         />
       </div>
       <OpsOutboxPanel customer={customer} />
-      <SendingPanel
+      <TemplatePanel
         projects={projectList}
         loading={setupContext.isPending}
         inactive={!customer.active}
-        onEdit={(project) => setDialog({ kind: "sending", project })}
+        onEdit={(project) => setDialog({ kind: "templates", project })}
       />
       <SamplePanel
         customer={customer}
@@ -178,10 +179,10 @@ export function OpsSetupView({ context, openTab }: WorkViewProps) {
         mode={dialog?.kind === "invite" ? dialog.mode : "admin"}
         projects={projectList}
       />
-      <SendingInfoDialog
-        open={dialog?.kind === "sending"}
+      <TemplateDialog
+        open={dialog?.kind === "templates"}
         onClose={close}
-        project={dialog?.kind === "sending" ? (projectList.find((p) => p.id === dialog.project.id) ?? dialog.project) : null}
+        project={dialog?.kind === "templates" ? (projectList.find((p) => p.id === dialog.project.id) ?? dialog.project) : null}
       />
       {dialog?.kind === "seed" ? (
         <SeedRuleDialog

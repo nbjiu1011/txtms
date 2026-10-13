@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { formatDateTime } from "@/shared/lib";
-import { Button, Pager, Panel, PanelBody, PanelHeader, Tag } from "@/shared/ui";
+import { Panel, PanelBody, PanelHeader, Tag } from "@/shared/ui";
+import { Button, Pager } from "@/shared/common";
 import { OUTBOX_KIND_LABEL, OUTBOX_STATUS_LABEL, useCustomerOutbox } from "@/entities/audit";
 
 import styles from "./admin-users.module.css";

@@ -1,6 +1,7 @@
 "use client";
 
-import { Drawer, Empty } from "@/shared/ui";
+import { Empty } from "@/shared/ui";
+import { Drawer } from "@/shared/common";
 import { CONTENT_TYPE_LABEL, useWritingGuide, type ContentType } from "@/entities/request";
 import styles from "./guide.module.css";
 

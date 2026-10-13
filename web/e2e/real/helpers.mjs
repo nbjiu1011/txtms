@@ -63,6 +63,26 @@ export function reportConsole() {
   return unexplained.length === 0;
 }
 
+/**
+ * Picks an option of a select (radix: the trigger is a `button[role=combobox]`, the list a portal `listbox`).
+ * `choice`: an option value (`""` = the empty option), `{ label }` or `{ index }` — like `selectOption`.
+ */
+export async function pick(trigger, choice) {
+  await trigger.click();
+  const list = trigger.page().getByRole("listbox");
+  const option =
+    typeof choice === "string"
+      ? list.locator(`[role="option"][data-value="${choice}"]`)
+      : "label" in choice
+        ? list.getByRole("option", { name: choice.label, exact: true })
+        : list.getByRole("option").nth(choice.index);
+  await option.click();
+  await expect(list).toHaveCount(0);
+}
+
+/** Selected value of a select trigger (radix select: the `data-value` attribute). */
+export const selectValueIs = (trigger, value) => expect(trigger).toHaveAttribute("data-value", value);
+
 /** Visible work tab panel of a page. */
 export const main = (page) => page.locator("main [role=tabpanel]:visible");
 export const dialog = (page, name) => page.getByRole("dialog", { name });

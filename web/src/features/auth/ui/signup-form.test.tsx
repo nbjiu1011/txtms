@@ -5,6 +5,7 @@ import { useToastStore } from "@/shared/ui";
 import type { AuthSession, SignupCustomer } from "@/entities/me";
 import { authApi } from "../api/auth-api";
 import { SignupForm } from "./signup-form";
+import { chooseValue } from "@/shared/common/testing";
 
 const customers: SignupCustomer[] = [
   { id: 1, name: "한빛카드", approvalEnabled: true, projects: [{ id: 10, name: "카드 혜택 알림", leadName: "박지훈" }] },
@@ -73,8 +74,8 @@ describe("SignupForm", () => {
     render(<SignupForm customers={customers} onSuccess={onSuccess} />);
 
     fireEvent.click(screen.getByLabelText(/대표 검수자/));
-    fireEvent.change(screen.getByLabelText("고객사"), { target: { value: "1" } });
-    fireEvent.change(screen.getByLabelText("프로젝트"), { target: { value: "10" } });
+    chooseValue(screen.getByLabelText("고객사"), "1");
+    chooseValue(screen.getByLabelText("프로젝트"), "10");
     expect(screen.getByText(/박지훈에서 가입자로 바뀝니다/)).toBeTruthy();
 
     account();
@@ -94,8 +95,8 @@ describe("SignupForm", () => {
     const signup = vi.spyOn(authApi, "signup");
     render(<SignupForm customers={customers} onSuccess={() => {}} />);
     fireEvent.click(screen.getByLabelText(/승인자/));
-    fireEvent.change(screen.getByLabelText("고객사"), { target: { value: "2" } });
-    fireEvent.change(screen.getByLabelText("프로젝트"), { target: { value: "20" } });
+    chooseValue(screen.getByLabelText("고객사"), "2");
+    chooseValue(screen.getByLabelText("프로젝트"), "20");
     account();
     submit();
     await waitFor(() => expect(alerts()).toContain("이 고객사는 승인 단계를 쓰지 않습니다"));

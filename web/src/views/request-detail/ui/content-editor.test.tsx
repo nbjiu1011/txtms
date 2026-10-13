@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ChannelSpec, Content, ContentPayload, ContentType, RcsPayload } from "@/entities/request";
 import { ContentEditor } from "./content-editor";
+import { chooseValue } from "@/shared/common/testing";
 
 function content(payload: ContentPayload): Content {
   return { key: "C1", title: "콘텐츠 1", version: 1, payload, files: [], lock: null, savedAt: null, versions: [] };
@@ -121,7 +122,7 @@ describe("ContentEditor (draft editing)", () => {
       cards: [{ title: "", body: "a", imageKey: null, imageAlt: "", buttonName: "", buttonLink: "" }],
     };
     const onPayload = renderEditor("RCS", payload);
-    fireEvent.change(screen.getByRole("combobox", { name: "카드 수" }), { target: { value: "3" } });
+    chooseValue(screen.getByRole("combobox", { name: "카드 수" }), "3");
     expect(onPayload.mock.calls[0][0].cards).toHaveLength(3);
     expect(onPayload.mock.calls[0][0].cards[0].body).toBe("a");
   });

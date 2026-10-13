@@ -10,7 +10,7 @@
  * 업무량·실적. Data stays in the dev DB; the test user and the throwaway customer are deactivated.
  */
 import { expect } from "@playwright/test";
-import { API, BASE, apiAs, dialog, log, main, startRun, toastSeen, watchConsole } from "./helpers.mjs";
+import { API, BASE, apiAs, dialog, log, main, pick, startRun, toastSeen, watchConsole } from "./helpers.mjs";
 
 const { browser, persona, step, shot, close } = await startRun("admin");
 const stamp = Date.now().toString(36);
@@ -45,7 +45,7 @@ await step("프로젝트 추가: required checks, then created with lead and app
   await d.getByLabel(/프로젝트 이름/).fill(PROJECT);
   await d.getByRole("button", { name: "저장" }).click();
   await toastSeen(admin, "대표 검수자을(를) 입력하세요");
-  await d.getByLabel(/대표 검수자/).selectOption({ label: "이도현  콘텐츠검수팀" });
+  await pick(d.getByLabel(/대표 검수자/), { label: "이도현  콘텐츠검수팀" });
   await d.getByRole("button", { name: "저장" }).click();
   await toastSeen(admin, "승인자를 한 명 이상 지정하세요");
   await d.getByRole("checkbox", { name: /최민아/ }).check();
@@ -64,7 +64,7 @@ await step("사용자 초대: external domain needs a second click, then the inv
   const d = dialog(admin, "사용자 초대");
   await d.getByLabel(/이메일/).fill(INVITEE);
   await d.getByLabel(/^이름/).fill(INVITEE_NAME);
-  await d.getByLabel("프로젝트").selectOption({ label: PROJECT });
+  await pick(d.getByLabel("프로젝트"), { label: PROJECT });
   await expect(d.getByText("외부 도메인 이메일입니다. 초대 대상을 확인하세요.")).toBeVisible();
   await shot(admin, "invite-modal");
   await d.getByRole("button", { name: "초대 링크 생성" }).click();
@@ -137,7 +137,7 @@ await step("공지: publish (u1 sees it, u9 does not), edit (수정됨), withdra
   await go(admin, "/admin/notices", "공지 관리");
   await m().getByRole("button", { name: "공지 작성" }).click();
   const d = dialog(admin, "공지 작성");
-  await d.getByLabel("공지 범위").selectOption("CUSTOMER");
+  await pick(d.getByLabel("공지 범위"), "CUSTOMER");
   await d.getByLabel(/제목/).fill(NOTICE);
   await d.getByLabel(/내용/).fill(`${stamp} 본문입니다.\n두 번째 줄`);
   await shot(admin, "notice-modal");
@@ -179,7 +179,7 @@ await step("변수: register, edit, delete; an in-use variable stays protected",
   await m().getByRole("button", { name: "변수 등록" }).click();
   const d = dialog(admin, "변수 등록");
   await d.getByLabel(/변수 키/).fill(VAR_KEY);
-  await d.getByLabel("자료형").selectOption("NUMBER");
+  await pick(d.getByLabel("자료형"), "NUMBER");
   await d.getByLabel(/^값/).fill("abc");
   await d.getByRole("button", { name: "저장" }).click();
   await toastSeen(admin, "정수 또는 소수를 입력하세요");
@@ -208,10 +208,10 @@ await step("변수: register, edit, delete; an in-use variable stays protected",
 await step("고객사 설정: due-soon days and name save with toasts (restored)", async () => {
   await go(admin, "/admin/customer", "고객사 설정");
   const due = m().getByLabel("납기 임박 기준");
-  const before = await due.inputValue();
-  await due.selectOption("2");
+  const before = (await due.getAttribute("data-value")) ?? "";
+  await pick(due, "2");
   await toastSeen(admin, "운영 설정을 저장했습니다");
-  await due.selectOption(before);
+  await pick(due, before);
   const name = m().getByLabel("고객사 이름");
   await name.fill("한빛카드 E2E");
   await name.press("Enter");
@@ -242,7 +242,7 @@ await step("비활성화 with lead handover, then 재활성화", async () => {
   await expect(d.getByText(PROJECT)).toBeVisible();
   await d.getByRole("button", { name: "비활성화" }).click();
   await toastSeen(admin, "대체자을(를) 입력하세요");
-  await d.getByLabel(/대체자/).selectOption({ label: "박지훈" });
+  await pick(d.getByLabel(/대체자/), { label: "박지훈" });
   await d.getByLabel(/인수인계 내용/).fill("E2E 인수인계");
   await shot(admin, "deactivate-modal");
   await d.getByRole("button", { name: "비활성화" }).click();
@@ -315,8 +315,8 @@ await step("이도현 (lead) opens 업무량·실적: KPIs, all projects, user f
   await expect(mm.getByText("접수 집단 완료율")).toBeVisible();
   await expect(mm.getByRole("heading", { name: "개인 실적" })).toBeVisible();
   await shot(lead, "performance");
-  await mm.getByLabel("프로젝트").selectOption({ label: "권한 있는 전체" });
-  await mm.getByLabel("사용자").selectOption({ label: "박지훈" });
+  await pick(mm.getByLabel("프로젝트"), { label: "권한 있는 전체" });
+  await pick(mm.getByLabel("사용자"), { label: "박지훈" });
   await expect(mm.getByRole("row").filter({ hasText: "박지훈" }).first()).toBeVisible();
   await expect(mm.getByRole("row").filter({ hasText: "한가을" })).toHaveCount(1); // workload table only
   await mm.getByLabel("집계 시작일").fill("2099-01-02");

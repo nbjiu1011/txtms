@@ -59,12 +59,6 @@ public class Project extends BaseEntity {
     @OrderColumn(name = "sort_order")
     private List<ProjectTemplate> templates = new ArrayList<>();
 
-    @ElementCollection
-    @CollectionTable(name = "project_senders", joinColumns = @JoinColumn(name = "project_id"))
-    @OrderColumn(name = "sort_order")
-    @Column(name = "sender_number", length = 20)
-    private List<String> senders = new ArrayList<>();
-
     protected Project() {
     }
 
@@ -119,22 +113,12 @@ public class Project extends BaseEntity {
         templates.add(new ProjectTemplate(code, templateName));
     }
 
-    public void addSender(String number) {
-        senders.add(number);
-    }
-
     /**
      * Replaces the registered Alimtalk templates (order kept). A new collection instance makes Hibernate delete and
      * re-insert the rows, so reordering never trips the unique (project, code) key with in-place updates.
      */
     public void replaceTemplates(List<ProjectTemplate> next, Instant now) {
         this.templates = new ArrayList<>(next);
-        touch(now);
-    }
-
-    /** Replaces the registered sender numbers (order kept; rows are re-inserted like the templates). */
-    public void replaceSenders(List<String> next, Instant now) {
-        this.senders = new ArrayList<>(next);
         touch(now);
     }
 
@@ -187,9 +171,5 @@ public class Project extends BaseEntity {
 
     public List<ProjectTemplate> getTemplates() {
         return List.copyOf(templates);
-    }
-
-    public List<String> getSenders() {
-        return List.copyOf(senders);
     }
 }

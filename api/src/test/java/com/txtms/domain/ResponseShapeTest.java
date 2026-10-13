@@ -38,19 +38,21 @@ class ResponseShapeTest {
     }
 
     private static ProjectResponse project(Long activeRequestCount) {
-        return new ProjectResponse(4, 1, "카드 혜택 알림", true, 3L, List.of(), List.of("1588-0000"), List.of(), 2,
+        return new ProjectResponse(4, 1, "카드 혜택 알림", true, 3L, List.of(), List.of(), 2,
                 activeRequestCount);
     }
 
     @Test
     void activeRequestCountIsLeftOutUnlessGiven() {
         assertThat(tree(project(null)).has("activeRequestCount")).isFalse();
+        // sender numbers are no longer registered per project
+        assertThat(tree(project(null)).has("senders")).isFalse();
         JsonNode counted = tree(project(0L));
         assertThat(counted.has("activeRequestCount")).isTrue();
         assertThat(counted.path("activeRequestCount").asLong()).isZero();
         assertThat(tree(project(7L)).path("activeRequestCount").asLong()).isEqualTo(7);
         // the other nullable key keeps its explicit null
-        JsonNode noLead = tree(new ProjectResponse(4, 1, "p", true, null, List.of(), List.of(), List.of(), 0, null));
+        JsonNode noLead = tree(new ProjectResponse(4, 1, "p", true, null, List.of(), List.of(), 0, null));
         assertThat(noLead.has("leadUserId")).isTrue();
         assertThat(noLead.path("leadUserId").isNull()).isTrue();
     }

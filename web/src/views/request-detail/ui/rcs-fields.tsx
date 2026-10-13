@@ -2,7 +2,7 @@
 
 import { useId } from "react";
 import { cn } from "@/shared/lib";
-import { Field, Input, Select, Textarea } from "@/shared/ui";
+import { Field, Input, Select, Textarea } from "@/shared/common";
 import { MAX_RCS_CARDS, setPayloadField, setRcsCardCount, type RcsPayload } from "@/entities/request";
 import { bindText, type FieldsProps } from "./editor-binding";
 import styles from "./work.module.css";

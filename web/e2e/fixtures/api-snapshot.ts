@@ -2579,10 +2579,6 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
             "name": "이벤트 당첨 안내"
           }
         ],
-        "senders": [
-          "1588-0000",
-          "02-3456-7000"
-        ],
         "members": [
           {
             "userId": 1,
@@ -2742,10 +2738,6 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "code": "HB_EVT_03",
           "name": "이벤트 당첨 안내"
         }
-      ],
-      "senders": [
-        "1588-0000",
-        "02-3456-7000"
       ],
       "members": [
         {
@@ -3018,10 +3010,6 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
             "name": "이벤트 당첨 안내"
           }
         ],
-        "senders": [
-          "1588-0000",
-          "02-3456-7000"
-        ],
         "members": [
           {
             "userId": 1,
@@ -3063,9 +3051,6 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
         "active": true,
         "leadUserId": 3,
         "templates": [],
-        "senders": [
-          "1588-0000"
-        ],
         "members": [
           {
             "userId": 2,
@@ -3209,10 +3194,6 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "code": "HB_EVT_03",
           "name": "이벤트 당첨 안내"
         }
-      ],
-      "senders": [
-        "1588-0000",
-        "02-3456-7000"
       ],
       "members": [
         {
@@ -3858,10 +3839,6 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
             "name": "이벤트 당첨 안내"
           }
         ],
-        "senders": [
-          "1588-0000",
-          "02-3456-7000"
-        ],
         "members": [
           {
             "userId": 1,
@@ -3903,9 +3880,6 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
         "active": true,
         "leadUserId": 3,
         "templates": [],
-        "senders": [
-          "1588-0000"
-        ],
         "members": [
           {
             "userId": 2,
@@ -4027,10 +4001,6 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "code": "HB_EVT_03",
           "name": "이벤트 당첨 안내"
         }
-      ],
-      "senders": [
-        "1588-0000",
-        "02-3456-7000"
       ],
       "members": [
         {
@@ -4223,10 +4193,6 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
             "name": "이벤트 당첨 안내"
           }
         ],
-        "senders": [
-          "1588-0000",
-          "02-3456-7000"
-        ],
         "members": [
           {
             "userId": 1,
@@ -4268,9 +4234,6 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
         "active": true,
         "leadUserId": 3,
         "templates": [],
-        "senders": [
-          "1588-0000"
-        ],
         "members": [
           {
             "userId": 2,
@@ -4424,10 +4387,6 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "code": "HB_EVT_03",
           "name": "이벤트 당첨 안내"
         }
-      ],
-      "senders": [
-        "1588-0000",
-        "02-3456-7000"
       ],
       "members": [
         {
@@ -4952,10 +4911,6 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
             "name": "이벤트 당첨 안내"
           }
         ],
-        "senders": [
-          "1588-0000",
-          "02-3456-7000"
-        ],
         "members": [
           {
             "userId": 1,
@@ -4998,9 +4953,6 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
         "active": true,
         "leadUserId": 3,
         "templates": [],
-        "senders": [
-          "1588-0000"
-        ],
         "members": [
           {
             "userId": 2,
@@ -5112,10 +5064,6 @@ export const API_SNAPSHOT: Record<number, Record<string, unknown>> = {
           "code": "HB_EVT_03",
           "name": "이벤트 당첨 안내"
         }
-      ],
-      "senders": [
-        "1588-0000",
-        "02-3456-7000"
       ],
       "members": [
         {

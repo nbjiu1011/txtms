@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { formatDateTime, formatKstToday } from "@/shared/lib";
 import {
-  Button,
   Empty,
   Icon,
   Kpi,
@@ -16,6 +15,7 @@ import {
   StatusChip,
   Tag,
 } from "@/shared/ui";
+import { Button } from "@/shared/common";
 import { useOpsDashboard, type OpsCustomer } from "@/entities/ops";
 import { CreateCustomerDialog, continueToSetup, openTodo } from "@/features/ops-admin";
 import type { WorkViewProps } from "@/widgets/app-shell";

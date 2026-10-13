@@ -1,5 +1,6 @@
 import { formatDate } from "@/shared/lib";
-import { Avatar, AvatarStack, Button, Icon, Table, Tag, tableClasses } from "@/shared/ui";
+import { Avatar, AvatarStack, Icon, Table, Tag, tableClasses } from "@/shared/ui";
+import { Button } from "@/shared/common";
 import { ContentTypeChip, RequestStatusChip, type RequestSummary } from "@/entities/request";
 import type { UserDirectory } from "@/entities/user";
 import styles from "./request-list.module.css";

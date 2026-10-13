@@ -8,8 +8,9 @@ import { opsApi, type Dataset, type OpsCustomer } from "@/entities/ops";
 import type { Project } from "@/entities/project";
 import { CreateCustomerDialog } from "./customer-dialogs";
 import { DatasetRegisterDialog } from "./dataset-dialogs";
-import { SendingInfoDialog } from "./sending-info-dialog";
+import { TemplateDialog } from "./template-dialog";
 import { SeedUserDialog } from "./setup-dialogs";
+import { chooseValue } from "@/shared/common/testing";
 
 const lastToast = () => useToastStore.getState().message;
 
@@ -120,7 +121,7 @@ describe("DatasetRegisterDialog", () => {
   it("uploads the XLSX with the scope and lists the server's row errors", async () => {
     const upload = vi.spyOn(opsApi, "uploadDataset").mockRejectedValue(rowErrors);
     wrap(<DatasetRegisterDialog open onClose={vi.fn()} />);
-    fireEvent.change(screen.getByLabelText("유형"), { target: { value: "SMS" } });
+    chooseValue(screen.getByLabelText("유형"), "SMS");
     ok("등록");
     await waitFor(() => expect(lastToast()).toBe("파일을 선택하세요"));
 
@@ -142,7 +143,7 @@ describe("DatasetRegisterDialog", () => {
     const createDataset = vi.spyOn(opsApi, "createDataset").mockResolvedValue(created);
     const onClose = vi.fn();
     wrap(<DatasetRegisterDialog open onClose={onClose} initialType="SMS" />);
-    fireEvent.click(screen.getByRole("button", { name: "JSON 붙여넣기" }));
+    fireEvent.click(screen.getByRole("radio", { name: "JSON 붙여넣기" }));
     const area = screen.getByLabelText(/규칙 JSON 배열/);
     fireEvent.change(area, { target: { value: "[1]" } });
     ok("등록");
@@ -165,18 +166,18 @@ const project = (patch: Partial<Project> = {}): Project => ({
   active: true,
   leadUserId: null,
   templates: [],
-  senders: [],
   members: [],
   variablesRevision: 0,
   ...patch,
 });
 
-describe("SendingInfoDialog", () => {
-  it("validates rows inline before saving and saves only the changed list", async () => {
+describe("TemplateDialog", () => {
+  it("validates rows inline before saving and saves the trimmed list", async () => {
     const putTemplates = vi.spyOn(opsApi, "putTemplates").mockResolvedValue(project());
-    const putSenders = vi.spyOn(opsApi, "putSenders").mockResolvedValue(project());
     const onClose = vi.fn();
-    wrap(<SendingInfoDialog open onClose={onClose} project={project({ senders: ["1588-0000"] })} />);
+    wrap(<TemplateDialog open onClose={onClose} project={project()} />);
+    expect(screen.getByRole("dialog", { name: "기본 프로젝트 알림톡 템플릿" })).toBeTruthy();
+    expect(screen.queryByText(/발신번호/)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "템플릿 추가" }));
     fireEvent.change(screen.getByLabelText("템플릿 1 코드"), { target: { value: "새 코드" } });
     ok("저장");
@@ -189,26 +190,33 @@ describe("SendingInfoDialog", () => {
     ok("저장");
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(putTemplates).toHaveBeenCalledWith(4, [{ code: "SB_NOTICE_01", name: "가입 안내" }]);
-    expect(putSenders).not.toHaveBeenCalled();
-    expect(lastToast()).toBe("발신 정보를 저장했습니다");
+    expect(lastToast()).toBe("알림톡 템플릿을 저장했습니다");
+  });
+
+  it("closes without a request when nothing changed", async () => {
+    const putTemplates = vi.spyOn(opsApi, "putTemplates").mockResolvedValue(project());
+    const onClose = vi.fn();
+    wrap(<TemplateDialog open onClose={onClose} project={project({ templates: [{ code: "A1", name: "안내" }] })} />);
+    ok("저장");
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(putTemplates).not.toHaveBeenCalled();
   });
 
   it("shows a server field error under its row", async () => {
-    vi.spyOn(opsApi, "putSenders").mockRejectedValue(
+    vi.spyOn(opsApi, "putTemplates").mockRejectedValue(
       new ApiError(400, {
         code: "VALIDATION_FAILED",
-        message: "발신번호 형식을 확인하세요 (예: 1588-0000, 02-3456-7000)",
-        fieldErrors: [{ field: "senders.1", message: "발신번호 형식을 확인하세요 (예: 1588-0000, 02-3456-7000)" }],
+        message: "템플릿 코드 B1이(가) 중복됩니다",
+        fieldErrors: [{ field: "templates.1.code", message: "템플릿 코드 B1이(가) 중복됩니다" }],
       }),
     );
-    wrap(<SendingInfoDialog open onClose={vi.fn()} project={project({ senders: ["1588-0000"] })} />);
-    fireEvent.click(screen.getByRole("button", { name: "발신번호 추가" }));
-    fireEvent.change(screen.getByLabelText("발신번호 2"), { target: { value: "02-345-6789" } });
+    wrap(<TemplateDialog open onClose={vi.fn()} project={project({ templates: [{ code: "A1", name: "안내" }] })} />);
+    fireEvent.click(screen.getByRole("button", { name: "템플릿 추가" }));
+    fireEvent.change(screen.getByLabelText("템플릿 2 코드"), { target: { value: "B1" } });
+    fireEvent.change(screen.getByLabelText("템플릿 2 이름"), { target: { value: "혜택" } });
     ok("저장");
-    const row = screen.getByLabelText("발신번호 2").closest("div") as HTMLElement;
-    await waitFor(() =>
-      expect(within(row).getByRole("alert").textContent).toBe("발신번호 형식을 확인하세요 (예: 1588-0000, 02-3456-7000)"),
-    );
+    const row = screen.getByLabelText("템플릿 2 코드").closest("div") as HTMLElement;
+    await waitFor(() => expect(within(row).getByRole("alert").textContent).toBe("템플릿 코드 B1이(가) 중복됩니다"));
   });
 });
 

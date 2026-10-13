@@ -1,5 +1,6 @@
 import { Fragment } from "react";
-import { Banner, Button } from "@/shared/ui";
+import { Banner } from "@/shared/ui";
+import { Button } from "@/shared/common";
 import type { RequestAction } from "@/entities/request";
 import type { BannerModel } from "../model/banners";
 
