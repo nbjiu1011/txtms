@@ -40,6 +40,8 @@ export const requestApi = {
   submit: (id: string, rowVersion: number, idempotencyKey: string) =>
     http.post<RequestDetail>(`${req(id)}/submit`, { rowVersion }, { headers: { "Idempotency-Key": idempotencyKey } }),
   cancel: (id: string, rowVersion: number) => http.post<RequestDetail>(`${req(id)}/cancel`, { rowVersion }),
+  /** Deletes a draft that was never submitted (`DELETE`, contract §21). */
+  remove: (id: string) => http.delete<void>(req(id)),
   /** Submit validation only, nothing changes (`{ ok, details, fieldErrors }`). */
   submitCheck: (id: string) => http.post<SubmitCheck>(`${req(id)}/submit-check`, {}),
 

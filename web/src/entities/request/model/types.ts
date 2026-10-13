@@ -41,6 +41,7 @@ export const REQUEST_ACTIONS = [
   "EDIT_REQUEST",
   "EDIT_CONTENT",
   "SUBMIT",
+  "DELETE",
   "CANCEL",
   "RECALL",
   "DECIDE_RECALL",

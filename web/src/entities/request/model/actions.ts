@@ -9,6 +9,7 @@ export const IMPLEMENTED_ACTIONS: ReadonlySet<RequestAction> = new Set<RequestAc
   "EDIT_REQUEST",
   "EDIT_CONTENT",
   "SUBMIT",
+  "DELETE",
   "CANCEL",
   "CLONE",
   "RECALL",

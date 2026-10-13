@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/shared/ui";
 import { Modal } from "@/shared/common";
 import {
   CONTENT_TYPE_LABEL,
   FINAL_STATUSES,
+  invalidateRequestViews,
   isBlankContent,
   requestApi,
   useContentTypes,
@@ -19,12 +21,13 @@ import {
 import { useRequestCreate } from "@/features/request-create";
 import {
   CancelRequestDialog,
+  DeleteRequestDialog,
   SubmitRequestDialog,
   UnlockDialog,
   checkBeforeComplete,
   handleWorkflowError,
 } from "@/features/request-workflow";
-import type { WorkViewProps } from "@/widgets/app-shell";
+import { closeRequestTabs, type WorkViewProps } from "@/widgets/app-shell";
 import { selectBanners } from "../model/banners";
 import { UPLOAD_BUSY_MESSAGE, type DraftEditing } from "../model/use-draft-editing";
 import type { RequestPage } from "../model/use-request-page";
@@ -72,7 +75,8 @@ export function RequestTabBody({ page, meId, meIsApprover, demo, openTab, editin
   const [contentKey, setContentKey] = useState<string | null>(null);
   const [sideTab, setSideTab] = useState<SidePanelTab>("proof");
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("all");
-  const [dialog, setDialog] = useState<"submit" | "cancel" | null>(null);
+  const [dialog, setDialog] = useState<"submit" | "cancel" | "delete" | null>(null);
+  const client = useQueryClient();
   const [flow, setFlow] = useState<WorkflowDialog | null>(null);
   const [pendingType, setPendingType] = useState<ContentType | null>(null);
   const types = useContentTypes();
@@ -114,6 +118,7 @@ export function RequestTabBody({ page, meId, meIsApprover, demo, openTab, editin
       if (editing.uploadBusy) return toast(UPLOAD_BUSY_MESSAGE);
       setDialog("submit");
     } else if (action === "CANCEL") setDialog("cancel");
+    else if (action === "DELETE") setDialog("delete");
     else if (action === "CLONE") void clone(r.id);
     else if (action === "FOLLOW_UP") void followUp(r.id, null);
     else if (action === "COMPLETE") complete();
@@ -242,6 +247,16 @@ export function RequestTabBody({ page, meId, meIsApprover, demo, openTab, editin
         }}
         onInvalid={editing.setFieldErrors}
         onShowMissing={setSub}
+        onStale={workflow.reload}
+      />
+      <DeleteRequestDialog
+        open={dialog === "delete"}
+        onClose={() => setDialog(null)}
+        requestId={r.id}
+        onDeleted={() => {
+          invalidateRequestViews(client);
+          closeRequestTabs(r.id);
+        }}
         onStale={workflow.reload}
       />
       <CancelRequestDialog

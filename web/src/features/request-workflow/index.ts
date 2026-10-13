@@ -2,6 +2,8 @@ export { SubmitRequestDialog, SAVE_BEFORE_SUBMIT_FAILED } from "./ui/submit-requ
 export type { SubmitRequestDialogProps } from "./ui/submit-request-dialog";
 export { CancelRequestDialog } from "./ui/cancel-request-dialog";
 export type { CancelRequestDialogProps } from "./ui/cancel-request-dialog";
+export { DeleteRequestDialog } from "./ui/delete-request-dialog";
+export type { DeleteRequestDialogProps } from "./ui/delete-request-dialog";
 export { AssignDialog, UrgencyField } from "./ui/assign-dialog";
 export type { AssignDialogProps } from "./ui/assign-dialog";
 export type { ReviewerCandidate } from "./ui/reviewer-picker";

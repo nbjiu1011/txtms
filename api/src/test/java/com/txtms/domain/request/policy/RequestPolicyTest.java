@@ -79,7 +79,7 @@ class RequestPolicyTest {
         @Test
         void requestOfAnotherProjectIsNotVisible() {
             RequestFacts r = new RequestFacts("REQ-1", PROJECT + 1, RequestStatus.IN_REVIEW, REQUESTER,
-                    List.of(REVIEWER), REVIEWER, false, null);
+                    List.of(REVIEWER), REVIEWER, false, null, true);
             assertThat(policy.canView(actor(REVIEWER), approvalProject, r)).isFalse();
         }
     }
@@ -88,9 +88,28 @@ class RequestPolicyTest {
     class Drafting {
 
         @Test
-        void authorEditsSubmitsAndClonesDraft() {
+        void authorEditsSubmitsClonesAndDeletesANeverSubmittedDraft() {
             assertThat(actions(actor(REQUESTER), RequestStatus.DRAFT)).containsExactlyInAnyOrder(
-                    RequestAction.EDIT_REQUEST, RequestAction.EDIT_CONTENT, RequestAction.SUBMIT, RequestAction.CLONE);
+                    RequestAction.EDIT_REQUEST, RequestAction.EDIT_CONTENT, RequestAction.SUBMIT, RequestAction.DELETE,
+                    RequestAction.CLONE);
+        }
+
+        @Test
+        void aDraftBackFromCancelOrRecallCannotBeDeleted() {
+            RequestFacts returned = new RequestFacts("REQ-1", PROJECT, RequestStatus.DRAFT, REQUESTER, List.of(), null,
+                    false, null, true);
+            assertThat(policy.allowedActions(actor(REQUESTER), approvalProject, returned))
+                    .contains(RequestAction.SUBMIT).doesNotContain(RequestAction.DELETE);
+        }
+
+        @Test
+        void onlyTheAuthorDeletesAndOnlyADraft() {
+            for (RequestStatus s : RequestStatus.values()) {
+                if (s != RequestStatus.DRAFT) {
+                    assertThat(actions(actor(REQUESTER), s)).doesNotContain(RequestAction.DELETE);
+                }
+            }
+            assertThat(actions(actor(LEAD), RequestStatus.DRAFT)).doesNotContain(RequestAction.DELETE);
         }
 
         @Test
@@ -236,7 +255,7 @@ class RequestPolicyTest {
         void eligibleApproversExcludeRequesterReviewersPrimaryAndInactive() {
             ProjectFacts facts = project(true);
             RequestFacts r = new RequestFacts("REQ-1", PROJECT, RequestStatus.APPROVAL_WAITING, APPROVER,
-                    List.of(REVIEWER), REVIEWER, false, null);
+                    List.of(REVIEWER), REVIEWER, false, null, true);
             assertThat(policy.eligibleApprovers(facts, r)).isEmpty();
             assertThat(policy.eligibleApprovers(facts, request(RequestStatus.APPROVAL_WAITING)))
                     .containsExactly(APPROVER)
@@ -371,7 +390,7 @@ class RequestPolicyTest {
     @Test
     void dueFlagsUseCustomerDueSoonDays() {
         RequestFacts r = new RequestFacts("REQ-1", PROJECT, RequestStatus.IN_REVIEW, REQUESTER, List.of(REVIEWER),
-                REVIEWER, false, LocalDate.of(2026, 10, 9));
+                REVIEWER, false, LocalDate.of(2026, 10, 9), true);
         assertThat(policy.dueSoon(approvalProject, r, java.time.Instant.parse("2026-10-07T01:00:00Z"))).isTrue();
         assertThat(policy.overdue(r, java.time.Instant.parse("2026-10-09T15:00:00Z"))).isTrue();
     }

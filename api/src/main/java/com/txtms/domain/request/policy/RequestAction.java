@@ -5,6 +5,8 @@ public enum RequestAction {
     EDIT_REQUEST,
     EDIT_CONTENT,
     SUBMIT,
+    /** Delete a draft that was never submitted (no workflow history to keep). */
+    DELETE,
     CANCEL,
     RECALL,
     DECIDE_RECALL,

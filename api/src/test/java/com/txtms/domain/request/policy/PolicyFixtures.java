@@ -74,6 +74,6 @@ final class PolicyFixtures {
         boolean assigned = status != RequestStatus.DRAFT && status != RequestStatus.WAITING;
         return new RequestFacts("REQ-2610-121", PROJECT, status, REQUESTER,
                 assigned ? List.of(REVIEWER, LEAD) : List.of(), assigned ? REVIEWER : null, recall,
-                LocalDate.of(2026, 10, 9));
+                LocalDate.of(2026, 10, 9), status != RequestStatus.DRAFT);
     }
 }

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { tabsStorageKey, useTabStore } from "./tab-store";
+import { closeRequestTabs, tabsStorageKey, useTabStore } from "./tab-store";
 
 beforeEach(() => {
   localStorage.clear();
@@ -36,5 +36,21 @@ describe("tab store", () => {
     useTabStore.setState({ tabs: [], activeId: null, userId: null });
     useTabStore.getState().hydrate(2);
     expect(useTabStore.getState().tabs).toEqual([]);
+  });
+});
+
+describe("closeRequestTabs", () => {
+  it("closes the request tab and its content tabs, nothing else", () => {
+    const store = useTabStore.getState();
+    store.hydrate(7);
+    store.open({ route: "requests", params: {} });
+    store.open({ route: "request", params: { id: "R1" } });
+    store.open({ route: "content", params: { id: "R1", key: "C1" } });
+    store.open({ route: "request", params: { id: "R2" } });
+    closeRequestTabs("R1");
+    expect(useTabStore.getState().tabs.map((t) => [t.route, t.params.id ?? null])).toEqual([
+      ["requests", null],
+      ["request", "R2"],
+    ]);
   });
 });

@@ -66,6 +66,14 @@ export function isTabOpen(tabId: string): boolean {
   return useTabStore.getState().tabs.some((tab) => tab.id === tabId);
 }
 
+/** Closes every tab of a request (its request tab and its content tabs), e.g. after the request was deleted. */
+export function closeRequestTabs(requestId: string): void {
+  const { tabs, close } = useTabStore.getState();
+  for (const tab of tabs) {
+    if ((tab.route === "request" || tab.route === "content") && tab.params.id === requestId) close(tab.id);
+  }
+}
+
 /** Some open tab holds unsaved changes (page leave warning). */
 export function hasDirtyTab(): boolean {
   return useTabStore.getState().tabs.some((tab) => tab.dirty);

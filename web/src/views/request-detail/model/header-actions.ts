@@ -13,6 +13,7 @@ export interface HeaderActionButton {
 export const HEADER_ACTIONS: readonly HeaderActionButton[] = [
   { action: "CLONE", label: "복제", variant: "ghost", group: "more" },
   { action: "FOLLOW_UP", label: "후속 요청 작성", variant: "ghost", group: "more" },
+  { action: "DELETE", label: "삭제", variant: "warn", group: "more" },
   { action: "SUBMIT", label: "검수 요청", variant: "pri", group: "acts" },
   { action: "CANCEL", label: "요청 취소", variant: "warn", group: "acts" },
   { action: "RECALL", label: "회수 요청", variant: "warn", group: "acts" },

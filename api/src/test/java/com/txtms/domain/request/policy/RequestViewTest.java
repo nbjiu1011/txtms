@@ -33,7 +33,7 @@ class RequestViewTest {
 
     private static RequestFacts due(RequestStatus status, LocalDate dueDate, List<Long> reviewers) {
         return new RequestFacts("REQ-1", PROJECT, status, REQUESTER, reviewers,
-                reviewers.isEmpty() ? null : reviewers.getFirst(), false, dueDate);
+                reviewers.isEmpty() ? null : reviewers.getFirst(), false, dueDate, status != RequestStatus.DRAFT);
     }
 
     @Test

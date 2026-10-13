@@ -33,6 +33,7 @@ import com.txtms.domain.request.dto.response.RequestDetail;
 import com.txtms.domain.request.service.AttachmentService;
 import com.txtms.domain.request.service.BulkImportService;
 import com.txtms.domain.request.service.RequestCommandService;
+import com.txtms.domain.request.service.RequestDeletionService;
 import com.txtms.global.common.Downloads;
 import com.txtms.global.security.AuthUser;
 
@@ -47,12 +48,14 @@ public class RequestWriteController {
     private final RequestCommandService commands;
     private final AttachmentService attachments;
     private final BulkImportService bulk;
+    private final RequestDeletionService deletion;
 
     public RequestWriteController(RequestCommandService commands, AttachmentService attachments,
-            BulkImportService bulk) {
+            BulkImportService bulk, RequestDeletionService deletion) {
         this.commands = commands;
         this.attachments = attachments;
         this.bulk = bulk;
+        this.deletion = deletion;
     }
 
     // ------------------------------------------------------------------ requests
@@ -91,6 +94,13 @@ public class RequestWriteController {
     @PostMapping("/api/requests/{id}/submit-check")
     public SubmitCheck submitCheck(@AuthenticationPrincipal AuthUser auth, @PathVariable String id) {
         return commands.submitCheck(auth, id);
+    }
+
+    /** Requester deletes a draft that was never submitted (contract §21). */
+    @DeleteMapping("/api/requests/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@AuthenticationPrincipal AuthUser auth, @PathVariable String id) {
+        deletion.delete(auth, id);
     }
 
     @PostMapping("/api/requests/{id}/cancel")

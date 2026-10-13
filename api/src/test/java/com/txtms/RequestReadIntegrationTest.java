@@ -106,7 +106,7 @@ class RequestReadIntegrationTest extends IntegrationTestBase {
                 .containsExactlyInAnyOrder("ANSWER", "EDIT_CONTENT", "CLONE");
         assertThat(actions(login(LEE_LEAD), "REQ-2609-102")).containsExactlyInAnyOrder("UNLOCK", "EDIT_DUE");
         assertThat(actions(login(KIM_REQUESTER), "REQ-2609-105"))
-                .containsExactlyInAnyOrder("EDIT_REQUEST", "EDIT_CONTENT", "SUBMIT", "CLONE");
+                .containsExactlyInAnyOrder("EDIT_REQUEST", "EDIT_CONTENT", "SUBMIT", "DELETE", "CLONE");
         assertThat(actions(login(CHOI_APPROVER), "REQ-2609-103"))
                 .containsExactlyInAnyOrder("APPROVE", "REVISE", "EDIT_DUE");
         assertThat(actions(login(PARK_REVIEWER), "REQ-2609-103")).isEmpty();

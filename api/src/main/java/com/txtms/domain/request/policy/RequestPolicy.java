@@ -95,6 +95,10 @@ public class RequestPolicy {
                 if (requester) {
                     actions.addAll(EnumSet.of(RequestAction.EDIT_REQUEST, RequestAction.EDIT_CONTENT,
                             RequestAction.SUBMIT));
+                    // a draft back from a cancel or an approved recall keeps its workflow history
+                    if (!request.submitted()) {
+                        actions.add(RequestAction.DELETE);
+                    }
                 }
             }
             case WAITING -> {

@@ -7,7 +7,7 @@ import java.util.Objects;
 import com.txtms.domain.request.entity.Request;
 import com.txtms.domain.request.entity.RequestStatus;
 
-/** Request facts needed by the request policy. */
+/** Request facts needed by the request policy. {@code submitted}: the request was ever submitted (kept after a cancel). */
 public record RequestFacts(
         String id,
         long projectId,
@@ -16,7 +16,8 @@ public record RequestFacts(
         List<Long> reviewerIds,
         Long primaryReviewerId,
         boolean recallPending,
-        LocalDate dueDate) {
+        LocalDate dueDate,
+        boolean submitted) {
 
     public RequestFacts {
         reviewerIds = List.copyOf(reviewerIds);
@@ -24,7 +25,7 @@ public record RequestFacts(
 
     public static RequestFacts of(Request r) {
         return new RequestFacts(r.getId(), r.getProjectId(), r.getStatus(), r.getRequesterId(), r.getReviewerIds(),
-                r.getPrimaryReviewerId(), r.isRecallPending(), r.getDueDate());
+                r.getPrimaryReviewerId(), r.isRecallPending(), r.getDueDate(), r.getSubmittedAt() != null);
     }
 
     public boolean requester(long userId) {

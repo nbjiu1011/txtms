@@ -42,7 +42,7 @@ class EligibleApproversTest {
 
     private static RequestFacts request(RequestStatus status, List<Long> reviewers, Long primary) {
         return new RequestFacts("REQ-1", PROJECT, status, REQUESTER, reviewers, primary, false,
-                LocalDate.of(2026, 10, 9));
+                LocalDate.of(2026, 10, 9), status != RequestStatus.DRAFT);
     }
 
     private static final Set<Long> ALL_ACTIVE = Set.of(REQUESTER, REVIEWER, LEAD, APPROVER, APPROVER_2,
