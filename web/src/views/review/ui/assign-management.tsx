@@ -1,19 +1,11 @@
 "use client";
 
-import { LIST_PAGE_SIZE, useClampPage, useListPage } from "@/shared/lib";
-import { Empty, ListItem, Panel, PanelBody, PanelHeader } from "@/shared/ui";
-import { Button, Pager } from "@/shared/common";
+import { Empty, Panel, PanelBody, PanelHeader } from "@/shared/ui";
+import { Button } from "@/shared/common";
 import { useWorkload } from "@/entities/dashboard";
-import {
-  RequestStatusChip,
-  useRequests,
-  type RequestListView,
-  type RequestSummary,
-} from "@/entities/request";
 import type { UserDirectory } from "@/entities/user";
 import { WorkloadTable } from "@/widgets/workload-table";
-import { assignQueueMeta } from "../model/review-rows";
-import styles from "./review.module.css";
+import { AssignQueue } from "./assign-queue";
 
 export interface AssignManagementProps {
   projectId: number;
@@ -25,13 +17,18 @@ export interface AssignManagementProps {
 
 /** 배정 관리 (lead): 배정 대기 / 지연 / 납기 임박 queues and the reviewer workload table. */
 export function AssignManagement({ projectId, users, onOpen, onAssign }: AssignManagementProps) {
+  const queue = { projectId, users, onOpen };
   return (
     <>
-      <div className={styles.grid3}>
-        <QueuePanel title="배정 대기" view="WAITING_ASSIGNMENT" projectId={projectId} users={users} onOpen={onOpen} onAssign={onAssign} />
-        <QueuePanel title="지연" view="OVERDUE" projectId={projectId} users={users} onOpen={onOpen} />
-        <QueuePanel title="납기 임박" view="DUE_SOON" projectId={projectId} users={users} onOpen={onOpen} />
-      </div>
+      <AssignQueue
+        {...queue}
+        title="배정 대기"
+        view="WAITING_ASSIGNMENT"
+        onAssign={onAssign}
+        emptyText="배정을 기다리는 요청이 없습니다."
+      />
+      <AssignQueue {...queue} title="지연" view="OVERDUE" emptyText="납기가 지난 요청이 없습니다." />
+      <AssignQueue {...queue} title="납기 임박" view="DUE_SOON" emptyText="납기가 임박한 요청이 없습니다." />
       <Panel>
         <PanelHeader title="검수자별 활성 요청과 업무량" />
         <PanelBody>
@@ -39,71 +36,6 @@ export function AssignManagement({ projectId, users, onOpen, onAssign }: AssignM
         </PanelBody>
       </Panel>
     </>
-  );
-}
-
-interface QueuePanelProps {
-  title: string;
-  view: RequestListView;
-  projectId: number;
-  users: UserDirectory;
-  onOpen: (id: string) => void;
-  onAssign?: (id: string) => void;
-}
-
-/** One queue, 20 per page (the header counts the whole queue). */
-function QueuePanel({ title, view, projectId, users, onOpen, onAssign }: QueuePanelProps) {
-  const [page, setPage] = useListPage(`${projectId}:${view}`);
-  const list = useRequests({ projectId, view, page, size: LIST_PAGE_SIZE });
-  useClampPage(page, list.isPlaceholderData ? undefined : list.data?.page.totalPages, setPage);
-  const rows: RequestSummary[] = list.isError ? [] : (list.data?.content ?? []);
-  const total = list.data?.page.totalElements ?? 0;
-  return (
-    <Panel aria-label={title} aria-busy={list.isFetching}>
-      <PanelHeader title={title} note={`${total}건`} />
-      {list.isPending ? (
-        <div className={styles.none}>불러오는 중</div>
-      ) : list.isError ? (
-        <div className={styles.none}>
-          불러오지 못했습니다{" "}
-          <Button size="sm" onClick={() => void list.refetch()}>
-            다시 시도
-          </Button>
-        </div>
-      ) : rows.length === 0 ? (
-        <div className={styles.none}>없음</div>
-      ) : (
-        rows.map((r) => (
-          <ListItem
-            key={r.id}
-            nestedActions={!!onAssign}
-            leading={<RequestStatusChip status={r.status} />}
-            title={r.title || "제목 없는 요청"}
-            meta={assignQueueMeta(r, users.name(r.requesterId))}
-            trailing={
-              onAssign ? (
-                <Button
-                  size="sm"
-                  variant="pri"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAssign(r.id);
-                  }}
-                >
-                  배정
-                </Button>
-              ) : (
-                <span className={styles.faintSmall}>{r.reviewerIds.map((id) => users.name(id)).join(", ")}</span>
-              )
-            }
-            onClick={() => onOpen(r.id)}
-          />
-        ))
-      )}
-      {list.data && !list.isError ? (
-        <Pager page={page} totalPages={list.data.page.totalPages} onPage={setPage} />
-      ) : null}
-    </Panel>
   );
 }
 

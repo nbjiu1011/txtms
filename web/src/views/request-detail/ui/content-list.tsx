@@ -63,7 +63,7 @@ export function ContentList(props: ContentListProps) {
             </Button>
           ) : null}
           {actions.onDeleteSelected ? (
-            <Button size="sm" variant="ghost" onClick={actions.onDeleteSelected}>
+            <Button size="sm" variant="warn" onClick={actions.onDeleteSelected}>
               선택 콘텐츠 삭제
             </Button>
           ) : null}

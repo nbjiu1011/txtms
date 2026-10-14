@@ -212,7 +212,11 @@ export function RequestTabBody({ page, meId, meIsApprover, demo, openTab, editin
           <HistoryTab requestId={r.id} users={page.users} filter={historyFilter} onFilter={setHistoryFilter} />
         ) : null}
         {current === "result" ? (
-          <ResultTab page={page} performable={performable} onFollowUp={(key) => void followUp(r.id, key)} />
+          <ResultTab
+            page={page}
+            performable={performable}
+            onOpenContent={(key) => openTab({ route: "content", params: { id: r.id, key } })}
+          />
         ) : null}
         {demo && editing.canEditContent && (r.type === "FREEFORM" || r.type === "RCS") ? (
           <ScanDemoPanel editing={editing} />

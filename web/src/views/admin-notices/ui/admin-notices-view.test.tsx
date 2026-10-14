@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { Me } from "@/entities/me";
-import { noticeApi, noticeKeys, type Notice } from "@/entities/notice";
+import { noticeKeys, type Notice } from "@/entities/notice";
 import type { Project } from "@/entities/project";
 import { userKeys, type UserSummary } from "@/entities/user";
 import type { WorkViewProps } from "@/widgets/app-shell";
@@ -61,36 +61,30 @@ function setup() {
   return props;
 }
 
-const row = (title: string) => screen.getByRole("button", { name: `${title} 상세 보기` }).closest("tr") as HTMLElement;
+const row = (title: string) =>
+  screen.getByRole("button", { name: `${title} 상세 보기` }).closest('[role="row"]') as HTMLElement;
 
 describe("AdminNoticesView", () => {
-  it("shows the state and the publish actions that fit it", async () => {
-    const publish = vi.spyOn(noticeApi, "publish").mockResolvedValue(notice(2, {}));
-    setup();
+  it("shows the state of each notice; the rows have no action buttons and open the detail", () => {
+    const props = setup();
     const live = within(row("공지 1"));
     expect(live.getByText("게시")).toBeTruthy();
-    expect(live.getByRole("button", { name: "게시 중지" })).toBeTruthy();
-    expect(live.queryByRole("button", { name: "게시" })).toBeNull();
-    fireEvent.click(live.getByRole("button", { name: "삭제" }));
-    expect(await screen.findByRole("dialog", { name: "공지를 삭제할까요?" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "취소" }));
-    const draft = within(row("공지 2"));
-    expect(draft.getByText("미게시")).toBeTruthy();
-    fireEvent.click(draft.getByRole("button", { name: "게시" }));
-    await waitFor(() => expect(publish).toHaveBeenCalledWith(2));
-    vi.restoreAllMocks();
+    expect(live.getAllByRole("button").map((b) => b.textContent)).toEqual(["공지 1"]);
+    expect(within(row("공지 2")).getByText("미게시")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "공지 2 상세 보기" }));
+    expect(props.openTab).toHaveBeenCalledWith({ route: "adminNotice", params: { id: "2" } });
+    fireEvent.click(live.getAllByRole("cell")[1]);
+    expect(props.openTab).toHaveBeenLastCalledWith({ route: "adminNotice", params: { id: "1" } });
   });
 
-  it("lists the deleted notices separately with 복원 only", async () => {
-    const restore = vi.spyOn(noticeApi, "restore").mockResolvedValue(notice(3, { published: false }));
-    setup();
+  it("lists the deleted notices separately", async () => {
+    const props = setup();
     fireEvent.click(screen.getByRole("radio", { name: "삭제된 공지" }));
     const trashed = within(await waitFor(() => row("공지 3")));
     expect(screen.queryByText("공지 1")).toBeNull();
     expect(trashed.getByText("삭제")).toBeTruthy();
-    expect(trashed.queryByRole("button", { name: "수정" })).toBeNull();
-    fireEvent.click(trashed.getByRole("button", { name: "복원" }));
-    await waitFor(() => expect(restore).toHaveBeenCalledWith(3));
-    vi.restoreAllMocks();
+    expect(trashed.getAllByRole("button")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "공지 3 상세 보기" }));
+    expect(props.openTab).toHaveBeenCalledWith({ route: "adminNotice", params: { id: "3" } });
   });
 });

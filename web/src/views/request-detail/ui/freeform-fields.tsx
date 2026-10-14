@@ -1,9 +1,9 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useState } from "react";
 import { downloadFile } from "@/shared/api";
 import { Icon, Tag, toast } from "@/shared/ui";
-import { Button, Field, Input, Label, Textarea, buttonClassName } from "@/shared/common";
+import { Button, ConfirmModal, Field, Input, Label, Textarea, buttonClassName } from "@/shared/common";
 import { FILE_UNIT_LABEL, requestFilePaths, type Content, type FileMeta, type FreeformPayload } from "@/entities/request";
 import { parseFileRange, readFileRange, type FileRangeDraft } from "../model/file-range";
 import { UPLOAD_STATE_LABEL, type UploadItem } from "../model/upload-queue";
@@ -36,6 +36,8 @@ export function FreeformFields(
 ) {
   const { requestId, content, payload, disabled, onPayload, attachments } = props;
   const id = useId();
+  // attachment awaiting the 삭제 confirmation
+  const [removing, setRemoving] = useState<FileMeta | null>(null);
   const download = async (file: FileMeta) => {
     try {
       await downloadFile(requestFilePaths.fileVersion(requestId, content.key, file.id, file.version), file.name);
@@ -104,14 +106,12 @@ export function FreeformFields(
               {attachments?.onDelete ? (
                 <Button
                   size="sm"
-                  variant="ghost"
-                  className={styles.btnIcon}
+                  variant="warn"
                   aria-label={`${file.name} 삭제`}
-                  title="삭제"
                   disabled={attachments.busy}
-                  onClick={() => attachments.onDelete?.(file)}
+                  onClick={() => setRemoving(file)}
                 >
-                  <Icon name="x" />
+                  삭제
                 </Button>
               ) : null}
             </div>
@@ -178,6 +178,16 @@ export function FreeformFields(
           </div>
         </>
       ) : null}
+      <ConfirmModal
+        open={removing !== null && !!attachments?.onDelete}
+        onClose={() => setRemoving(null)}
+        title={`첨부파일 「${removing?.name ?? ""}」을(를) 삭제할까요?`}
+        description="파일과 입력한 검수 범위가 이 콘텐츠에서 빠집니다. 다시 올리려면 파일을 새로 선택해야 합니다."
+        confirmLabel="삭제"
+        onConfirm={() => {
+          if (removing) attachments?.onDelete?.(removing);
+        }}
+      />
     </>
   );
 }

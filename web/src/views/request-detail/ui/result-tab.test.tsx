@@ -28,7 +28,7 @@ describe("ResultTab", () => {
   afterEach(() => vi.mocked(copyCompletedText).mockClear());
 
   it("shows the bundle head, items and the completion-time variables", () => {
-    render(<ResultTab page={page()} performable={performableActions(request088U1.allowedActions)} onFollowUp={vi.fn()} />);
+    render(<ResultTab page={page()} performable={performableActions(request088U1.allowedActions)} onOpenContent={vi.fn()} />);
     expect(screen.getByText(/승인 완료 .* 처리 최민아 콘텐츠 1건/)).toBeTruthy();
     expect(screen.getByRole("row", { name: /C1 청구 금액 안내/ })).toBeTruthy();
     expect(screen.getByText("billing_amount = 152,300원")).toBeTruthy();
@@ -38,7 +38,7 @@ describe("ResultTab", () => {
   });
 
   it("copies the body with completion-time variable values", () => {
-    render(<ResultTab page={page()} performable={performableActions(request088U1.allowedActions)} onFollowUp={vi.fn()} />);
+    render(<ResultTab page={page()} performable={performableActions(request088U1.allowedActions)} onOpenContent={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: "C1 문안 복사" }));
     expect(copyCompletedText).toHaveBeenCalledWith({
       requestId: "REQ-2609-088",
@@ -47,20 +47,24 @@ describe("ResultTab", () => {
     });
   });
 
-  it("후속 요청 per item when FOLLOW_UP is allowed; hidden otherwise", () => {
-    const onFollowUp = vi.fn();
-    const { unmount } = render(
-      <ResultTab page={page()} performable={performableActions(request088U1.allowedActions)} onFollowUp={onFollowUp} />,
+  it("a row (or its title) opens the content tab; 복사 is the only row action", () => {
+    const onOpenContent = vi.fn();
+    render(
+      <ResultTab page={page()} performable={performableActions(request088U1.allowedActions)} onOpenContent={onOpenContent} />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "C1 후속 요청" }));
-    expect(onFollowUp).toHaveBeenCalledWith("C1");
-    unmount();
-    render(<ResultTab page={page()} performable={new Set(["EXPORT"])} onFollowUp={onFollowUp} />);
-    expect(screen.queryByRole("button", { name: "C1 후속 요청" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "C1 청구 금액 안내 열기" }));
+    expect(onOpenContent).toHaveBeenCalledWith("C1");
+    // a plain-text cell counts as a row click
+    fireEvent.click(screen.getByText("v" + request088U1.bundle!.items[0].version).closest('[role="cell"]')!);
+    expect(onOpenContent).toHaveBeenCalledTimes(2);
+    // 복사 does not open the row; 후속 요청 lives in the content tab and the request header
+    fireEvent.click(screen.getByRole("button", { name: "C1 문안 복사" }));
+    expect(onOpenContent).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole("button", { name: /후속 요청/ })).toBeNull();
   });
 
   it("opens the XLSX confirmation with title, item count and KST completion date", async () => {
-    render(<ResultTab page={page()} performable={performableActions(request088U1.allowedActions)} onFollowUp={vi.fn()} />);
+    render(<ResultTab page={page()} performable={performableActions(request088U1.allowedActions)} onOpenContent={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: "요청 전체 XLSX 반출" }));
     const dialog = await screen.findByRole("dialog", { name: "요청 전체 XLSX 반출" });
     // the seed completion date moves with the seeding day: format it in KST like the dialog
@@ -78,14 +82,14 @@ describe("ResultTab", () => {
       bundle: { ...bundle, items: [{ ...bundle.items[0], files: [{ ...request088U1.contents[0], id: 1, name: "약관.pdf", version: 2 }] }] },
     } as unknown as RequestDetail;
     const { unmount } = render(
-      <ResultTab page={page(withFile)} performable={performableActions(request088U1.allowedActions)} onFollowUp={vi.fn()} />,
+      <ResultTab page={page(withFile)} performable={performableActions(request088U1.allowedActions)} onOpenContent={vi.fn()} />,
     );
     expect(screen.getByText("약관.pdf (v2)")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "C1 문안 복사" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "첨부 최종본 묶음" }));
     await waitFor(() => expect(screen.getByRole("dialog", { name: "첨부 최종본 ZIP" })).toBeTruthy());
     unmount();
-    render(<ResultTab page={page()} performable={new Set()} onFollowUp={vi.fn()} />);
+    render(<ResultTab page={page()} performable={new Set()} onOpenContent={vi.fn()} />);
     expect(screen.queryByRole("button", { name: "요청 전체 XLSX 반출" })).toBeNull();
   });
 });

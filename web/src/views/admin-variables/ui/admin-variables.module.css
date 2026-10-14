@@ -1,14 +1,8 @@
-.actions {
-  white-space: nowrap;
-}
 .faint {
   color: var(--faint);
 }
-.sr {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
+.log {
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 6px 0;
 }

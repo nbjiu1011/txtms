@@ -6,7 +6,7 @@ import { toast } from "@/shared/ui";
 import { opsApi, type OpsCustomer } from "@/entities/ops";
 import { invalidateOps } from "@/features/ops-admin";
 
-/** 사용 재개 of an inactive customer (list rows and the detail page), with the row being saved. */
+/** 사용 재개 of an inactive customer (customer detail header), with the customer being saved. */
 export function useCustomerStatus() {
   const client = useQueryClient();
   const [busyId, setBusyId] = useState<number | null>(null);

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { Me } from "@/entities/me";
 import { noticeKeys, type Notice } from "@/entities/notice";
@@ -65,11 +65,21 @@ function setup(me: Partial<Me>) {
 describe("NoticesView", () => {
   it("lists scope, author, published time and 수정됨; a row opens the notice's detail tab", () => {
     const { openTab } = setup({});
-    expect(screen.getByText(/^고객사 전체 공지\s+강민호\s+10\/5 09:00$/)).toBeTruthy();
-    expect(screen.getByText(/^프로젝트 공지\s+카드 혜택 알림\s+강민호\s+10\/3 11:00\s+수정됨$/)).toBeTruthy();
+    const first = screen.getByRole("row", { name: /공지 1/ });
+    expect(within(first).getByText("고객사 전체 공지")).toBeTruthy();
+    expect(within(first).getByText("강민호")).toBeTruthy();
+    expect(within(first).getByText("10/5 09:00")).toBeTruthy();
+    expect(within(first).queryByText("수정됨")).toBeNull();
+    const second = screen.getByRole("row", { name: /공지 2/ });
+    expect(within(second).getByText(/^프로젝트 공지\s+카드 혜택 알림$/)).toBeTruthy();
+    expect(within(second).getByText("10/3 11:00")).toBeTruthy();
+    expect(within(second).getByText("수정됨")).toBeTruthy();
     expect(screen.queryByText("본문 1")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /공지 1/ }));
+    fireEvent.click(screen.getByRole("button", { name: "공지 공지 1 열기" }));
     expect(openTab).toHaveBeenCalledWith({ route: "notice", params: { id: "1" } });
+    openTab.mockClear();
+    fireEvent.click(within(second).getByText("강민호").closest('[role="cell"]')!);
+    expect(openTab).toHaveBeenCalledWith({ route: "notice", params: { id: "2" } });
     expect(screen.queryByRole("button", { name: "공지 관리" })).toBeNull();
   });
 

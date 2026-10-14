@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useClampPage, useListPage } from "@/shared/lib";
 import { Empty, Page, PageHeader, Panel } from "@/shared/ui";
-import { Button, Pager } from "@/shared/common";
+import { Button } from "@/shared/common";
 import { isCustomerAdmin, projectRoles } from "@/entities/me";
 import {
   EMPTY_REQUEST_FILTERS,
@@ -82,21 +82,23 @@ export function RequestListView({ me, context, openTab }: WorkViewProps) {
       />
       <RequestFilterBar value={filters} onChange={onFilters} lead={lead} reviewers={reviewers} />
       <Panel aria-busy={list.isFetching}>
-        <RequestTable rows={list.isError ? [] : rows} users={users} onOpen={openRequest} />
-        {list.isPending ? (
-          <Empty plain title="요청을 불러오는 중입니다" />
-        ) : list.isError ? (
+        {list.isError ? (
           <Empty
             title="요청을 불러오지 못했습니다"
             description={list.error.message}
             action={<Button onClick={() => void list.refetch()}>다시 시도</Button>}
           />
-        ) : rows.length === 0 ? (
-          <Empty title="조건에 맞는 요청이 없습니다" description="검색 조건을 줄이거나 초기화해 보세요." />
-        ) : null}
-        {list.data && !list.isError ? (
-          <Pager page={page} totalPages={list.data.page.totalPages} onPage={setPage} />
-        ) : null}
+        ) : (
+          <RequestTable
+            rows={rows}
+            users={users}
+            onOpen={openRequest}
+            loading={list.isPending}
+            page={list.data ? { number: page, size: list.data.page.size, totalElements: list.data.page.totalElements } : undefined}
+            onPage={setPage}
+            empty={<Empty title="조건에 맞는 요청이 없습니다" description="검색 조건을 줄이거나 초기화해 보세요." />}
+          />
+        )}
       </Panel>
     </Page>
   );

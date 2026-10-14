@@ -3,7 +3,7 @@
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { ApiError } from "@/shared/api";
 import { toast } from "@/shared/ui";
-import { Modal, useServerError } from "@/shared/common";
+import { ConfirmModal, useServerError } from "@/shared/common";
 import { dashboardKeys } from "@/entities/dashboard";
 import { noticeApi, noticeKeys, type Notice } from "@/entities/notice";
 
@@ -37,14 +37,14 @@ export interface NoticeConfirm {
 
 const CONFIRM = {
   unpublish: {
-    title: "게시를 중지할까요?",
+    title: (title: string) => `「${title}」 공지의 게시를 중지할까요?`,
     description: "공지 목록과 대시보드에서 사라집니다. 언제든 다시 게시할 수 있습니다.",
     ok: "게시 중지",
     done: "공지 게시를 중지했습니다",
     fail: "공지 게시를 중지하지 못했습니다",
   },
   delete: {
-    title: "공지를 삭제할까요?",
+    title: (title: string) => `「${title}」 공지를 삭제할까요?`,
     description: "공지 관리 목록에서 사라지고 「삭제된 공지」에서 복원할 수 있습니다. 게시 중이면 게시도 중지됩니다.",
     ok: "삭제",
     done: "공지를 삭제했습니다",
@@ -68,14 +68,13 @@ function NoticeConfirmBody({ confirm, onClose }: { confirm: NoticeConfirm; onClo
   const text = CONFIRM[confirm.action];
   const server = useServerError(text.fail);
   return (
-    <Modal
+    <ConfirmModal
       open
       onClose={onClose}
-      title={text.title}
+      title={text.title(confirm.notice.title)}
       description={text.description}
-      okLabel={text.ok}
-      okVariant="warn"
-      onOk={async () => {
+      confirmLabel={text.ok}
+      onConfirm={async () => {
         const { notice, action } = confirm;
         try {
           await (action === "unpublish" ? noticeApi.unpublish(notice.id) : noticeApi.remove(notice.id));

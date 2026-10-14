@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/shared/lib";
 import { Empty } from "@/shared/ui";
-import { Modal } from "@/shared/common";
+import { ConfirmModal } from "@/shared/common";
 import {
   canEditContentByPolicy,
   invalidateRequestViews,
@@ -236,14 +236,13 @@ export function WorkGrid(props: WorkGridProps) {
       ) : null}
       {draftMode && editing ? (
         <>
-          <Modal
+          <ConfirmModal
             open={deleteOpen}
             onClose={() => setDeleteOpen(false)}
             title={`${server.key} ${content.title}을(를) 삭제할까요?`}
-            description="작성 중 요청에서만 삭제할 수 있습니다."
-            okLabel="삭제"
-            okVariant="warn"
-            onOk={async () => {
+            description="작성 중 요청에서만 삭제할 수 있습니다. 삭제한 콘텐츠는 되돌릴 수 없습니다."
+            confirmLabel="삭제"
+            onConfirm={async () => {
               const ok = await editing.deleteContent(server.key);
               if (ok) onSelectContent(r.contents.find((c) => c.key !== server.key)?.key ?? "");
             }}

@@ -31,6 +31,8 @@ const go = async (page, path, heading) => {
   await expect(main(page).getByRole("heading", { level: 1, name: heading })).toBeVisible({ timeout: 20_000 });
 };
 const row = (page, text) => main(page).getByRole("row").filter({ hasText: text });
+// the users page also lists the outbox (mails name the invitee): user rows come from the users table only
+const userRow = (text) => m().getByRole("table", { name: "사용자와 역할" }).getByRole("row").filter({ hasText: text });
 let inviteToken = "";
 let inviteeId = 0;
 let projectId = 0;
@@ -74,25 +76,32 @@ await step("사용자 초대: external domain needs a second click, then the inv
   await d.getByRole("button", { name: "초대 링크 생성" }).click();
   await toastSeen(admin, "초대 링크를 생성했습니다. 사용자 관리의 발송 대기함에서 확인하세요");
   await expect(d).toBeHidden();
-  await expect(m().getByRole("cell", { name: new RegExp(`${INVITEE} · 초대 대기`) })).toBeVisible();
+  await expect(userRow(INVITEE)).toContainText("초대 대기");
   const members = (await apiAs(ADMIN, "GET", "/customers/1/members?size=100")).content;
   inviteeId = members.find((x) => x.user.email === INVITEE).user.id;
 });
 
 await step("초대 재발급 + outbox of the sample customer shows the full link", async () => {
-  await m().getByRole("cell", { name: new RegExp(INVITEE) }).getByRole("button", { name: "초대 재발급" }).click();
+  // the pending row's one action
+  await userRow(INVITEE).getByRole("button", { name: "초대 재발급" }).click();
   await toastSeen(admin, "이전 링크를 무효화하고 7일 유효한 새 초대 링크를 생성했습니다");
   const outbox = admin.getByRole("region", { name: "메일 발송 대기함" });
   // Newest first: the reissued mail (the earlier link is no longer valid).
-  const mail = outbox.locator("b", { hasText: `TX TMS 초대 · ${INVITEE}` }).first().locator("xpath=..");
+  const mail = outbox.getByRole("row").filter({ hasText: INVITEE }).first();
   await expect(mail).toBeVisible();
-  const body = await mail.locator("p").first().innerText();
+  await expect(mail.getByText("링크 가림")).toHaveCount(0);
+  await expect(mail.getByRole("cell").nth(0)).toHaveText("초대"); // OutboxMail.kind label
+  await expect(mail.getByRole("cell").nth(3)).toHaveText("발송 대기");
+  await shot(admin, "outbox-sample");
+  // the row opens the mail body
+  await mail.getByRole("button", { name: /메일 보기$/ }).click();
+  const opened = dialog(admin, "TX TMS 초대");
+  const body = await opened.locator("p").first().innerText();
   const match = /\/invite\/([A-Za-z0-9_-]{16,})/.exec(body);
   if (!match) throw new Error(`no full invite link in the sample outbox: ${body}`);
   inviteToken = match[1];
-  await expect(mail.getByText("링크 가림")).toHaveCount(0);
-  await expect(mail.getByText(/^초대 · 발송 대기/)).toBeVisible(); // OutboxMail.kind label
-  await shot(admin, "outbox-sample");
+  await opened.getByRole("button", { name: "닫기" }).last().click();
+  await expect(opened).toBeHidden();
 });
 
 await step("invitee opens the link in a fresh context, sets a password and is signed in", async () => {
@@ -117,21 +126,20 @@ await step("invitee opens the link in a fresh context, sets a password and is si
   if (!res.ok) throw new Error(`login after invitation: ${res.status}`);
 });
 
-await step("역할 관리: requester/reviewer exclusivity, saved as reviewer", async () => {
+await step("역할 관리: ticking reviewer clears requester (one click), saved as reviewer", async () => {
   await admin.reload();
-  await expect(row(admin, INVITEE_NAME).getByText("활성", { exact: true })).toBeVisible();
-  await row(admin, INVITEE_NAME).getByRole("button", { name: "역할" }).click();
+  await expect(userRow(INVITEE_NAME).getByText("활성", { exact: true })).toBeVisible();
+  await userRow(INVITEE_NAME).getByRole("button", { name: "역할" }).click();
   const d = dialog(admin, `${INVITEE_NAME} 역할 관리`);
   const box = (role) => d.getByRole("checkbox", { name: `${PROJECT} ${role}` });
   await expect(box("요청자")).toBeChecked();
-  await expect(box("검수자")).toBeDisabled();
-  await box("요청자").uncheck();
+  await expect(box("검수자")).toBeEnabled();
   await box("검수자").check();
-  await expect(box("요청자")).toBeDisabled();
+  await expect(box("요청자")).not.toBeChecked();
   await shot(admin, "role-modal");
   await d.getByRole("button", { name: "저장" }).click();
   await expect(d).toBeHidden();
-  await expect(row(admin, INVITEE_NAME)).toContainText("검수자");
+  await expect(userRow(INVITEE_NAME)).toContainText("검수자");
 });
 
 await step("공지: publish (u1 sees it, u9 does not), edit (수정됨), unpublish, delete, restore", async () => {
@@ -155,39 +163,48 @@ await step("공지: publish (u1 sees it, u9 does not), edit (수정됨), unpubli
   await expect(main(u9).getByText(NOTICE)).toHaveCount(0);
   await u9.context().close();
 
-  await row(admin, NOTICE).getByRole("button", { name: "수정" }).click();
+  // the row opens the notice's admin detail, which holds 수정 · 게시 중지 · 삭제 · 복원 · 게시
+  await row(admin, NOTICE).getByRole("button", { name: `${NOTICE} 상세 보기` }).click();
+  await expect(m().getByRole("heading", { level: 1, name: NOTICE })).toBeVisible();
+  await m().getByRole("button", { name: "수정", exact: true }).click();
   const e = dialog(admin, "공지 수정");
   await e.getByLabel(/제목/).fill(`${NOTICE} (수정)`);
   await e.getByRole("button", { name: "수정" }).click();
   await toastSeen(admin, "공지를 수정했습니다. 이전 내용은 이력으로 남습니다");
-  await expect(row(admin, `${NOTICE} (수정)`)).toContainText("수정");
+  const edited = `${NOTICE} (수정)`;
+  await expect(m().getByRole("heading", { level: 1, name: edited })).toBeVisible();
+  await expect(m().getByText("수정됨", { exact: true })).toBeVisible();
   await u1.reload();
   await expect(main(u1).getByRole("button", { name: new RegExp(`${NOTICE} \\(수정\\)`) })).toContainText("수정됨");
 
-  const edited = `${NOTICE} (수정)`;
-  await row(admin, edited).getByRole("button", { name: "게시 중지" }).click();
-  await dialog(admin, "게시를 중지할까요?").getByRole("button", { name: "게시 중지" }).click();
+  await m().getByRole("button", { name: "게시 중지" }).click();
+  await dialog(admin, `「${edited}」 공지의 게시를 중지할까요?`).getByRole("button", { name: "게시 중지" }).click();
   await toastSeen(admin, "공지 게시를 중지했습니다");
-  await expect(row(admin, edited).getByText("미게시", { exact: true })).toBeVisible();
+  await expect(m().getByText("미게시 공지입니다")).toBeVisible();
   await u1.reload();
   await expect(main(u1).getByText(NOTICE)).toHaveCount(0);
 
-  await row(admin, edited).getByRole("button", { name: "삭제" }).click();
-  await dialog(admin, "공지를 삭제할까요?").getByRole("button", { name: "삭제" }).click();
+  await m().getByRole("button", { name: "삭제", exact: true }).click();
+  await dialog(admin, `「${edited}」 공지를 삭제할까요?`).getByRole("button", { name: "삭제" }).click();
   await toastSeen(admin, "공지를 삭제했습니다");
+  await expect(m().getByText("삭제된 공지입니다")).toBeVisible();
+  await expect(m().getByRole("button", { name: "수정", exact: true })).toHaveCount(0);
+  // the list keeps it under 삭제된 공지
+  await m().getByRole("button", { name: "목록" }).click();
+  await expect(m().getByRole("heading", { level: 1, name: "공지 관리" })).toBeVisible();
   await expect(m().getByText(edited)).toHaveCount(0);
   await m().getByRole("radio", { name: "삭제된 공지" }).click();
-  await row(admin, edited).getByRole("button", { name: "복원" }).click();
+  await row(admin, edited).getByRole("button", { name: `${edited} 상세 보기` }).click();
+  await m().getByRole("button", { name: "복원" }).click();
   await toastSeen(admin, "공지를 복원했습니다. 게시하면 사용자에게 다시 보입니다");
-  await expect(m().getByText(edited)).toHaveCount(0);
-  await m().getByRole("radio", { name: "공지", exact: true }).click();
-  await row(admin, edited).getByRole("button", { name: "게시", exact: true }).click();
+  await expect(m().getByText("미게시 공지입니다")).toBeVisible();
+  await m().getByRole("button", { name: "게시", exact: true }).click();
   await toastSeen(admin, "공지를 게시했습니다");
   await u1.reload();
   await expect(main(u1).getByRole("button", { name: new RegExp(`${NOTICE} \\(수정\\)`) })).toBeVisible();
   // leave the dev DB clean: the test notice ends deleted
-  await row(admin, edited).getByRole("button", { name: "삭제" }).click();
-  await dialog(admin, "공지를 삭제할까요?").getByRole("button", { name: "삭제" }).click();
+  await m().getByRole("button", { name: "삭제", exact: true }).click();
+  await dialog(admin, `「${edited}」 공지를 삭제할까요?`).getByRole("button", { name: "삭제" }).click();
   await toastSeen(admin, "공지를 삭제했습니다");
   await u1.context().close();
 });
@@ -195,7 +212,12 @@ await step("공지: publish (u1 sees it, u9 does not), edit (수정됨), unpubli
 await step("변수: register, edit, delete; an in-use variable stays protected", async () => {
   await go(admin, "/admin/variables", "변수 관리");
   await expect(row(admin, "customer_name")).toContainText("사용 중");
-  await expect(row(admin, "customer_name").getByRole("button", { name: "삭제" })).toBeDisabled();
+  // the row opens 변수 편집, where 삭제 is blocked for a variable in use
+  await row(admin, "customer_name").getByRole("button", { name: "customer_name 편집" }).click();
+  const used = dialog(admin, "변수 편집");
+  await expect(used.getByRole("button", { name: "삭제" })).toBeDisabled();
+  await used.getByRole("button", { name: "취소" }).click();
+  await expect(used).toBeHidden();
   await m().getByRole("button", { name: "변수 등록" }).click();
   const d = dialog(admin, "변수 등록");
   await d.getByLabel(/변수 키/).fill(VAR_KEY);
@@ -208,20 +230,24 @@ await step("변수: register, edit, delete; an in-use variable stays protected",
   await d.getByRole("button", { name: "저장" }).click();
   await expect(d).toBeHidden();
   await expect(row(admin, VAR_KEY)).toContainText("등록");
-  await row(admin, VAR_KEY).getByRole("button", { name: "편집" }).click();
+  await row(admin, VAR_KEY).getByRole("cell").nth(3).click(); // a row click (값) opens the editor
   const e = dialog(admin, "변수 편집");
   await e.getByLabel(/^값/).fill("20");
   await e.getByRole("button", { name: "저장" }).click();
   await expect(row(admin, VAR_KEY)).toContainText("변경");
-  await row(admin, VAR_KEY).getByRole("button", { name: "삭제" }).click();
+  await row(admin, VAR_KEY).getByRole("button", { name: `${VAR_KEY} 편집` }).click();
+  const del = dialog(admin, "변수 편집");
+  await del.getByRole("button", { name: "삭제" }).click();
+  await dialog(admin, `「${VAR_KEY}」 변수를 삭제할까요?`).getByRole("button", { name: "삭제" }).click();
+  await toastSeen(admin, "변수를 삭제했습니다");
+  await expect(del).toBeHidden();
   // the deleted variable stays listed with its history (reference 삭제 (이력 보존), `includeDeleted=true`)
   await expect(row(admin, VAR_KEY)).toContainText("삭제 (이력 보존)");
   await expect(row(admin, VAR_KEY).getByRole("cell").nth(4)).toHaveText("삭제");
-  await expect(row(admin, VAR_KEY).getByRole("button", { name: "편집" })).toBeDisabled();
-  await expect(row(admin, VAR_KEY).getByRole("button", { name: "삭제" })).toBeDisabled();
+  await expect(row(admin, VAR_KEY).getByRole("button")).toHaveCount(0);
   const vars = await apiAs(ADMIN, "GET", "/projects/1/variables");
-  const used = vars.find((v) => v.key === "customer_name");
-  const refused = await apiAs(ADMIN, "DELETE", `/variables/${used.id}`).catch((err) => err.message);
+  const inUse = vars.find((v) => v.key === "customer_name");
+  const refused = await apiAs(ADMIN, "DELETE", `/variables/${inUse.id}`).catch((err) => err.message);
   if (!String(refused).includes("사용 중인 변수는 삭제할 수 없습니다")) throw new Error(`in-use delete: ${refused}`);
 });
 
@@ -244,8 +270,11 @@ await step("고객사 설정: due-soon days and name save with toasts (restored)
 
 await step("비활성화 blocked for a requester with work in progress (server details)", async () => {
   await go(admin, "/admin/users", "사용자·권한 관리");
-  await row(admin, "seoyeon.kim").getByRole("button", { name: "비활성화" }).click();
-  const d = dialog(admin, "김서연 비활성화");
+  // 비활성화 lives on the user's detail page (the row opens it)
+  await userRow("seoyeon.kim").getByRole("button", { name: "김서연 상세 보기" }).click();
+  await expect(m().getByRole("heading", { level: 1, name: "김서연" })).toBeVisible();
+  await m().getByRole("button", { name: "비활성화" }).click();
+  const d = dialog(admin, "김서연님을 비활성화할까요?");
   await expect(d.getByText("요청자로 진행 중")).toBeVisible();
   await d.getByRole("button", { name: "비활성화" }).click();
   await expect(d.getByRole("alert")).toContainText("요청자로 진행 중인 요청이");
@@ -256,9 +285,11 @@ await step("비활성화 blocked for a requester with work in progress (server d
 
 await step("비활성화 with lead handover, then 재활성화", async () => {
   await apiAs(ADMIN, "PATCH", `/projects/${projectId}`, { leadUserId: inviteeId });
-  await admin.reload();
-  await row(admin, INVITEE_NAME).getByRole("button", { name: "비활성화" }).click();
-  const d = dialog(admin, `${INVITEE_NAME} 비활성화`);
+  await go(admin, "/admin/users", "사용자·권한 관리");
+  await userRow(INVITEE_NAME).getByRole("cell").nth(1).click(); // a row click (소속) opens the detail
+  await expect(m().getByRole("heading", { level: 1, name: INVITEE_NAME })).toBeVisible();
+  await m().getByRole("button", { name: "비활성화" }).click();
+  const d = dialog(admin, `${INVITEE_NAME}님을 비활성화할까요?`);
   await expect(d.getByText(PROJECT)).toBeVisible();
   await d.getByRole("button", { name: "비활성화" }).click();
   await toastSeen(admin, "대체자을(를) 입력하세요");
@@ -267,11 +298,13 @@ await step("비활성화 with lead handover, then 재활성화", async () => {
   await shot(admin, "deactivate-modal");
   await d.getByRole("button", { name: "비활성화" }).click();
   await expect(d).toBeHidden();
-  await expect(row(admin, INVITEE_NAME).getByText("비활성", { exact: true })).toBeVisible();
+  await expect(m().getByText("비활성화된 사용자입니다")).toBeVisible();
   const p = (await apiAs(ADMIN, "GET", `/projects/${projectId}`)).leadUserId;
   if (p !== 2) throw new Error(`lead not handed over: ${p}`);
-  await row(admin, INVITEE_NAME).getByRole("button", { name: "재활성화" }).click();
-  await expect(row(admin, INVITEE_NAME).getByText("활성", { exact: true })).toBeVisible();
+  await m().getByRole("button", { name: "재활성화" }).click();
+  await expect(m().getByText("비활성화된 사용자입니다")).toHaveCount(0);
+  await m().getByRole("button", { name: "목록" }).click();
+  await expect(userRow(INVITEE_NAME).getByText("활성", { exact: true })).toBeVisible();
 });
 
 await step("접근·변경 기록 sub tab lists the audit (dashboard banner button)", async () => {
@@ -317,12 +350,14 @@ await step("masked outbox for a non-sample customer (ops API setup, admin signs 
   await expect(d).toBeHidden();
   const mail = page
     .getByRole("region", { name: "메일 발송 대기함" })
-    .locator("b", { hasText: `member@${domain}` })
-    .first()
-    .locator("xpath=..");
+    .getByRole("row")
+    .filter({ hasText: `member@${domain}` })
+    .first();
   await expect(mail.getByText("링크 가림")).toBeVisible();
-  await expect(mail).toContainText("••••");
-  await expect(mail).toContainText("링크는 수신자에게만 전달됩니다");
+  await mail.getByRole("button", { name: /메일 보기$/ }).click();
+  const opened = page.getByRole("dialog");
+  await expect(opened).toContainText("••••");
+  await expect(opened).toContainText("링크는 수신자에게만 전달됩니다");
   await page.screenshot({ path: "e2e/real/out/admin-outbox-masked.png" });
   await ctx.close();
   await apiAs(OPS, "POST", `/ops/customers/${customer.id}/deactivate`, { reason: "E2E 정리" });
@@ -339,9 +374,11 @@ await step("이도현 (lead) opens 업무량·실적: KPIs, all projects, user f
   await pick(mm.getByLabel("사용자"), { label: "박지훈" });
   await expect(mm.getByRole("row").filter({ hasText: "박지훈" }).first()).toBeVisible();
   await expect(mm.getByRole("row").filter({ hasText: "한가을" })).toHaveCount(1); // workload table only
-  await mm.getByLabel("집계 시작일").fill("2099-01-02");
-  await mm.getByLabel("집계 종료일").fill("2099-01-01");
-  await expect(mm.getByText("실적을 불러오지 못했습니다")).toBeVisible();
+  // a period picked in the calendar (quick pick 최근 7일) replaces the 기간 preset
+  await mm.getByLabel("접수일 직접 지정").click();
+  await lead.getByRole("button", { name: "최근 7일" }).click();
+  await expect(mm.getByLabel("접수일 직접 지정")).toHaveAttribute("data-from", /^\d{4}-\d{2}-\d{2}$/);
+  await expect(mm.getByRole("heading", { name: "개인 실적" })).toBeVisible();
 });
 
 await step("cleanup: the invited test user is deactivated", async () => {

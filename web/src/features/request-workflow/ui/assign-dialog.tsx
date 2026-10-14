@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { formatDate } from "@/shared/lib";
 import { toast } from "@/shared/ui";
-import { Field, Input, Modal, Select, Textarea } from "@/shared/common";
+import { DatePicker, Field, Modal, Select, Textarea } from "@/shared/common";
 import { URGENCIES, URGENCY_LABEL, requestApi, type RequestDetail, type Urgency } from "@/entities/request";
 import {
   initialAssignmentForm,
@@ -91,11 +91,11 @@ function AssignDialogBody({ mode, onClose, request: r, candidates, rowVersion, o
         <>
           <div className={styles.grid2}>
             <Field label="확정 납기" required htmlFor="assign-due">
-              <Input
+              <DatePicker
                 id="assign-due"
-                type="date"
+                required
                 value={form.dueDate}
-                onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+                onChange={(dueDate) => setForm({ ...form, dueDate })}
               />
             </Field>
             <UrgencyField id="assign-urg" value={form.urgency} onChange={(urgency) => setForm({ ...form, urgency })} />

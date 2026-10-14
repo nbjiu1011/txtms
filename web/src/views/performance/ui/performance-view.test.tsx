@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { http } from "@/shared/api";
 import type { Performance } from "@/entities/dashboard";
@@ -8,7 +8,7 @@ import type { Project } from "@/entities/project";
 import { userKeys, type UserSummary } from "@/entities/user";
 import type { WorkViewProps } from "@/widgets/app-shell";
 import { PerformanceView } from "./performance-view";
-import { chooseValue, optionLabels } from "@/shared/common/testing";
+import { chooseValue, optionLabels, pickRange } from "@/shared/common/testing";
 
 const empty: Performance = {
   fromDate: "2026-09-08",
@@ -66,10 +66,10 @@ describe("PerformanceView", () => {
     expect(optionLabels(projectSelect)).toEqual(["카드 혜택 알림", "권한 있는 전체"]);
     chooseValue(projectSelect, "all");
     chooseValue(screen.getByLabelText("사용자"), "2");
-    fireEvent.change(screen.getByLabelText("집계 종료일"), { target: { value: "2026-09-30" } });
+    pickRange(screen.getByLabelText("접수일 직접 지정"), "2026-09-01", "2026-09-30");
     await waitFor(() => {
       const last = get.mock.calls.at(-1)?.[1]?.query as Record<string, unknown>;
-      expect(last).toMatchObject({ customerId: 1, userId: 2, to: "2026-09-30" });
+      expect(last).toMatchObject({ customerId: 1, userId: 2, from: "2026-09-01", to: "2026-09-30" });
       expect(last.projectId).toBeUndefined();
     });
   });

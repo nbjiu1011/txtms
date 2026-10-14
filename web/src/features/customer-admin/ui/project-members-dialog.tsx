@@ -2,8 +2,8 @@
 
 import { useId, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ErrorDetails, Table, Tag, tableClasses, toast } from "@/shared/ui";
-import { Button, Modal, Select, useServerError } from "@/shared/common";
+import { ErrorDetails, Icon, Table, Tag, tableClasses, toast } from "@/shared/ui";
+import { Button, IconButton, Modal, Select, useServerError } from "@/shared/common";
 import type { Customer } from "@/entities/customer";
 import { LEAD_ROLE_LABEL, PROJECT_ROLES, PROJECT_ROLE_LABEL, projectApi, type Project } from "@/entities/project";
 import type { UserSummary } from "@/entities/user";
@@ -76,7 +76,7 @@ function ProjectMembersBody({ onClose, customer, project, users }: ProjectMember
       size="lg"
       onClose={onClose}
       title={`${project.name} 구성원`}
-      description="프로젝트에 참여할 사용자와 역할을 정합니다. 요청자와 검수자 역할은 함께 줄 수 없고, 대표 검수자는 프로젝트 수정에서 바꿉니다."
+      description="프로젝트에 참여할 사용자와 역할을 정합니다. 요청자와 검수자는 둘 중 하나만 줄 수 있어 하나를 고르면 다른 하나가 해제되고, 대표 검수자는 프로젝트 수정에서 바꿉니다."
       okLabel="저장"
       onOk={submit}
     >
@@ -142,18 +142,18 @@ function ProjectMembersBody({ onClose, customer, project, users }: ProjectMember
                   </td>
                 ))}
                 <td>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    aria-label={`${name} 제외`}
+                  {/* removing a row is local until 저장: immediate, with the shared remove look */}
+                  <IconButton
+                    label={`${name} 제외`}
                     aria-disabled={lead || undefined}
+                    className="aria-disabled:cursor-not-allowed aria-disabled:opacity-45"
                     title={lead ? "대표 검수자는 프로젝트 수정에서 먼저 바꾸세요" : undefined}
                     onClick={() => {
                       if (!lead) setRows((rs) => removeMemberRow(rs, row.userId));
                     }}
                   >
-                    제외
-                  </Button>
+                    <Icon name="x" />
+                  </IconButton>
                 </td>
               </tr>
             );

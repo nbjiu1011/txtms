@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/shared/lib";
-import { Input } from "./field";
+import { DateRangePicker } from "./date-picker";
 
 /** Class names of controls inside a `FilterBar` (compact inputs, reset button offset). */
 export const filterClasses = {
@@ -72,28 +72,12 @@ export interface DateRangeFilterProps {
   onChange: (from: string, to: string) => void;
 }
 
-/** Two date inputs `시작 ~ 끝` under one label. */
+/** A period under one label: one field with a calendar and quick picks ({@link DateRangePicker}). */
 export function DateRangeFilter({ label, from, to, onChange }: DateRangeFilterProps) {
   return (
-    <div className={FIELD} role="group" aria-label={label}>
+    <div className={FIELD}>
       <label>{label}</label>
-      <div className={filterClasses.range}>
-        <Input
-          type="date"
-          className={filterClasses.control}
-          aria-label={`${label} 시작`}
-          value={from}
-          onChange={(e) => onChange(e.target.value, to)}
-        />
-        <span className="text-faint">~</span>
-        <Input
-          type="date"
-          className={filterClasses.control}
-          aria-label={`${label} 끝`}
-          value={to}
-          onChange={(e) => onChange(from, e.target.value)}
-        />
-      </div>
+      <DateRangePicker aria-label={label} className={filterClasses.control} from={from} to={to} onChange={onChange} />
     </div>
   );
 }

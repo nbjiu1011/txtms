@@ -5,7 +5,6 @@ import {
   archiveFiltersToParams,
   canCopyLine,
   lineHistoryCount,
-  lineMeta,
   lineToggleLabel,
 } from "./archive-view-model";
 
@@ -83,13 +82,6 @@ describe("archiveFiltersToParams", () => {
 });
 
 describe("line texts", () => {
-  it("shows request, type label, status label, completion date and campaign", () => {
-    expect(lineMeta(archiveLine().latest)).toMatch(/^REQ-2609-106 {2}알림톡 {2}승인 완료 {2}.+ {2}10월 혜택$/);
-    const noCampaign = archiveLine();
-    noCampaign.latest.campaign = null;
-    expect(lineMeta(noCampaign.latest)).not.toMatch(/ {2}$/);
-  });
-
   it("offers copy only for text contents", () => {
     expect(canCopyLine(archiveLine())).toBe(true);
     const withFile = archiveLine();

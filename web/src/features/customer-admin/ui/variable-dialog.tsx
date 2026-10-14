@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ErrorDetails, toast } from "@/shared/ui";
-import { Checkbox, Field, Input, Modal, Select, useServerError } from "@/shared/common";
+import { Button, Checkbox, ConfirmModal, Field, Input, Modal, Select, useServerError } from "@/shared/common";
 import { projectKeys } from "@/entities/project";
 import {
   VARIABLE_TYPES,
@@ -13,6 +13,7 @@ import {
   type Variable,
   type VariableType,
 } from "@/entities/variable";
+import { useDeleteVariable } from "../model/variable-actions";
 import { initialVariableForm, variableFormProblem, variablePatch, type VariableForm } from "../model/variable-form";
 
 export interface VariableDialogProps {
@@ -23,7 +24,10 @@ export interface VariableDialogProps {
   variable: Variable | null;
 }
 
-/** 변수 등록 / 변수 편집 (reference `variableModal`). */
+/**
+ * 변수 등록 / 변수 편집 (reference `variableModal`). Editing also offers 삭제, asked first; a variable in use (or an
+ * already deleted one) cannot be deleted.
+ */
 export function VariableDialog(props: VariableDialogProps) {
   if (!props.open) return null;
   return <VariableBody {...props} />;
@@ -35,6 +39,8 @@ function VariableBody({ onClose, projectId, variable }: VariableDialogProps) {
   const [form, setForm] = useState<VariableForm>(() => initialVariableForm(variable));
   const server = useServerError("변수를 저장하지 못했습니다");
   const set = (patch: Partial<VariableForm>) => setForm((f) => ({ ...f, ...patch }));
+  const deletion = useDeleteVariable();
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const submit = async () => {
     const problem = variableFormProblem(form, variable);
@@ -69,7 +75,25 @@ function VariableBody({ onClose, projectId, variable }: VariableDialogProps) {
   };
 
   return (
-    <Modal open onClose={onClose} title={variable ? "변수 편집" : "변수 등록"} okLabel="저장" onOk={submit}>
+    <Modal
+      open
+      onClose={onClose}
+      title={variable ? "변수 편집" : "변수 등록"}
+      okLabel="저장"
+      onOk={submit}
+      foot={
+        variable ? (
+          <Button
+            variant="warn"
+            disabled={variable.inUse || variable.deleted || deletion.busyId === variable.id}
+            title={variable.inUse ? "사용 중인 변수는 삭제할 수 없습니다" : undefined}
+            onClick={() => setConfirmDelete(true)}
+          >
+            삭제
+          </Button>
+        ) : undefined
+      }
+    >
       <Field label="변수 키" required htmlFor={`${id}-key`} error={server.field("key")}>
         <Input
           id={`${id}-key`}
@@ -95,6 +119,20 @@ function VariableBody({ onClose, projectId, variable }: VariableDialogProps) {
       </Field>
       <Checkbox label="사용" checked={form.active} onChange={(e) => set({ active: e.target.checked })} />
       <ErrorDetails message={server.inline.message} items={server.inline.items} />
+      {variable ? (
+        <ConfirmModal
+          open={confirmDelete}
+          onClose={() => setConfirmDelete(false)}
+          title={`「${variable.key}」 변수를 삭제할까요?`}
+          description="삭제한 변수는 이력과 함께 목록에 남고, 같은 키로 다시 등록할 수 없습니다."
+          confirmLabel="삭제"
+          onConfirm={async () => {
+            if (!(await deletion.remove(variable))) return false;
+            onClose();
+            return undefined;
+          }}
+        />
+      ) : null}
     </Modal>
   );
 }

@@ -80,6 +80,31 @@ export async function pick(trigger, choice) {
   await expect(list).toHaveCount(0);
 }
 
+/** Moves the open calendar to the month of `YYYY-MM-DD` (다음 달 / 이전 달) and clicks that day. */
+async function clickDay(page, value) {
+  const [year, month] = value.split("-").map(Number);
+  for (let i = 0; i < 60; i++) {
+    const grid = page.getByRole("grid").last();
+    const [gy, gm] = ((await grid.getAttribute("aria-label")) ?? "").match(/\d+/g)?.map(Number) ?? [0, 0];
+    if (gy === year && gm === month) return grid.locator(`[data-day="${value}"]`).click();
+    await page.getByRole("button", { name: gy * 12 + gm < year * 12 + month ? "다음 달" : "이전 달" }).click();
+  }
+  throw new Error(`could not reach ${value}`);
+}
+
+/** Picks `YYYY-MM-DD` in a DatePicker (the field is a button that opens a calendar). */
+export async function pickDate(trigger, value) {
+  await trigger.click();
+  await clickDay(trigger.page(), value);
+}
+
+/** Picks a period in a DateRangePicker: the start, then the end. */
+export async function pickRange(trigger, from, to) {
+  await trigger.click();
+  await clickDay(trigger.page(), from);
+  await clickDay(trigger.page(), to);
+}
+
 /** Selected value of a select trigger (radix select: the `data-value` attribute). */
 export const selectValueIs = (trigger, value) => expect(trigger).toHaveAttribute("data-value", value);
 

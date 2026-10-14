@@ -2,7 +2,7 @@
 
 import { isApiError } from "@/shared/api";
 import { toast } from "@/shared/ui";
-import { Modal } from "@/shared/common";
+import { ConfirmModal } from "@/shared/common";
 import { requestApi } from "@/entities/request";
 
 export interface DeleteRequestDialogProps {
@@ -16,14 +16,13 @@ export interface DeleteRequestDialogProps {
 /** 요청 삭제: a draft that was never submitted is removed for good (contract §21). */
 export function DeleteRequestDialog({ open, onClose, requestId, onDeleted, onStale }: DeleteRequestDialogProps) {
   return (
-    <Modal
+    <ConfirmModal
       open={open}
       onClose={onClose}
-      title="요청을 삭제할까요?"
+      title={`${requestId} 요청을 삭제할까요?`}
       description="삭제한 요청은 되돌릴 수 없습니다. 콘텐츠와 첨부파일도 함께 삭제됩니다."
-      okLabel="삭제"
-      okVariant="warn"
-      onOk={async () => {
+      confirmLabel="삭제"
+      onConfirm={async () => {
         try {
           await requestApi.remove(requestId);
         } catch (error) {

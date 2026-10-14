@@ -2,25 +2,20 @@
 
 import { Fragment, useState } from "react";
 import { LIST_PAGE_SIZE, formatDate, useClampPage, useListPage } from "@/shared/lib";
-import { Empty, Icon, Page, PageHeader, Panel, Table, tableClasses } from "@/shared/ui";
-import { Button, Pager, Seg } from "@/shared/common";
+import { Empty, Icon, Page, PageHeader, Panel } from "@/shared/ui";
+import { Button, DataTable, RowLink, Seg, type DataTableColumn } from "@/shared/common";
 import { NoticeStateTag, noticeScopeText, useManagedNotices, type Notice } from "@/entities/notice";
 import { useUserDirectory } from "@/entities/user";
-import {
-  NoticeConfirmDialog,
-  NoticeEditDialog,
-  useNoticeQuickAction,
-  type NoticeConfirm,
-} from "@/features/customer-admin";
+import { NoticeEditDialog } from "@/features/customer-admin";
 import type { WorkViewProps } from "@/widgets/app-shell";
 import styles from "./admin-notices.module.css";
 
-type Editing = { notice: Notice | null } | null;
 type Shelf = "active" | "deleted";
 
 /**
  * `noticeAdmin` tab — 공지 관리 (reference `vNoticeAdmin`; operator notices are Phase 2): published and unpublished
- * notices with 게시 / 게시 중지 / 수정 / 삭제, and the deleted ones with 복원 (contract §22).
+ * notices, and the deleted ones. A row opens the notice's 공지 관리 상세, which holds 게시 / 게시 중지 / 수정 / 삭제 and
+ * 복원 (contract §22).
  */
 export function AdminNoticesView({ context, openTab }: WorkViewProps) {
   const { customer, customerId, projects, projectId } = context;
@@ -30,41 +25,56 @@ export function AdminNoticesView({ context, openTab }: WorkViewProps) {
   const notices = useManagedNotices(customerId, deleted, page, LIST_PAGE_SIZE);
   useClampPage(page, notices.isPlaceholderData ? undefined : notices.data?.page.totalPages, setPage);
   const users = useUserDirectory(customerId);
-  const [editing, setEditing] = useState<Editing>(null);
-  const [confirm, setConfirm] = useState<NoticeConfirm | null>(null);
-  const quick = useNoticeQuickAction();
+  const [creating, setCreating] = useState(false);
   const projectName = (id: number) => projects.find((p) => p.id === id)?.name;
-
-  const actions = (n: Notice) =>
-    n.deleted ? (
-      <Button size="sm" onClick={() => void quick(n, "restore")}>
-        복원
-      </Button>
-    ) : (
-      <>
-        {n.published ? (
-          <Button size="sm" variant="ghost" onClick={() => setConfirm({ notice: n, action: "unpublish" })}>
-            게시 중지
-          </Button>
+  const open = (n: Notice) => openTab({ route: "adminNotice", params: { id: String(n.id) } });
+  const columns: DataTableColumn<Notice>[] = [
+    {
+      id: "title",
+      name: "제목",
+      grow: 1,
+      minWidth: "240px",
+      rowAction: true,
+      cell: (n) => (
+        <RowLink onClick={() => open(n)} label={`${n.title} 상세 보기`}>
+          {n.title}
+        </RowLink>
+      ),
+    },
+    { id: "scope", name: "범위", width: "200px", wrap: true, cell: (n) => noticeScopeText(n, projectName) },
+    {
+      id: "author",
+      name: "작성",
+      width: "150px",
+      cell: (n) => `${users.name(n.authorId)}  ${formatDate(n.createdAt)}`,
+    },
+    {
+      id: "log",
+      name: "이력",
+      width: "180px",
+      wrap: true,
+      cell: (n) =>
+        n.logs.length ? (
+          <span className={styles.log}>
+            {n.logs.map((l, i) => (
+              <Fragment key={i}>
+                {i > 0 ? <br /> : null}
+                {`${formatDate(l.at)} ${l.action}`}
+              </Fragment>
+            ))}
+          </span>
         ) : (
-          <Button size="sm" onClick={() => void quick(n, "publish")}>
-            게시
-          </Button>
-        )}
-        <Button size="sm" onClick={() => setEditing({ notice: n })}>
-          수정
-        </Button>
-        <Button size="sm" variant="ghost" onClick={() => setConfirm({ notice: n, action: "delete" })}>
-          삭제
-        </Button>
-      </>
-    );
+          "-"
+        ),
+    },
+    { id: "state", name: "상태", width: "88px", cell: (n) => <NoticeStateTag notice={n} /> },
+  ];
 
   return (
     <Page>
       <PageHeader
         title="공지 관리"
-        description="미게시 공지는 사용자에게 보이지 않습니다. 수정·게시·삭제 이력은 보존되고 삭제한 공지는 복원할 수 있습니다."
+        description="미게시 공지는 사용자에게 보이지 않습니다. 공지를 누르면 게시·수정·삭제할 수 있고, 삭제한 공지는 복원할 수 있습니다."
         actions={
           <div className={styles.row}>
             <Seg<Shelf>
@@ -76,7 +86,7 @@ export function AdminNoticesView({ context, openTab }: WorkViewProps) {
                 { key: "deleted", label: "삭제된 공지" },
               ]}
             />
-            <Button variant="pri" onClick={() => setEditing({ notice: null })}>
+            <Button variant="pri" onClick={() => setCreating(true)}>
               <Icon name="plus" />
               공지 작성
             </Button>
@@ -84,69 +94,33 @@ export function AdminNoticesView({ context, openTab }: WorkViewProps) {
         }
       />
       <Panel aria-busy={notices.isFetching}>
-        {notices.isPending ? (
-          <Empty plain title="공지를 불러오는 중입니다" />
-        ) : notices.isError ? (
+        {notices.isError ? (
           <Empty
             title="공지를 불러오지 못했습니다"
             description={notices.error.message}
             action={<Button onClick={() => void notices.refetch()}>다시 시도</Button>}
           />
         ) : (
-          <>
-            <Table>
-              <thead>
-                <tr>
-                  <th>제목</th>
-                  <th>범위</th>
-                  <th>작성</th>
-                  <th>이력</th>
-                  <th>상태</th>
-                  <th>
-                    <span className={styles.sr}>관리</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {notices.data.content.map((n) => (
-                  <tr key={n.id}>
-                    <td className={tableClasses.ttl}>
-                      <button
-                        type="button"
-                        className={styles.titleBtn}
-                        aria-label={`${n.title} 상세 보기`}
-                        onClick={() => openTab({ route: "adminNotice", params: { id: String(n.id) } })}
-                      >
-                        {n.title}
-                      </button>
-                    </td>
-                    <td>{noticeScopeText(n, projectName)}</td>
-                    <td>{`${users.name(n.authorId)}  ${formatDate(n.createdAt)}`}</td>
-                    <td className={styles.log}>
-                      {n.logs.length
-                        ? n.logs.map((l, i) => (
-                            <Fragment key={i}>
-                              {i > 0 ? <br /> : null}
-                              {`${formatDate(l.at)} ${l.action}`}
-                            </Fragment>
-                          ))
-                        : "-"}
-                    </td>
-                    <td>
-                      <NoticeStateTag notice={n} />
-                    </td>
-                    <td>
-                      <div className={styles.row}>{actions(n)}</div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-            {notices.data.content.length === 0 ? (
-              <Empty title={deleted ? "삭제된 공지가 없습니다" : "공지가 없습니다"} />
-            ) : null}
-            <Pager page={page} totalPages={notices.data.page.totalPages} onPage={setPage} />
-          </>
+          <DataTable
+            label={deleted ? "삭제된 공지 목록" : "공지 목록"}
+            columns={columns}
+            data={notices.data?.content ?? []}
+            onRowClick={open}
+            loading={notices.isPending}
+            page={
+              notices.data
+                ? { number: page, size: notices.data.page.size, totalElements: notices.data.page.totalElements }
+                : undefined
+            }
+            onPage={setPage}
+            empty={
+              deleted ? (
+                <Empty title="삭제된 공지가 없습니다" />
+              ) : (
+                <Empty title="공지가 없습니다" description="공지 작성으로 구성원에게 알릴 내용을 올리세요." />
+              )
+            }
+          />
         )}
       </Panel>
       <p className={styles.foot}>
@@ -155,15 +129,14 @@ export function AdminNoticesView({ context, openTab }: WorkViewProps) {
       </p>
       {customer ? (
         <NoticeEditDialog
-          open={editing !== null}
-          onClose={() => setEditing(null)}
+          open={creating}
+          onClose={() => setCreating(false)}
           customer={customer}
           projects={projects}
           currentProjectId={projectId}
-          notice={editing?.notice ?? null}
+          notice={null}
         />
       ) : null}
-      <NoticeConfirmDialog confirm={confirm} onClose={() => setConfirm(null)} />
     </Page>
   );
 }

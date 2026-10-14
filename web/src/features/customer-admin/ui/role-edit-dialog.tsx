@@ -62,7 +62,7 @@ function RoleEditBody({ onClose, customer, projects, member }: RoleEditDialogPro
       size="lg"
       onClose={onClose}
       title={`${member.user.name} 역할 관리`}
-      description="요청자와 검수자 역할은 함께 줄 수 없습니다. 대표 검수자는 프로젝트 관리에서 지정합니다."
+      description="요청자와 검수자는 둘 중 하나만 줄 수 있어 하나를 고르면 다른 하나가 해제됩니다. 대표 검수자는 프로젝트 관리에서 지정합니다."
       okLabel="저장"
       onOk={submit}
     >

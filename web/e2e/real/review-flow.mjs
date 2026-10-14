@@ -12,6 +12,7 @@ import {
   log,
   main,
   pick,
+  pickDate,
   roundIs as round,
   startRun,
   statusIs as status,
@@ -37,7 +38,7 @@ await step("u1 creates and submits a request", async () => {
   id = u1.url().split("/").pop();
   const m = main(u1);
   await m.getByLabel("제목").fill(TITLE);
-  await m.getByLabel("희망 납기").fill("2026-10-30");
+  await pickDate(m.getByLabel("희망 납기"), "2026-10-30");
   await m.getByLabel("목적").fill("검수 흐름 확인");
   await m.getByLabel("대상 고객").fill("카드 보유 고객");
   await m.getByLabel("배경").fill("M2 점검");
@@ -58,11 +59,10 @@ const u3 = await persona("u3", "이도현");
 await step("u3 assigns 박지훈 (primary) + 한가을 from 배정 관리", async () => {
   await u3.goto(`${BASE}/review`);
   const queue = u3.getByRole("region", { name: "배정 대기" });
-  // the row's title part is the button; 배정 sits next to it (no nested interactive elements)
-  const title = queue.getByRole("button", { name: new RegExp(id) });
-  await expect(title).toBeVisible();
+  // the table row: its title opens the request, 배정 is the one row action
+  await expect(queue.getByRole("button", { name: `${id} ${TITLE} 열기` })).toBeVisible();
   await shot(u3, "01-review-assign-u3");
-  await title.locator("xpath=..").getByRole("button", { name: "배정", exact: true }).click();
+  await queue.getByRole("button", { name: `${id} 배정`, exact: true }).click();
   await u3.waitForURL(new RegExp(`/requests/${id}$`));
   const d = dialog(u3, "검수자 배정");
   await d.getByRole("button", { name: "배정", exact: true }).click();
@@ -118,12 +118,13 @@ await step("lock shown to others; lead force-releases it", async () => {
   await expect(bar).toBeVisible();
   await shot(u3, "05-lock-unlock-button");
   await main(u3).getByRole("button", { name: "잠금 해제 (대표 검수자)" }).click();
-  await dialog(u3, "편집 잠금을 해제할까요?").getByRole("button", { name: "잠금 해제" }).click();
+  await dialog(u3, /편집 잠금을 해제할까요\?$/).getByRole("button", { name: "잠금 해제" }).click();
   await expect(bar).toHaveCount(0);
   // The holder's buffer can no longer be saved; 변경 취소 drops it.
   await m6.getByRole("button", { name: "수정본 저장" }).click();
   await toastSeen(u6, "편집 잠금이 만료되었습니다");
   await m6.getByRole("button", { name: "변경 취소" }).click();
+  await dialog(u6, /수정 내용을 버릴까요\?$/).getByRole("button", { name: "변경 취소" }).click();
   await expect(m6.getByText("v2을 기준으로 수정 중입니다", { exact: false })).toHaveCount(0);
 });
 
@@ -185,7 +186,7 @@ await step("u3 changes the assignment (reason + handover required)", async () =>
 await step("u1 requests a recall; u2 rejects it", async () => {
   await u1.reload();
   await u1.getByRole("button", { name: "회수 요청" }).click();
-  const d = dialog(u1, "회수를 요청할까요?");
+  const d = dialog(u1, `${id} 요청의 회수를 요청할까요?`);
   await d.getByLabel("회수 사유").fill("캠페인 일정 변경");
   await d.getByRole("button", { name: "회수 요청" }).click();
   await expect(main(u1).getByText("회수 요청 처리 중입니다")).toBeVisible();
@@ -202,7 +203,7 @@ await step("u1 requests a recall; u2 rejects it", async () => {
 await step("u1 requests again; u2 approves → draft, u2 leaves to 검수", async () => {
   await u1.reload();
   await u1.getByRole("button", { name: "회수 요청" }).click();
-  const d = dialog(u1, "회수를 요청할까요?");
+  const d = dialog(u1, `${id} 요청의 회수를 요청할까요?`);
   await d.getByLabel("회수 사유").fill("캠페인 일정 변경 확정");
   await d.getByRole("button", { name: "회수 요청" }).click();
   await u2.reload();

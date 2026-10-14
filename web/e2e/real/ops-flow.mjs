@@ -6,8 +6,9 @@
  * external-domain confirmation and a business user, sets the project's 알림톡 templates, assigns
  * and confirms datasets for all four types (change, unassign, seed), switches a content type off and on
  * again, registers a dataset version (JSON row errors, then the sample XLSX), creates and clears a
- * sample request on 한빛카드, reads 운영 이력 / 설정 이력 / 발송 대기함, cancels the 시연 데이터 초기화
- * modal and deactivates the test customer. Request screens show the operator's no-content state.
+ * sample request on 한빛카드, reads 운영 이력 / 설정 이력 / 발송 대기함 (a mail opened with 보기), cancels the
+ * 시연 데이터 초기화 confirm, opens a customer from its list row and deactivates the test customer from its
+ * detail. Request screens show the operator's no-content state.
  * Data stays in the dev DB: one dataset version is added, the test customer ends inactive, the content
  * type is restored.
  */
@@ -132,7 +133,8 @@ try {
     await expect(result.getByText(/\/invite\//)).toBeVisible();
     await shot(ops, "invite-result");
     await result.getByRole("button", { name: "닫기" }).first().click();
-    await expect(m().getByRole("cell", { name: ADMIN_EMAIL })).toBeVisible();
+    // the seed log target and the outbox recipient both name the invitee
+    await expect(m().getByRole("cell", { name: ADMIN_EMAIL }).first()).toBeVisible();
   });
 
   await step("초기 업무 사용자 초대: company domain, project and role", async () => {
@@ -260,7 +262,8 @@ try {
     await expect(d).toBeHidden();
     const row = m().getByRole("row", { name: new RegExp(`^자유입력형\\s*v${before.version + 1}`) });
     await expect(row).toBeVisible();
-    await row.getByRole("button", { name: /규칙 보기/ }).click();
+    // the row opens its rules (click the version text of the row)
+    await row.getByText(`v${before.version + 1}`, { exact: true }).click();
     const rules = dialog(ops, new RegExp(`자유입력형 v${before.version + 1} 규칙`));
     await expect(rules.getByRole("row").nth(1)).toBeVisible();
     await shot(ops, "dataset-rules");
@@ -280,7 +283,7 @@ try {
     await expect(panel.getByText(/\[샘플\] 알림톡 작성 연습/).first()).toBeVisible();
     const { samples } = await apiAs(OPS, "GET", "/ops/customers/1/sample-requests");
     await panel.getByRole("button", { name: "샘플만 초기화" }).click();
-    const c = dialog(ops, "샘플 데이터만 초기화할까요?");
+    const c = dialog(ops, "한빛카드의 샘플 데이터만 초기화할까요?");
     await expect(c.getByText(`샘플 요청 ${samples.length}건`)).toBeVisible();
     await c.getByRole("button", { name: "샘플 초기화" }).click();
     await toastSeen(ops, `샘플 ${samples.length}건을 지웠습니다`);
@@ -301,7 +304,8 @@ try {
       for (const action of ["고객사 생성", "사용자 초대", "프로젝트 알림톡 템플릿 변경"]) {
         if (await m().getByRole("cell", { name: action, exact: true }).count()) seen.add(action);
       }
-      const next = m().getByRole("button", { name: "다음" });
+      // 운영 이력 is the last paged table of the screen (the customer list above may page too)
+      const next = m().getByRole("button", { name: "다음" }).last();
       if (seen.size === 3 || !(await next.count()) || (await next.isDisabled())) break;
       await next.click();
       await ops.waitForTimeout(500);
@@ -312,27 +316,42 @@ try {
     await expect(m().getByRole("cell", { name: "템플릿 등록" })).toBeVisible();
     await expect(m().getByRole("cell", { name: "초대 링크 생성" }).first()).toBeVisible();
     const outbox = m().getByRole("region", { name: "메일 발송 대기함" });
-    await expect(outbox.getByText(`TX TMS 초대 · ${MEMBER_EMAIL}`)).toBeVisible();
+    const mail = outbox.getByRole("row", { name: MEMBER_EMAIL }).first();
+    await expect(mail.getByText("TX TMS 초대", { exact: false })).toBeVisible();
+    await mail.getByRole("button", { name: /보기$/ }).click();
+    const body = ops.getByRole("dialog");
+    await expect(body.getByText(MEMBER_EMAIL).first()).toBeVisible();
+    await shot(ops, "outbox-mail");
+    await body.getByRole("button", { name: "닫기" }).last().click();
+    await expect(body).toBeHidden();
   });
 
   await step("내 설정: 시연 데이터 초기화 modal opens and is cancelled", async () => {
     await go("/profile", "내 설정");
     await m().getByRole("button", { name: "시연 데이터 초기화" }).click();
-    const d = dialog(ops, "샘플 고객사 데이터 초기화");
+    const d = dialog(ops, "샘플 고객사의 시연 데이터를 초기화할까요?");
     await expect(d.getByText("기본 체험 고객사의 시연 요청만 초기화합니다. 실제 고객사 데이터는 유지됩니다.")).toBeVisible();
     await shot(ops, "reset-modal");
     await d.getByRole("button", { name: "취소" }).click();
     await expect(d).toBeHidden();
   });
 
-  await step("고객사 상세 + 비활성: reason required, then deactivated (cleanup)", async () => {
-    // the list is paged in id order: the new customer may sit on a later page, so open its detail directly
+  await step("고객사 상세 + 비활성화: reason required, then deactivated (cleanup)", async () => {
+    // a row of the list opens its detail tab (rows carry no status buttons any more)
     await go("/ops/customers", "고객사 관리");
-    await expect(m().getByRole("button", { name: /상세 보기$/ }).first()).toBeVisible();
+    const list = m().getByRole("table", { name: "고객사 목록" });
+    await expect(list.getByRole("button", { name: / 열기$/ }).first()).toBeVisible();
+    await expect(list.getByRole("button", { name: /^(상세|비활성|사용 재개)$/ })).toHaveCount(0);
+    const [first] = (await apiAs(OPS, "GET", "/ops/customers?page=0&size=20")).content;
+    // click the 프로젝트 count of the first row (plain text cell): the row opens the customer detail tab
+    const firstRow = list.getByRole("button", { name: `${first.name} 열기` }).locator("xpath=ancestor::*[@role='row'][1]");
+    await firstRow.getByRole("cell").nth(2).click();
+    await expect(m().getByRole("heading", { level: 1, name: first.name })).toBeVisible({ timeout: 20_000 });
+    // the list is paged in id order: the new customer may sit on a later page, so open its detail directly
     await go(`/ops/customers/${customerId}`, NAME);
     await expect(m().getByRole("heading", { name: "프로젝트" })).toBeVisible();
-    await m().getByRole("button", { name: "비활성", exact: true }).click();
-    const d = dialog(ops, `${NAME} 비활성화`);
+    await m().getByRole("button", { name: "비활성화", exact: true }).click();
+    const d = dialog(ops, `고객사 「${NAME}」를 비활성화할까요?`);
     await d.getByRole("button", { name: "비활성화" }).click();
     await toastSeen(ops, "비활성 사유을(를) 입력하세요");
     await d.getByLabel(/비활성 사유/).fill("E2E 정리");

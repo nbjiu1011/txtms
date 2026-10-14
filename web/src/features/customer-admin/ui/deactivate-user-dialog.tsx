@@ -23,7 +23,7 @@ export interface DeactivateUserDialogProps {
   impact: DeactivationImpact | null;
 }
 
-/** `{이름} 비활성화` (reference `deact` + J:212): impact, substitute and handover, server refusal details. */
+/** `{이름}님을 비활성화할까요?` (reference `deact` + J:212): impact, substitute and handover, server refusal details. */
 export function DeactivateUserDialog(props: DeactivateUserDialogProps) {
   if (!props.open || !props.member || !props.impact) return null;
   return <DeactivateBody {...props} member={props.member} impact={props.impact} />;
@@ -70,7 +70,7 @@ function DeactivateBody({
     <Modal
       open
       onClose={onClose}
-      title={`${member.user.name} 비활성화`}
+      title={`${member.user.name}님을 비활성화할까요?`}
       description="이력이 있는 사용자는 삭제하지 않고 비활성 상태로 보존합니다."
       okLabel="비활성화"
       okVariant="warn"

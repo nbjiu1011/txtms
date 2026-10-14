@@ -12,6 +12,8 @@
   color: var(--faint);
   margin: 10px 0 0;
 }
-th.loadCol {
-  width: 30%;
+/* the load bar fills its cell */
+.load {
+  display: block;
+  width: 100%;
 }

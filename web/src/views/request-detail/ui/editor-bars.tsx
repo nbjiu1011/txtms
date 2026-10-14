@@ -1,8 +1,8 @@
 "use client";
 
-import type { Ref } from "react";
+import { useState, type Ref } from "react";
 import { Icon, LockBar, SaveIndicator, Tag } from "@/shared/ui";
-import { Button, Input } from "@/shared/common";
+import { Button, ConfirmModal, Input } from "@/shared/common";
 import type { Content } from "@/entities/request";
 import type { DraftSession } from "../model/draft-session";
 import type { RevisionBuffer } from "../model/revision-session";
@@ -28,6 +28,7 @@ export interface EditorToolbarProps {
 /** `.ed-top` — title, key/version tag, version compare, save state and editor actions. */
 export function EditorToolbar({ content, draft, revision, variables, variablesRef, onCompare, onGuide }: EditorToolbarProps) {
   const state = draft?.session.saveState;
+  const [discardOpen, setDiscardOpen] = useState(false);
   return (
     <div className={styles.edTop}>
       {draft?.titleEditable ? (
@@ -86,10 +87,18 @@ export function EditorToolbar({ content, draft, revision, variables, variablesRe
             수정본 저장
           </Button>
           {revision.buffered ? (
-            <Button size="sm" variant="ghost" onClick={revision.onDiscard}>
+            <Button size="sm" variant="warn" onClick={() => setDiscardOpen(true)}>
               변경 취소
             </Button>
           ) : null}
+          <ConfirmModal
+            open={discardOpen && revision.buffered}
+            onClose={() => setDiscardOpen(false)}
+            title={`${content.key} ${content.title}의 수정 내용을 버릴까요?`}
+            description="저장하지 않은 수정 내용이 사라지고 편집 잠금이 해제됩니다. 되돌릴 수 없습니다."
+            confirmLabel="변경 취소"
+            onConfirm={revision.onDiscard}
+          />
         </>
       ) : null}
     </div>
@@ -117,7 +126,7 @@ export function EditorLockBars({ content, lockedByName, unlock, readOnlyReason, 
           {unlock ? (
             <>
               {" "}
-              <Button size="sm" variant="ghost" onClick={unlock.onUnlock}>
+              <Button size="sm" variant="warn" onClick={unlock.onUnlock}>
                 잠금 해제 ({unlock.label})
               </Button>
             </>

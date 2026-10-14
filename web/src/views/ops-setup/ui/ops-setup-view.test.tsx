@@ -134,10 +134,27 @@ describe("초기 설정·시드", () => {
     setup(1);
     const panel = samplePanel();
     expect(within(panel).getByRole("button", { name: "샘플 요청 생성" })).toBeTruthy();
-    expect(within(panel).getByRole("button", { name: "샘플만 초기화" })).toBeTruthy();
+    // destructive: warn trigger, confirmed by a question naming the customer
+    const clear = within(panel).getByRole("button", { name: "샘플만 초기화" });
+    expect(clear.className).toContain("text-danger");
     expect(within(panel).getByText("샘플 데이터 1건")).toBeTruthy();
     expect(within(panel).getByText("실제 운영 데이터 57건")).toBeTruthy();
-    expect(within(panel).getByText(/REQ-2610-130/).textContent).toContain("작성 중");
+    const row = within(panel).getByRole("row", { name: /REQ-2610-130/ });
+    expect(within(row).getByText("작성 중")).toBeTruthy();
+    fireEvent.click(clear);
+    const d = screen.getByRole("dialog", { name: "한빛카드의 샘플 데이터만 초기화할까요?" });
+    expect(within(d).getByText("샘플 요청 1건")).toBeTruthy();
+    expect(within(d).getByRole("button", { name: "샘플 초기화" }).className).toContain("text-danger");
+  });
+
+  it("lists the rule seed per type with its one row action and the outbox mails with 보기", () => {
+    setup(1);
+    const seed = screen.getByRole("table", { name: "유형별 교정 규칙 시드" });
+    expect(within(seed).getAllByText("미배정")).toHaveLength(3); // the fixed Phase 1 types, none assigned
+    const sms = within(seed).getByRole("row", { name: /^문자/ });
+    expect(within(sms).queryAllByRole("button")).toHaveLength(0); // no registered version to seed
+    const tpl = screen.getByRole("row", { name: /카드 혜택 알림/ });
+    expect(within(tpl).getAllByRole("button").map((b) => b.textContent)).toEqual(["알림톡 템플릿"]);
   });
 
   it("explains instead of offering sample actions for a real customer (dashboard hand-off)", () => {

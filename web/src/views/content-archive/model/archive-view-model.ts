@@ -1,12 +1,4 @@
-import {
-  CONTENT_TYPE_LABEL,
-  REQUEST_STATUS_LABEL,
-  type ArchiveLine,
-  type ArchiveListParams,
-  type ContentType,
-  type FinalStatus,
-} from "@/entities/request";
-import { formatDate } from "@/shared/lib";
+import type { ArchiveLine, ArchiveListParams, ContentType, FinalStatus } from "@/entities/request";
 
 /** Filter bar state (reference `tab.st.f = {q, type, camp, from, to, status}`). */
 export interface ArchiveFilters {
@@ -50,19 +42,6 @@ export function lineToggleLabel(line: Pick<ArchiveLine, "past" | "followUps">, o
   const n = lineHistoryCount(line);
   if (n === 0) return "이력";
   return open ? "접기" : `이력 ${n}`;
-}
-
-/** Meta line under the title: `{요청 ID}  {유형}  {상태}  {완료일}  {캠페인?}`. */
-export function lineMeta(latest: ArchiveLine["latest"]): string {
-  return [
-    latest.requestId,
-    CONTENT_TYPE_LABEL[latest.type],
-    REQUEST_STATUS_LABEL[latest.status],
-    formatDate(latest.completedAt),
-    latest.campaign ?? "",
-  ]
-    .filter(Boolean)
-    .join("  ");
 }
 
 /** 복사 is offered only for text contents (no attachments). */

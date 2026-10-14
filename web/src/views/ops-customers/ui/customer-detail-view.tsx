@@ -16,7 +16,8 @@ import styles from "./ops-customers.module.css";
 
 /**
  * `opsCustomer` tab — 고객사 상세: 기본 정보·현황, the customer's projects and users (server paged) and its
- * 운영 이력. Inactive customers stay readable; writes go through 초기 설정·시드.
+ * 운영 이력. The header holds the status actions (비활성화 after a confirm with the impact, 사용 재개 at once).
+ * Inactive customers stay readable; writes go through 초기 설정·시드.
  */
 export function OpsCustomerDetailView({ tab, openTab, setTitle }: WorkViewProps) {
   const id = Number(tab.params.id);
@@ -71,8 +72,8 @@ export function OpsCustomerDetailView({ tab, openTab, setTitle }: WorkViewProps)
             {back}
             <Button onClick={() => continueToSetup(c.id, openTab)}>초기 설정 열기</Button>
             {c.active ? (
-              <Button variant="ghost" onClick={() => setDeactivating(true)}>
-                비활성
+              <Button variant="warn" onClick={() => setDeactivating(true)}>
+                비활성화
               </Button>
             ) : (
               <Button variant="pri" disabled={status.busyId === c.id} onClick={() => void status.reactivate(c)}>

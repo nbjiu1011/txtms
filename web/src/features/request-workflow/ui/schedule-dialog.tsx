@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { formatDate, kstDateKey } from "@/shared/lib";
 import { toast } from "@/shared/ui";
-import { Field, Input, Modal, Textarea } from "@/shared/common";
+import { DatePicker, Field, Modal, Textarea } from "@/shared/common";
 import { requestApi, type RequestDetail, type Urgency } from "@/entities/request";
 import { firstMissing } from "../model/assignment-form";
 import { handleWorkflowError, modalResult } from "../model/workflow-error";
@@ -56,7 +56,7 @@ function ScheduleBody({ onClose, request: r, rowVersion, onDone, onStale }: Sche
     >
       <div className={styles.grid2}>
         <Field label="확정 납기" required htmlFor="due-date">
-          <Input id="due-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+          <DatePicker id="due-date" required value={dueDate} onChange={setDueDate} />
         </Field>
         <UrgencyField id="due-urg" value={urgency} onChange={setUrgency} />
       </div>

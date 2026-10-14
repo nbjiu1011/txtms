@@ -1,20 +1,8 @@
 .block {
   margin-bottom: 18px;
 }
-.nameBtn {
-  border: 0;
-  background: none;
-  padding: 0;
-  font: inherit;
-  font-weight: 600;
-  color: var(--ink);
-  cursor: pointer;
-  text-align: left;
-}
-.nameBtn:hover {
-  text-decoration: underline;
-}
 .domain {
+  display: block;
   font-size: 12px;
   color: var(--faint);
 }
@@ -64,23 +52,12 @@ select.filter {
   padding: 3px 8px;
   font-size: 12px;
 }
-.muted {
-  color: var(--sub);
-}
 .when {
   white-space: nowrap;
 }
 .detail {
   font-size: 12px;
   color: var(--sub);
-}
-.sr {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
 }
 .rowActions {
   display: flex;
@@ -92,4 +69,12 @@ select.filter {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+.smallBlock {
+  display: block;
+  font-size: 12px;
+  color: var(--faint);
+}
+.line {
+  display: block;
 }

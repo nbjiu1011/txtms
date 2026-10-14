@@ -292,6 +292,7 @@ await step("자유입력형: 전체 검사 2건 checks both contents, the one wi
 await step("removing the attachment hides the files note", async () => {
   await item(u1, "C1").click();
   await main(u1).getByRole("button", { name: "notes.txt 삭제" }).click();
+  await dialog(u1, "첨부파일 「notes.txt」을(를) 삭제할까요?").getByRole("button", { name: "삭제" }).click();
   await toastSeen(u1, "첨부파일을 삭제했습니다");
   await panel(u1).getByRole("button", { name: "교정 완료" }).click();
   await expect(panel(u1).getByText("첨부파일 내용은 교정 대상이 아닙니다. 입력한 문안만 검사합니다.")).toBeHidden();

@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "@/shared/lib";
-import { Panel, PanelBody, PanelHeader, Table, Tag, tableClasses } from "@/shared/ui";
-import { Button } from "@/shared/common";
+import { Panel, PanelBody, PanelHeader, Tag } from "@/shared/ui";
+import { Button, DataTable, type DataTableColumn } from "@/shared/common";
 import {
   ASSIGNABLE_TYPES,
   assignmentOf,
@@ -11,7 +11,6 @@ import {
   type DatasetAssignment,
   type OpsCustomer,
 } from "@/entities/ops";
-import type { Project } from "@/entities/project";
 import { CONTENT_TYPE_LABEL, type ContentType, type ContentTypeSetting } from "@/entities/request";
 import type { SetupStep } from "../model/setup-steps";
 import styles from "./ops-setup.module.css";
@@ -66,11 +65,77 @@ export interface RuleSeedPanelProps {
   onRegister: () => void;
 }
 
+/** One content type of the customer: the assigned dataset next to the newest registered version. */
+interface SeedRow {
+  type: ContentType;
+  current: Dataset | null;
+  latest: Dataset | null;
+  off: boolean;
+  upToDate: boolean;
+}
+
 /**
  * 유형별 교정 규칙 시드 (reference `RuleSeedPanel`): the assigned dataset of each content type of the
- * customer next to the newest registered version, a one-click seed of the newest version.
+ * customer next to the newest registered version; the one row action seeds the newest version.
  */
 export function RuleSeedPanel({ customer, datasets, assignments, contentTypes, onSeed, onRegister }: RuleSeedPanelProps) {
+  const rows: SeedRow[] = ASSIGNABLE_TYPES.map((type) => {
+    const assignment = assignmentOf(assignments, customer.id, type);
+    const current = assignment ? (datasets.find((d) => d.id === assignment.datasetId) ?? null) : null;
+    const latest = latestDataset(datasets, type);
+    const off = contentTypes.find((t) => t.type === type)?.active === false;
+    return { type, current, latest, off, upToDate: !!current && !!latest && current.id === latest.id };
+  });
+  const columns: DataTableColumn<SeedRow>[] = [
+    { id: "type", name: "유형", width: "96px", cell: (r) => <b>{CONTENT_TYPE_LABEL[r.type]}</b> },
+    {
+      id: "current",
+      name: "배정된 유효 데이터셋",
+      grow: 1,
+      minWidth: "130px",
+      cell: (r) =>
+        r.current ? (
+          <span>
+            v{r.current.version} <span className={styles.smallFaint}>규칙 {r.current.ruleCount}개</span>
+          </span>
+        ) : (
+          <Tag variant="hot">미배정</Tag>
+        ),
+    },
+    {
+      id: "latest",
+      name: "최신 배포본",
+      width: "92px",
+      cell: (r) => (r.latest ? `v${r.latest.version}` : <span className={styles.faint}>배포본 없음</span>),
+    },
+    {
+      id: "state",
+      name: "상태",
+      width: "96px",
+      cell: (r) =>
+        r.off ? (
+          <Tag>유형 미사용</Tag>
+        ) : r.current && r.latest && !r.upToDate ? (
+          <Tag variant="hot">최신 아님</Tag>
+        ) : r.current ? (
+          <Tag>최신</Tag>
+        ) : (
+          "-"
+        ),
+    },
+    {
+      id: "seed",
+      name: <span className={styles.sr}>시드</span>,
+      width: "136px",
+      rowAction: true,
+      cell: (r) =>
+        r.latest ? (
+          <Button size="sm" disabled={r.upToDate || r.off} onClick={() => r.latest && onSeed(r.type, r.latest)}>
+            최신 배포본 시드
+          </Button>
+        ) : null,
+    },
+  ];
   return (
     <Panel>
       <PanelHeader title="유형별 교정 규칙 시드">
@@ -79,139 +144,13 @@ export function RuleSeedPanel({ customer, datasets, assignments, contentTypes, o
           데이터셋 등록
         </Button>
       </PanelHeader>
-      <Table>
-        <thead>
-          <tr>
-            <th>유형</th>
-            <th>배정된 유효 데이터셋</th>
-            <th>최신 배포본</th>
-            <th>상태</th>
-            <th>
-              <span className={styles.sr}>시드</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {ASSIGNABLE_TYPES.map((type) => {
-            const assignment = assignmentOf(assignments, customer.id, type);
-            const current = assignment ? (datasets.find((d) => d.id === assignment.datasetId) ?? null) : null;
-            const latest = latestDataset(datasets, type);
-            const off = contentTypes.find((t) => t.type === type)?.active === false;
-            const upToDate = !!current && !!latest && current.id === latest.id;
-            return (
-              <tr key={type}>
-                <td className={tableClasses.ttl}>{CONTENT_TYPE_LABEL[type]}</td>
-                <td>
-                  {current ? (
-                    <>
-                      v{current.version} <span className={styles.smallFaint}>규칙 {current.ruleCount}개</span>
-                    </>
-                  ) : (
-                    <Tag variant="hot">미배정</Tag>
-                  )}
-                </td>
-                <td>{latest ? `v${latest.version}` : <span className={styles.faint}>배포본 없음</span>}</td>
-                <td>
-                  {off ? (
-                    <Tag>유형 미사용</Tag>
-                  ) : current && latest && !upToDate ? (
-                    <Tag variant="hot">최신 아님</Tag>
-                  ) : current ? (
-                    <Tag>최신</Tag>
-                  ) : (
-                    "-"
-                  )}
-                </td>
-                <td>
-                  {latest ? (
-                    <Button size="sm" disabled={upToDate || off} onClick={() => onSeed(type, latest)}>
-                      최신 배포본 시드
-                    </Button>
-                  ) : null}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </Table>
+      <DataTable label="유형별 교정 규칙 시드" columns={columns} data={rows} keyField="type" />
       <PanelBody className={styles.seedNote}>
         <p className={styles.mutedSmall}>
           시드는 고객사 × 유형 조합에 유효 데이터셋 하나를 연결하는 작업입니다. 기준 내용을 편집하거나 배포하는 기능은
           후속입니다.
         </p>
       </PanelBody>
-    </Panel>
-  );
-}
-
-export interface TemplatePanelProps {
-  projects: Project[];
-  loading: boolean;
-  /** Inactive customer: its projects are listed (operator API) but cannot be changed. */
-  inactive: boolean;
-  onEdit: (project: Project) => void;
-}
-
-/**
- * 프로젝트 알림톡 템플릿 (not in the reference): the 알림톡 template codes each project's 알림톡
- * contents are checked against on submission.
- */
-export function TemplatePanel({ projects, loading, inactive, onEdit }: TemplatePanelProps) {
-  return (
-    <Panel className={styles.block}>
-      <PanelHeader title="프로젝트 알림톡 템플릿" note="알림톡은 등록한 템플릿 코드와 같아야 검수 요청할 수 있습니다" />
-      <Table>
-        <thead>
-          <tr>
-            <th>프로젝트</th>
-            <th>알림톡 템플릿</th>
-            <th>상태</th>
-            <th>
-              <span className={styles.sr}>편집</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {projects.length === 0 ? (
-            <tr>
-              <td colSpan={4} className={styles.muted}>
-                {loading
-                  ? "불러오는 중입니다."
-                  : inactive
-                    ? "프로젝트가 없습니다."
-                    : "프로젝트가 없습니다. 초기 프로젝트를 먼저 만드세요."}
-              </td>
-            </tr>
-          ) : (
-            projects.map((p) => (
-              <tr key={p.id}>
-                <td className={tableClasses.ttl}>{p.name}</td>
-                <td>
-                  {p.templates.length ? (
-                    <>
-                      {p.templates.slice(0, 3).map((t) => t.code).join(", ")}
-                      {p.templates.length > 3 ? ` 외 ${p.templates.length - 3}개` : ""}
-                    </>
-                  ) : (
-                    <span className={styles.faint}>없음</span>
-                  )}
-                </td>
-                <td>{p.active ? <Tag>사용</Tag> : <Tag variant="hot">중지</Tag>}</td>
-                <td>
-                  <Button
-                    size="sm"
-                    disabled={inactive}
-                    title={inactive ? "비활성 고객사입니다. 사용 재개 후 알림톡 템플릿을 설정하세요." : undefined}
-                    onClick={() => onEdit(p)}
-                  >
-                    알림톡 템플릿
-                  </Button>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </Table>
     </Panel>
   );
 }

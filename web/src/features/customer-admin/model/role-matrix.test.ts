@@ -2,17 +2,30 @@ import { describe, expect, it } from "vitest";
 import { changedProjects, initialRoleMatrix, roleCells, roleMatrixProblem, toggleRole } from "./role-matrix";
 
 describe("role editor rules (reference roleEdit)", () => {
-  it("requester and reviewer exclude each other", () => {
+  it("requester and reviewer stay clickable and ticking one clears the other", () => {
     const withReviewer = roleCells(["REVIEWER"], false, true);
-    expect(withReviewer.REQUESTER).toEqual({ checked: false, disabled: true, title: "검수자 역할과 함께 줄 수 없습니다" });
+    expect(withReviewer.REQUESTER).toEqual({ checked: false, disabled: false, title: "선택하면 검수자 역할이 해제됩니다" });
     expect(withReviewer.REVIEWER.disabled).toBe(false);
     const withRequester = roleCells(["REQUESTER"], false, true);
-    expect(withRequester.REVIEWER.disabled).toBe(true);
+    expect(withRequester.REVIEWER).toEqual({ checked: false, disabled: false, title: "선택하면 요청자 역할이 해제됩니다" });
     expect(withRequester.REQUESTER.disabled).toBe(false);
+
+    expect(toggleRole(["REVIEWER", "APPROVER"], "REQUESTER", true)).toEqual(["REQUESTER", "APPROVER"]);
+    expect(toggleRole(["REQUESTER"], "REVIEWER", true)).toEqual(["REVIEWER"]);
+    // unticking clears only that role
+    expect(toggleRole(["REQUESTER", "APPROVER"], "REQUESTER", false)).toEqual(["APPROVER"]);
+    // the approver role is independent of the pair
+    expect(toggleRole(["REVIEWER"], "APPROVER", true)).toEqual(["REVIEWER", "APPROVER"]);
   });
 
-  it("the lead's reviewer box is locked; approver needs an approval customer", () => {
-    expect(roleCells(["REVIEWER"], true, true).REVIEWER).toEqual({ checked: true, disabled: true });
+  it("the lead's reviewer and requester boxes are locked; approver needs an approval customer", () => {
+    const lead = roleCells(["REVIEWER"], true, true);
+    expect(lead.REVIEWER).toEqual({ checked: true, disabled: true, title: "대표 검수자는 프로젝트 수정에서 바꾸세요" });
+    expect(lead.REQUESTER).toEqual({
+      checked: false,
+      disabled: true,
+      title: "대표 검수자는 요청자 역할을 함께 가질 수 없습니다",
+    });
     expect(roleCells([], false, false).APPROVER).toEqual({ checked: false, disabled: true, title: "승인 단계 미사용" });
     expect(roleCells([], false, true).APPROVER.disabled).toBe(false);
   });

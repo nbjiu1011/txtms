@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { LIST_PAGE_SIZE, formatDateTime } from "@/shared/lib";
-import { Empty, Panel, PanelHeader, Table } from "@/shared/ui";
-import { Button, Pager, Select } from "@/shared/common";
+import { Empty, Panel, PanelHeader } from "@/shared/ui";
+import { Button, DataTable, Select, type DataTableColumn } from "@/shared/common";
+import type { AuditLog } from "@/entities/audit";
 import { useOpsAuditLogs, type OpsCustomer } from "@/entities/ops";
 import styles from "./ops-customers.module.css";
 
@@ -14,16 +15,24 @@ export interface OpsAuditPanelProps {
   customerId?: number;
 }
 
+const COLUMNS: DataTableColumn<AuditLog>[] = [
+  { id: "at", name: "시각", width: "150px", cell: (a) => <span className={styles.when}>{formatDateTime(a.at)}</span> },
+  { id: "actor", name: "행위자", width: "110px", cell: (a) => a.actorName ?? "시스템" },
+  { id: "action", name: "행동", width: "150px", wrap: true, cell: (a) => a.action },
+  { id: "target", name: "대상", width: "170px", wrap: true, cell: (a) => a.target },
+  { id: "detail", name: "내용", grow: 1, minWidth: "220px", wrap: true, cell: (a) => <span className={styles.detail}>{a.detail}</span> },
+];
+
 /**
  * 운영 이력 (reference `OpsAuditTable`): every customer's audit trail and the operator records without a
  * customer, newest first, 20 per page (server paging); narrowed to one customer on demand or fixed to one.
+ * Records have no detail, so rows do not open anything.
  */
 export function OpsAuditPanel({ customers = [], customerId: fixed }: OpsAuditPanelProps) {
   const [page, setPage] = useState(0);
   const [picked, setPicked] = useState<number | null>(null);
   const customerId = fixed ?? picked;
   const logs = useOpsAuditLogs({ customerId, page, size: LIST_PAGE_SIZE });
-  const rows = logs.data?.content ?? [];
 
   return (
     <Panel className={styles.audit} aria-busy={logs.isFetching}>
@@ -47,48 +56,22 @@ export function OpsAuditPanel({ customers = [], customerId: fixed }: OpsAuditPan
           </Select>
         ) : null}
       </PanelHeader>
-      {logs.isPending ? (
-        <Empty plain title="기록을 불러오는 중입니다" />
-      ) : logs.isError ? (
+      {logs.isError ? (
         <Empty
           title="기록을 불러오지 못했습니다"
           description={logs.error.message}
           action={<Button onClick={() => void logs.refetch()}>다시 시도</Button>}
         />
       ) : (
-        <>
-          <Table>
-            <thead>
-              <tr>
-                <th>시각</th>
-                <th>행위자</th>
-                <th>행동</th>
-                <th>대상</th>
-                <th>내용</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className={styles.muted}>
-                    기록이 없습니다.
-                  </td>
-                </tr>
-              ) : (
-                rows.map((a) => (
-                  <tr key={a.id}>
-                    <td className={styles.when}>{formatDateTime(a.at)}</td>
-                    <td>{a.actorName ?? "시스템"}</td>
-                    <td>{a.action}</td>
-                    <td>{a.target}</td>
-                    <td className={styles.detail}>{a.detail}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </Table>
-          <Pager page={page} totalPages={logs.data.page.totalPages} onPage={setPage} />
-        </>
+        <DataTable
+          label="운영 이력"
+          columns={COLUMNS}
+          data={logs.data?.content ?? []}
+          loading={logs.isPending}
+          page={logs.data ? { number: page, size: logs.data.page.size, totalElements: logs.data.page.totalElements } : undefined}
+          onPage={setPage}
+          empty={<Empty plain title="기록이 없습니다" description="고객사를 만들거나 설정을 바꾸면 여기에 남습니다." />}
+        />
       )}
     </Panel>
   );

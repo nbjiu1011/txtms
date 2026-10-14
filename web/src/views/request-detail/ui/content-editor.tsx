@@ -2,7 +2,7 @@
 
 import { useId } from "react";
 import { Icon } from "@/shared/ui";
-import { Button, Checkbox, Field, Input, Label, Select, Textarea } from "@/shared/common";
+import { Button, Checkbox, Field, IconButton, Input, Label, Select, Textarea } from "@/shared/common";
 import {
   MAX_ALIMTALK_BUTTONS_STORED,
   addAlimtalkButton,
@@ -160,16 +160,13 @@ function AlimtalkFields({ payload, project, disabled, onPayload, spec, values }:
             disabled={disabled}
             {...bindText(payload, `buttons.${i}.link`, onPayload)}
           />
-          <Button
-            size="sm"
-            variant="ghost"
-            className={styles.btnIcon}
+          <IconButton
+            label={`버튼 ${i + 1} 삭제`}
             disabled={disabled || !onPayload}
-            aria-label={`버튼 ${i + 1} 삭제`}
             onClick={() => onPayload?.(removeAlimtalkButton(payload, i))}
           >
             <Icon name="x" />
-          </Button>
+          </IconButton>
         </div>
       ))}
       {!disabled && onPayload ? (

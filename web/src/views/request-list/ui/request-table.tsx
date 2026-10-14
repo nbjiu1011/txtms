@@ -1,6 +1,7 @@
+import type { ReactNode } from "react";
 import { formatDate } from "@/shared/lib";
-import { Avatar, AvatarStack, Icon, Table, Tag, tableClasses } from "@/shared/ui";
-import { Button } from "@/shared/common";
+import { Avatar, AvatarStack, Tag } from "@/shared/ui";
+import { DataTable, RowLink, type DataTableColumn, type DataTablePage } from "@/shared/common";
 import { ContentTypeChip, RequestStatusChip, type RequestSummary } from "@/entities/request";
 import type { UserDirectory } from "@/entities/user";
 import styles from "./request-list.module.css";
@@ -9,95 +10,97 @@ export interface RequestTableProps {
   rows: RequestSummary[];
   users: UserDirectory;
   onOpen: (id: string) => void;
+  page?: DataTablePage;
+  onPage?: (page: number) => void;
+  loading?: boolean;
+  empty?: ReactNode;
 }
 
-const COLUMNS = ["요청 ID", "제목", "유형", "상태", "차수", "요청자", "주담당 / 배정 검수자", "확정 납기", "접수일", ""];
-
-/** Request table of the list screen (reference `vRequests` table). */
-export function RequestTable({ rows, users, onOpen }: RequestTableProps) {
+/** Request list: a row click (or the title, by keyboard) opens the request. */
+export function RequestTable({ rows, users, onOpen, page, onPage, loading, empty }: RequestTableProps) {
+  const columns: DataTableColumn<RequestSummary>[] = [
+    { id: "id", name: "요청 ID", width: "128px", cell: (r) => <span className="whitespace-nowrap text-sub">{r.id}</span> },
+    {
+      id: "title",
+      name: "제목",
+      grow: 1,
+      minWidth: "240px",
+      rowAction: true,
+      cell: (r) => (
+        <span>
+          <RowLink onClick={() => onOpen(r.id)} label={`${r.id} ${r.title || "제목 없는 요청"} 열기`}>
+            {r.title || "제목 없는 요청"}
+          </RowLink>
+          {r.recallRequested ? (
+            <>
+              {" "}
+              <Tag variant="recall">회수 요청됨</Tag>
+            </>
+          ) : null}
+          {r.parentRequestId ? (
+            <>
+              {" "}
+              <Tag>후속</Tag>
+            </>
+          ) : null}
+        </span>
+      ),
+    },
+    { id: "type", name: "유형", width: "100px", cell: (r) => <ContentTypeChip type={r.type} showLabel /> },
+    { id: "status", name: "상태", width: "104px", cell: (r) => <RequestStatusChip status={r.status} /> },
+    { id: "round", name: "차수", width: "56px", cell: (r) => `${r.round}차` },
+    {
+      id: "requester",
+      name: "요청자",
+      width: "112px",
+      cell: (r) => {
+        const requester = users.get(r.requesterId);
+        return (
+          <span className={styles.person}>
+            <Avatar name={requester?.name ?? "-"} color={requester?.avatarColor} size={22} />
+            {requester?.name ?? "-"}
+          </span>
+        );
+      },
+    },
+    {
+      id: "reviewers",
+      name: "주담당 / 배정 검수자",
+      width: "160px",
+      cell: (r) => {
+        if (r.primaryReviewerId === null) return <span className={styles.faint}>미배정</span>;
+        const assigned = [r.primaryReviewerId, ...r.reviewerIds.filter((id) => id !== r.primaryReviewerId)];
+        return (
+          <span className={styles.person}>
+            <AvatarStack people={assigned.map((id) => ({ name: users.name(id), color: users.get(id)?.avatarColor }))} />
+            <b className={styles.primaryName}>{users.name(r.primaryReviewerId)}</b>
+          </span>
+        );
+      },
+    },
+    {
+      id: "due",
+      name: "확정 납기",
+      width: "140px",
+      cell: (r) => (
+        <span>
+          {formatDate(r.dueDate)} {r.urgency === "URGENT" ? <Tag variant="hot">긴급</Tag> : null}{" "}
+          {r.overdue ? <Tag variant="hot">지연</Tag> : null}
+        </span>
+      ),
+    },
+    { id: "submitted", name: "접수일", width: "84px", cell: (r) => formatDate(r.submittedAt) },
+  ];
   return (
-    <Table>
-      <thead>
-        <tr>
-          {COLUMNS.map((c, i) => (
-            <th key={i}>{c}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => {
-          const requester = users.get(r.requesterId);
-          const assigned =
-            r.primaryReviewerId === null
-              ? []
-              : [r.primaryReviewerId, ...r.reviewerIds.filter((id) => id !== r.primaryReviewerId)];
-          return (
-            <tr key={r.id} className={tableClasses.click} onClick={() => onOpen(r.id)}>
-              <td className={tableClasses.id}>{r.id}</td>
-              <td className={tableClasses.ttl}>
-                {r.title || "제목 없는 요청"}
-                {r.recallRequested ? (
-                  <>
-                    {" "}
-                    <Tag variant="recall">회수 요청됨</Tag>
-                  </>
-                ) : null}
-                {r.parentRequestId ? (
-                  <>
-                    {" "}
-                    <Tag>후속</Tag>
-                  </>
-                ) : null}
-              </td>
-              <td>
-                <ContentTypeChip type={r.type} showLabel />
-              </td>
-              <td>
-                <RequestStatusChip status={r.status} />
-              </td>
-              <td>{r.round}차</td>
-              <td>
-                <span className={styles.person}>
-                  <Avatar name={requester?.name ?? "-"} color={requester?.avatarColor} size={22} />
-                  {requester?.name ?? "-"}
-                </span>
-              </td>
-              <td>
-                {r.primaryReviewerId === null ? (
-                  <span className={styles.faint}>미배정</span>
-                ) : (
-                  <span className={styles.person}>
-                    <AvatarStack
-                      people={assigned.map((id) => ({ name: users.name(id), color: users.get(id)?.avatarColor }))}
-                    />
-                    <b className={styles.primaryName}>{users.name(r.primaryReviewerId)}</b>
-                  </span>
-                )}
-              </td>
-              <td>
-                {formatDate(r.dueDate)} {r.urgency === "URGENT" ? <Tag variant="hot">긴급</Tag> : null}{" "}
-                {r.overdue ? <Tag variant="hot">지연</Tag> : null}
-              </td>
-              <td>{formatDate(r.submittedAt)}</td>
-              <td>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className={styles.newTab}
-                  title="새 탭으로 열기"
-                  aria-label={`${r.id} 새 탭으로 열기`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpen(r.id);
-                  }}
-                >
-                  <Icon name="ext" />
-                </Button>
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </Table>
+    <DataTable
+      label="요청 목록"
+      columns={columns}
+      data={rows}
+      onRowClick={(r) => onOpen(r.id)}
+      page={page}
+      onPage={onPage}
+      loading={loading}
+      empty={empty}
+    />
   );
 }

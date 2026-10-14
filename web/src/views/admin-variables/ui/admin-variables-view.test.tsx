@@ -65,39 +65,58 @@ function setup(variables: Variable[]) {
 
 afterEach(() => vi.restoreAllMocks());
 
-describe("AdminVariablesView", () => {
-  it("marks variables in use and blocks their deletion; unused ones can be deleted", async () => {
-    const remove = vi.spyOn(variableApi, "remove").mockResolvedValue(undefined);
-    setup([variable(1, "customer_name", { inUse: true }), variable(2, "card_name"), variable(3, "old", { active: false })]);
-    const row = (key: string) => screen.getByRole("row", { name: new RegExp(key) });
+const row = (key: string) =>
+  screen.getAllByRole("row").find((r) => r.textContent?.includes(key) && r.querySelector('[role="cell"]')) as HTMLElement;
 
+describe("AdminVariablesView", () => {
+  it("marks variables in use; the row opens the editor, whose 삭제 is blocked for a variable in use", async () => {
+    setup([variable(1, "customer_name", { inUse: true }), variable(2, "card_name"), variable(3, "old", { active: false })]);
     expect(within(row("customer_name")).getByText("활성 · 사용 중")).toBeTruthy();
     expect(within(row("card_name")).getByText("활성")).toBeTruthy();
     expect(within(row("old")).getByText("중지")).toBeTruthy();
     expect(within(row("card_name")).getByText("10/1 10:00 등록")).toBeTruthy();
+    // no buttons on the rows besides the key that opens the editor
+    expect(within(row("card_name")).getAllByRole("button").map((b) => b.textContent)).toEqual(["card_name"]);
 
-    const inUseDelete = within(row("customer_name")).getByRole("button", { name: "삭제" }) as HTMLButtonElement;
+    fireEvent.click(within(row("customer_name")).getAllByRole("cell")[1]);
+    const dialog = await screen.findByRole("dialog", { name: "변수 편집" });
+    const inUseDelete = within(dialog).getByRole("button", { name: "삭제" }) as HTMLButtonElement;
     expect(inUseDelete.disabled).toBe(true);
     expect(inUseDelete.title).toBe("사용 중인 변수는 삭제할 수 없습니다");
-
-    fireEvent.click(within(row("card_name")).getByRole("button", { name: "삭제" }));
-    await waitFor(() => expect(remove).toHaveBeenCalledWith(2));
   });
 
-  it("lists deleted variables as 삭제 with their history and no actions (reference 삭제 (이력 보존))", () => {
+  it("deletes an unused variable only after confirmation", async () => {
+    const remove = vi.spyOn(variableApi, "remove").mockResolvedValue(undefined);
+    setup([variable(2, "card_name")]);
+    fireEvent.click(screen.getByRole("button", { name: "card_name 편집" }));
+    const dialog = await screen.findByRole("dialog", { name: "변수 편집" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "삭제" }));
+    const confirm = await screen.findByRole("dialog", { name: "「card_name」 변수를 삭제할까요?" });
+    expect(remove).not.toHaveBeenCalled();
+    fireEvent.click(within(confirm).getByRole("button", { name: "취소" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: /변수를 삭제할까요/ })).toBeNull());
+    fireEvent.click(within(dialog).getByRole("button", { name: "삭제" }));
+    fireEvent.click(within(await screen.findByRole("dialog", { name: /변수를 삭제할까요/ })).getByRole("button", { name: "삭제" }));
+    await waitFor(() => expect(remove).toHaveBeenCalledWith(2));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(useToastStore.getState().message).toBe("변수를 삭제했습니다");
+  });
+
+  it("lists deleted variables as 삭제 with their history; they do not open (reference 삭제 (이력 보존))", () => {
     setup([variable(1, "customer_name"), variable(4, "gone", { deleted: true, active: false })]);
-    const row = screen.getByRole("row", { name: /gone/ });
-    expect(within(row).getAllByRole("cell")[4].textContent).toBe("삭제");
-    expect(row.textContent).toContain("10/1 10:00 등록");
-    expect(row.textContent).toContain("10/2 10:00 삭제 (이력 보존)");
-    expect(row.textContent!.indexOf("등록")).toBeLessThan(row.textContent!.indexOf("삭제 (이력"));
-    expect((within(row).getByRole("button", { name: "편집" }) as HTMLButtonElement).disabled).toBe(true);
-    expect((within(row).getByRole("button", { name: "삭제" }) as HTMLButtonElement).disabled).toBe(true);
+    const r = row("gone");
+    expect(within(r).getAllByRole("cell")[4].textContent).toBe("삭제");
+    expect(r.textContent).toContain("10/1 10:00 등록");
+    expect(r.textContent).toContain("10/2 10:00 삭제 (이력 보존)");
+    expect(r.textContent!.indexOf("등록")).toBeLessThan(r.textContent!.indexOf("삭제 (이력"));
+    expect(within(r).queryByRole("button")).toBeNull();
+    fireEvent.click(within(r).getAllByRole("cell")[1]);
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("opens the edit modal with the variable values", () => {
     setup([variable(1, "customer_name", { inUse: true })]);
-    fireEvent.click(screen.getByRole("button", { name: "편집" }));
+    fireEvent.click(screen.getByRole("button", { name: "customer_name 편집" }));
     expect(screen.getByRole("heading", { name: "변수 편집" })).toBeTruthy();
     expect((screen.getByLabelText(/변수 키/) as HTMLInputElement).value).toBe("customer_name");
     fireEvent.change(screen.getByLabelText(/변수 키/), { target: { value: "customer" } });

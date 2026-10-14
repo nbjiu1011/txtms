@@ -1,8 +1,8 @@
 "use client";
 
 import { LIST_PAGE_SIZE, formatDateTime, useClampPage, useListPage } from "@/shared/lib";
-import { Empty, ListItem, Page, PageHeader, Panel } from "@/shared/ui";
-import { Button, Pager } from "@/shared/common";
+import { Empty, Page, PageHeader, Panel, Tag } from "@/shared/ui";
+import { Button, DataTable, RowLink, type DataTableColumn } from "@/shared/common";
 import { isCustomerAdmin } from "@/entities/me";
 import { noticePostedAt, noticeScopeText, useNotices, type Notice } from "@/entities/notice";
 import { useUserDirectory } from "@/entities/user";
@@ -17,8 +17,32 @@ export function NoticesView({ me, context, openTab }: WorkViewProps) {
   const users = useUserDirectory(customerId);
 
   const projectName = (id: number) => projects.find((p) => p.id === id)?.name;
-  const meta = (n: Notice) =>
-    `${noticeScopeText(n, projectName)}  ${users.name(n.authorId)}  ${formatDateTime(noticePostedAt(n))}${n.edited ? "  수정됨" : ""}`;
+  const openNotice = (n: Notice) => openTab({ route: "notice", params: { id: String(n.id) } });
+  const columns: DataTableColumn<Notice>[] = [
+    {
+      id: "title",
+      name: "제목",
+      grow: 1,
+      minWidth: "260px",
+      rowAction: true,
+      cell: (n) => (
+        <span>
+          <RowLink onClick={() => openNotice(n)} label={`공지 ${n.title} 열기`}>
+            {n.title}
+          </RowLink>
+          {n.edited ? (
+            <>
+              {" "}
+              <Tag>수정됨</Tag>
+            </>
+          ) : null}
+        </span>
+      ),
+    },
+    { id: "scope", name: "범위", width: "220px", cell: (n) => noticeScopeText(n, projectName) },
+    { id: "author", name: "작성자", width: "112px", cell: (n) => users.name(n.authorId) },
+    { id: "posted", name: "게시 시각", width: "120px", cell: (n) => formatDateTime(noticePostedAt(n)) },
+  ];
 
   return (
     <Page>
@@ -32,28 +56,27 @@ export function NoticesView({ me, context, openTab }: WorkViewProps) {
         }
       />
       <Panel aria-busy={notices.isFetching}>
-        {notices.isPending ? (
-          <Empty plain title="공지를 불러오는 중입니다" />
-        ) : notices.isError ? (
+        {notices.isError ? (
           <Empty
             title="공지를 불러오지 못했습니다"
             description={notices.error.message}
             action={<Button onClick={() => void notices.refetch()}>다시 시도</Button>}
           />
-        ) : notices.data.content.length === 0 ? (
-          <Empty title="공지가 없습니다" />
         ) : (
-          <>
-            {notices.data.content.map((n) => (
-              <ListItem
-                key={n.id}
-                title={n.title}
-                meta={meta(n)}
-                onClick={() => openTab({ route: "notice", params: { id: String(n.id) } })}
-              />
-            ))}
-            <Pager page={page} totalPages={notices.data.page.totalPages} onPage={setPage} />
-          </>
+          <DataTable
+            label="공지 목록"
+            columns={columns}
+            data={notices.data?.content ?? []}
+            onRowClick={openNotice}
+            loading={notices.isPending}
+            page={
+              notices.data
+                ? { number: page, size: notices.data.page.size, totalElements: notices.data.page.totalElements }
+                : undefined
+            }
+            onPage={setPage}
+            empty={<Empty title="공지가 없습니다" description="새 공지가 게시되면 여기에 표시됩니다." />}
+          />
         )}
       </Panel>
     </Page>

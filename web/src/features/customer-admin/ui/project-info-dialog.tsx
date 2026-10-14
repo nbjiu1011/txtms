@@ -14,10 +14,26 @@ export interface ProjectInfoDialogProps {
   users: UserDirectory;
   onEdit: (project: Project) => void;
   onMembers: (project: Project) => void;
+  /** 사용 중지 / 삭제 — asked again in their confirmation dialog. */
+  onConfirm: (project: Project, action: "stop" | "delete") => void;
+  /** 사용 (resume) runs at once. */
+  onResume: (project: Project) => void;
 }
 
-/** 프로젝트 정보 (기획서 11.1): state, lead, approvers, participants with roles, requests in progress, templates. */
-export function ProjectInfoDialog({ project: p, onClose, customer, users, onEdit, onMembers }: ProjectInfoDialogProps) {
+/**
+ * 프로젝트 정보 (기획서 11.1): state, lead, approvers, participants with roles, requests in progress, templates — and
+ * every project action: 수정 · 구성원 · 사용 중지/사용 · 삭제 (only for a project without history, `deletable`).
+ */
+export function ProjectInfoDialog({
+  project: p,
+  onClose,
+  customer,
+  users,
+  onEdit,
+  onMembers,
+  onConfirm,
+  onResume,
+}: ProjectInfoDialogProps) {
   if (!p) return null;
   const approvers = p.members.filter((m) => m.roles.includes("APPROVER")).map((m) => users.name(m.userId));
   return (
@@ -31,7 +47,19 @@ export function ProjectInfoDialog({ project: p, onClose, customer, users, onEdit
       foot={
         <div className={styles.foot}>
           <Button onClick={() => onEdit(p)}>수정</Button>
-          <Button onClick={() => onMembers(p)}>구성원 관리</Button>
+          <Button onClick={() => onMembers(p)}>구성원</Button>
+          {p.active ? (
+            <Button variant="warn" onClick={() => onConfirm(p, "stop")}>
+              사용 중지
+            </Button>
+          ) : (
+            <Button onClick={() => onResume(p)}>사용</Button>
+          )}
+          {p.deletable ? (
+            <Button variant="warn" onClick={() => onConfirm(p, "delete")}>
+              삭제
+            </Button>
+          ) : null}
         </div>
       }
     >
@@ -77,7 +105,7 @@ export function ProjectInfoDialog({ project: p, onClose, customer, users, onEdit
           </tbody>
         </Table>
       ) : (
-        <p className={styles.smallMuted}>구성원이 없습니다. 구성원 관리에서 추가하세요.</p>
+        <p className={styles.smallMuted}>구성원이 없습니다. 구성원에서 추가하세요.</p>
       )}
     </Modal>
   );

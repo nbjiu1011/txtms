@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { FilterBar, FilterField, Input, Select, filterClasses } from "@/shared/common";
+import { DateRangePicker, FilterBar, FilterField, Select, filterClasses } from "@/shared/common";
 import type { Project } from "@/entities/project";
 import {
   PERIOD_OPTIONS,
@@ -16,7 +16,10 @@ export interface PerformanceFiltersProps {
   reviewers: { id: number; name: string }[];
 }
 
-/** Reference `vPerf` filters + J: 기간 (접수일 KST), 접수일 직접 지정, 프로젝트 (+권한 있는 전체), 사용자. */
+/**
+ * Reference `vPerf` filters + J: 기간 (접수일 KST), 접수일 직접 지정 (one period field; cleared = the preset above),
+ * 프로젝트 (+권한 있는 전체), 사용자.
+ */
 export function PerformanceFilters({ value, onChange, projects, reviewers }: PerformanceFiltersProps) {
   const id = useId();
   const set = (patch: Partial<PerformanceFilter>) => onChange({ ...value, ...patch });
@@ -36,23 +39,15 @@ export function PerformanceFilters({ value, onChange, projects, reviewers }: Per
           ))}
         </Select>
       </FilterField>
-      <FilterField label="접수일 직접 지정">
-        <div className={filterClasses.range}>
-          <Input
-            type="date"
-            className={filterClasses.control}
-            aria-label="집계 시작일"
-            value={value.from}
-            onChange={(e) => set({ from: e.target.value })}
-          />
-          <Input
-            type="date"
-            className={filterClasses.control}
-            aria-label="집계 종료일"
-            value={value.to}
-            onChange={(e) => set({ to: e.target.value })}
-          />
-        </div>
+      <FilterField label="접수일 직접 지정" htmlFor={`${id}-range`}>
+        <DateRangePicker
+          id={`${id}-range`}
+          className={filterClasses.control}
+          placeholder="지정 안 함 (기간 기준)"
+          from={value.from}
+          to={value.to}
+          onChange={(from, to) => set({ from, to })}
+        />
       </FilterField>
       <FilterField label="프로젝트" htmlFor={`${id}-project`}>
         <Select

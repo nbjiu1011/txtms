@@ -21,10 +21,3 @@
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
-.faint {
-  color: var(--faint);
-}
-.previous {
-  background: var(--sunk);
-  padding: 12px 14px;
-}

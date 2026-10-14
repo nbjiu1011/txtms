@@ -1,7 +1,7 @@
 "use client";
 
 import { toast } from "@/shared/ui";
-import { Modal } from "@/shared/common";
+import { ConfirmModal } from "@/shared/common";
 import { requestApi } from "@/entities/request";
 import { handleWorkflowError } from "../model/workflow-error";
 
@@ -16,13 +16,13 @@ export interface UnlockDialogProps {
 /** 편집 잠금 강제 해제 (대표 검수자 · 고객사 관리자). */
 export function UnlockDialog({ target, onClose, onDone }: UnlockDialogProps) {
   return (
-    <Modal
+    <ConfirmModal
       open={target !== null}
       onClose={onClose}
-      title="편집 잠금을 해제할까요?"
+      title={target ? `${target.contentKey} 편집 잠금을 해제할까요?` : "편집 잠금을 해제할까요?"}
       description={target ? `${target.holderName}님이 저장하지 않은 수정 내용은 반영되지 않습니다.` : undefined}
-      okLabel="잠금 해제"
-      onOk={async () => {
+      confirmLabel="잠금 해제"
+      onConfirm={async () => {
         if (!target) return undefined;
         try {
           await requestApi.forceReleaseLock(target.requestId, target.contentKey);

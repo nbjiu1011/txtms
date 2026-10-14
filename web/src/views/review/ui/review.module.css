@@ -2,18 +2,9 @@
 div.seg {
   margin-bottom: 14px;
 }
-/* reference `.grid3{gap:16px;margin-bottom:18px;align-items:start}` */
-.grid3 {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+/* the 배정 관리 queues stack as full-width tables */
+.queue {
   margin-bottom: 18px;
-  align-items: start;
-}
-@media (max-width: 860px) {
-  .grid3 {
-    grid-template-columns: 1fr;
-  }
 }
 /* reference `.empty{padding:18px}` "없음" in queue panels */
 .none {
@@ -24,23 +15,6 @@ div.seg {
 .primary {
   font-weight: 600;
 }
-.faintSmall {
-  font-size: 12px;
-  color: var(--faint);
-}
 .faint {
   color: var(--faint);
-}
-.person {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-.wlNote {
-  font-size: 12px;
-  color: var(--faint);
-  margin: 10px 0 0;
-}
-th.loadCol {
-  width: 30%;
 }

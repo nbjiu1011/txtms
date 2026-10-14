@@ -19,6 +19,8 @@ import {
   log,
   main,
   pick,
+  pickDate,
+  pickRange,
   selectValueIs,
   startRun,
   statusIs,
@@ -71,7 +73,7 @@ await step("create; submit-check lists missing items before the confirmation", a
   await page.waitForURL(/\/requests\/REQ-/);
   id = page.url().split("/").pop();
   await m().getByLabel("제목", { exact: true }).fill(TITLE);
-  await m().getByLabel("희망 납기").fill("2026-11-30");
+  await pickDate(m().getByLabel("희망 납기"), "2026-11-30");
   await m().getByLabel("목적").fill("완료 결과 확인");
   await m().getByLabel("배경").fill("M3 점검");
   await m().getByLabel("캠페인").fill(CAMPAIGN);
@@ -170,11 +172,15 @@ await step("후속 요청 작성 (whole request) → new draft, breadcrumb back 
   log(`follow-up (whole) ${fuWhole}`);
 });
 
-await step("후속 요청 of C2 from the result row → draft with that item only", async () => {
+await step("후속 요청 of C2: the result row opens the content, its header writes the follow-up", async () => {
   await m().getByRole("tab", { name: "완료 결과" }).click();
-  await m().getByRole("button", { name: "C2 후속 요청" }).click();
+  await m().getByRole("button", { name: `C2 ${C2_TITLE} 열기` }).click();
+  await page.waitForURL(new RegExp(`/requests/${id}/contents/C2$`));
+  await m().getByRole("button", { name: "후속 요청 작성" }).click();
   await toastSeen(page, "완료본과 연결된 후속 요청을 만들었습니다");
-  await page.waitForURL((u) => u.pathname.startsWith("/requests/REQ-") && !u.pathname.endsWith(id) && !u.pathname.endsWith(fuWhole));
+  await page.waitForURL(
+    (u) => /^\/requests\/REQ-[^/]+$/.test(u.pathname) && !u.pathname.endsWith(id) && !u.pathname.endsWith(fuWhole),
+  );
   fuSingle = page.url().split("/").pop();
   await expect(m().getByText("콘텐츠 1건")).toBeVisible();
   await expect(m().getByLabel("콘텐츠 제목")).toHaveValue(C2_TITLE);
@@ -189,40 +195,45 @@ await step("complete the C2 follow-up (API) so the line has a past version", asy
 
 /* ---------- 콘텐츠 archive ---------- */
 
-const lines = () => m().getByRole("list", { name: "완료 콘텐츠" }).getByRole("listitem");
-const line = (title) => m().getByRole("listitem", { name: new RegExp(`^${title}`) });
+// table rows with content (the header row has no 열기 button)
+const opener = (title = ".+") => page.getByRole("button", { name: new RegExp(`^${title} v\\d+ 열기$`) });
+const lines = () => m().getByRole("table", { name: "완료 콘텐츠" }).getByRole("row").filter({ has: opener() });
+const line = (title) => lines().filter({ has: opener(title) });
 
 await step("archive: lineage (past + follow-ups), toggle labels", async () => {
   await page.goto(`${BASE}/contents`);
   await expect(m().getByRole("heading", { level: 1, name: "콘텐츠" })).toBeVisible();
   await m().getByLabel("문안, 파일명, 본문").fill(stamp);
   await expect(lines()).toHaveCount(2);
-  await expect(lines().first()).toHaveAccessibleName(new RegExp(`^${C2_TITLE}`));
+  await expect(lines().first().getByRole("button", { name: new RegExp(`^${C2_TITLE} v`) })).toBeVisible();
   const c2 = line(C2_TITLE);
-  await expect(c2.getByText(new RegExp(`${fuSingle}\\s+알림톡\\s+승인 완료`))).toBeVisible();
-  await c2.getByRole("button", { name: "이력 2" }).click();
-  await expect(c2.getByRole("button", { name: "접기" })).toBeVisible();
+  await expect(c2.getByText(fuSingle, { exact: true })).toBeVisible();
+  await expect(c2.getByText("알림톡", { exact: true })).toBeVisible();
+  await expect(c2.getByText("승인 완료", { exact: true })).toBeVisible();
+  await c2.getByRole("button", { name: `${C2_TITLE} 이력 2` }).click();
+  await expect(c2.getByRole("button", { name: `${C2_TITLE} 접기` })).toBeVisible();
   await expect(c2.getByText(/과거 완료본/)).toContainText(id);
   await expect(c2.getByText(/후속 요청 REQ/)).toContainText(fuWhole);
   const c1 = line(C1_TITLE);
   // the preview is the raw text with variable chips (reference `renderVars`, `previewRaw`); 복사 uses the values
   await expect(c1.getByText("customer_name", { exact: true })).toBeVisible();
   await expect(c1.getByText(`님, ${stamp} 포인트가 적립되었습니다.`)).toBeVisible();
-  await c1.getByRole("button", { name: "이력 1" }).click();
+  await c1.getByRole("button", { name: `${C1_TITLE} 이력 1` }).click();
   await expect(c1.getByText(/후속 요청 REQ/)).toContainText(fuWhole);
   await expect(c1.getByText("작성 중")).toBeVisible();
   await shot(page, "03-archive-lineage");
-  await c1.getByRole("button", { name: "접기" }).click();
-  await expect(c1.getByRole("button", { name: "이력 1" })).toBeVisible();
+  await c1.getByRole("button", { name: `${C1_TITLE} 접기` }).click();
+  await expect(c1.getByRole("button", { name: `${C1_TITLE} 이력 1` })).toBeVisible();
 });
 
-await step("archive: copy uses the resolved text; 새 탭 opens the content", async () => {
+await step("archive: copy (the one row action) uses the resolved text; the row opens the content", async () => {
   const c1 = line(C1_TITLE);
   await page.evaluate(() => navigator.clipboard.writeText(""));
-  await c1.getByRole("button", { name: "복사" }).click();
+  await c1.getByRole("button", { name: `${C1_TITLE} 복사` }).click();
   await toastSeen(page, "문안을 복사했습니다");
   await expect.poll(clipboard).toBe(C1_RESOLVED);
-  await c1.getByRole("button", { name: "새 탭" }).click();
+  await expect(page).toHaveURL(/\/contents$/);
+  await c1.getByRole("button", { name: new RegExp(`^${C1_TITLE} v`) }).click();
   await page.waitForURL(new RegExp(`/requests/${id}/contents/C1$`));
   await expect(m().getByRole("heading", { level: 1, name: C1_TITLE })).toBeVisible();
 });
@@ -240,11 +251,9 @@ await step("archive: filters (campaign, type, status, completion date, reset)", 
   await expect(m().getByText("보관된 완료 콘텐츠가 없습니다")).toBeVisible();
   await pick(f.getByLabel("요청 상태"), "APPROVED");
   await expect(lines()).toHaveCount(2);
-  await f.getByLabel("완료일 시작").fill(TODAY);
-  await f.getByLabel("완료일 끝").fill(TODAY);
+  await pickRange(f.getByLabel("완료일"), TODAY, TODAY);
   await expect(lines()).toHaveCount(2);
-  await f.getByLabel("완료일 시작").fill(TOMORROW);
-  await f.getByLabel("완료일 끝").fill(TOMORROW);
+  await pickRange(f.getByLabel("완료일"), TOMORROW, TOMORROW);
   await expect(m().getByText("보관된 완료 콘텐츠가 없습니다")).toBeVisible();
   await shot(page, "04-archive-filtered-empty");
   await f.getByRole("button", { name: "초기화" }).click();
@@ -262,12 +271,14 @@ await step("archive: filters (campaign, type, status, completion date, reset)", 
   } else log(`one page of lines (${await lines().count()})`);
 });
 
-await step("archive: 후속 요청 from a line (requester)", async () => {
+await step("archive: 후속 요청 from a line's content (requester)", async () => {
   await m().getByLabel("문안, 파일명, 본문").fill(stamp);
   await expect(lines()).toHaveCount(2);
-  await line(C1_TITLE).getByRole("button", { name: "후속 요청" }).click();
+  await line(C1_TITLE).getByRole("button", { name: new RegExp(`^${C1_TITLE} v`) }).click();
+  await page.waitForURL(new RegExp(`/requests/${id}/contents/C1$`));
+  await m().getByRole("button", { name: "후속 요청 작성" }).click();
   await toastSeen(page, "완료본과 연결된 후속 요청을 만들었습니다");
-  await page.waitForURL((u) => u.pathname.startsWith("/requests/REQ-"));
+  await page.waitForURL((u) => /^\/requests\/REQ-[^/]+$/.test(u.pathname) && !u.pathname.endsWith(id));
   await expect(m().getByLabel("본문")).toHaveValue(C1_BODY);
   log(`follow-up (archive line) ${page.url().split("/").pop()}`);
 });
@@ -281,7 +292,7 @@ await step("자유입력형 uploads: FILE_UNSAFE / FILE_SCAN_FAILED / SAFE", asy
   await page.waitForURL((u) => /\/requests\/REQ-/.test(u.pathname));
   freeId = page.url().split("/").pop();
   await m().getByLabel("제목", { exact: true }).fill(`M3 첨부 반출 ${stamp}`);
-  await m().getByLabel("희망 납기").fill("2026-11-30");
+  await pickDate(m().getByLabel("희망 납기"), "2026-11-30");
   await m().getByLabel("목적").fill("첨부 반출 확인");
   await m().getByLabel("대상 고객").fill("전체 회원");
   await m().getByLabel("배경").fill("M3 점검");

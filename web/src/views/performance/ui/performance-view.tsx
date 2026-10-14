@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { kstDateKey } from "@/shared/lib";
-import { Avatar, Bar, Empty, Kpi, KpiGrid, Page, PageHeader, Panel, PanelBody, PanelHeader, Table } from "@/shared/ui";
-import { Button } from "@/shared/common";
-import { usePerformance, type Performance } from "@/entities/dashboard";
+import { Avatar, Bar, Empty, Kpi, KpiGrid, Page, PageHeader, Panel, PanelBody, PanelHeader } from "@/shared/ui";
+import { Button, DataTable, type DataTableColumn } from "@/shared/common";
+import { usePerformance, type Performance, type PerformancePerson } from "@/entities/dashboard";
 import { isCustomerAdmin } from "@/entities/me";
 import { useUserDirectory, type UserDirectory } from "@/entities/user";
 import type { WorkViewProps } from "@/widgets/app-shell";
@@ -71,6 +71,35 @@ export function PerformanceView({ me, context }: WorkViewProps) {
 
 function PerformanceBody({ data, users }: { data: Performance; users: UserDirectory }) {
   const max = Math.max(1, ...data.people.map((p) => p.completedAsPrimary + p.coReviewed));
+  const name = (p: PerformancePerson) => users.get(p.userId)?.name ?? "-";
+  const columns: DataTableColumn<PerformancePerson>[] = [
+    {
+      id: "user",
+      name: "사용자",
+      width: "140px",
+      cell: (p) => (
+        <span className={styles.person}>
+          <Avatar name={name(p)} color={users.get(p.userId)?.avatarColor} size={22} />
+          {name(p)}
+        </span>
+      ),
+    },
+    { id: "primary", name: "검수 완료 처리", width: "112px", cell: (p) => p.completedAsPrimary },
+    { id: "co", name: "공동 검수 참여", width: "112px", cell: (p) => p.coReviewed },
+    { id: "managed", name: "배정·관리", width: "96px", cell: (p) => p.assignmentsManaged },
+    { id: "active", name: "현재 활성", width: "88px", cell: (p) => p.active },
+    {
+      id: "bar",
+      name: <span className={styles.sr}>실적 비율</span>,
+      grow: 1,
+      minWidth: "160px",
+      cell: (p) => (
+        <span className={styles.bar}>
+          <Bar percent={((p.completedAsPrimary + p.coReviewed) / max) * 100} label={`${name(p)} 실적`} />
+        </span>
+      ),
+    },
+  ];
   return (
     <>
       <KpiGrid>
@@ -91,44 +120,13 @@ function PerformanceBody({ data, users }: { data: Performance; users: UserDirect
       </KpiGrid>
       <Panel className={styles.people}>
         <PanelHeader title="개인 실적" note="검수 완료는 주담당 처리 건, 배정·관리는 대표 검수자 활동" />
-        <Table>
-          <thead>
-            <tr>
-              <th>사용자</th>
-              <th>검수 완료 처리</th>
-              <th>공동 검수 참여</th>
-              <th>배정·관리</th>
-              <th>현재 활성</th>
-              <th className={styles.barCol}>
-                <span className={styles.sr}>실적 비율</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.people.map((p) => {
-              const user = users.get(p.userId);
-              const name = user?.name ?? "-";
-              return (
-                <tr key={p.userId}>
-                  <td>
-                    <span className={styles.person}>
-                      <Avatar name={name} color={user?.avatarColor} size={22} />
-                      {name}
-                    </span>
-                  </td>
-                  <td>{p.completedAsPrimary}</td>
-                  <td>{p.coReviewed}</td>
-                  <td>{p.assignmentsManaged}</td>
-                  <td>{p.active}</td>
-                  <td>
-                    <Bar percent={((p.completedAsPrimary + p.coReviewed) / max) * 100} label={`${name} 실적`} />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </Table>
-        {data.people.length === 0 ? <Empty plain title="해당하는 검수자가 없습니다" /> : null}
+        <DataTable
+          label="개인 실적"
+          columns={columns}
+          data={data.people}
+          keyField="userId"
+          empty={<Empty plain title="해당하는 검수자가 없습니다" description="기간이나 프로젝트를 바꿔 보세요." />}
+        />
       </Panel>
       <Panel>
         <PanelHeader title="현재 업무량" />

@@ -2,8 +2,10 @@
 .people {
   margin-bottom: 18px;
 }
-th.barCol {
-  width: 28%;
+/* the ratio bar fills its cell */
+.bar {
+  display: block;
+  width: 100%;
 }
 .person {
   display: inline-flex;

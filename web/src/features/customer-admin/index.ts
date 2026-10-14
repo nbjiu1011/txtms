@@ -19,5 +19,4 @@ export { NoticeConfirmDialog, useNoticeQuickAction } from "./ui/notice-state-dia
 export type { NoticeConfirm, NoticeConfirmDialogProps } from "./ui/notice-state-dialog";
 export { CustomerSettingsForm } from "./ui/customer-settings-form";
 export { useMemberActions } from "./model/member-actions";
-export { useDeleteVariable } from "./model/variable-actions";
 export { variableUsageText } from "./model/variable-form";

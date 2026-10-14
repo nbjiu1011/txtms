@@ -3,7 +3,7 @@
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { ApiError } from "@/shared/api";
 import { toast } from "@/shared/ui";
-import { Modal, useServerError } from "@/shared/common";
+import { ConfirmModal, useServerError } from "@/shared/common";
 import { auditKeys } from "@/entities/audit";
 import { projectApi, projectKeys, type Project } from "@/entities/project";
 
@@ -34,7 +34,7 @@ export interface ProjectConfirm {
 
 const CONFIRM = {
   stop: {
-    title: "프로젝트를 사용 중지할까요?",
+    title: (name: string) => `「${name}」 프로젝트를 사용 중지할까요?`,
     description:
       "사용 중지한 프로젝트에서는 새 요청을 만들 수 없습니다. 요청·변수·이력은 그대로 보존되고 언제든 다시 사용할 수 있습니다.",
     ok: "사용 중지",
@@ -42,7 +42,7 @@ const CONFIRM = {
     fail: "프로젝트를 사용 중지하지 못했습니다",
   },
   delete: {
-    title: "프로젝트를 삭제할까요?",
+    title: (name: string) => `「${name}」 프로젝트를 삭제할까요?`,
     description: "요청·공지·변수 이력이 없는 프로젝트만 삭제할 수 있습니다. 구성원 지정도 함께 지워지고 되돌릴 수 없습니다.",
     ok: "삭제",
     done: "프로젝트를 삭제했습니다",
@@ -67,18 +67,17 @@ function ProjectConfirmBody({ confirm, onClose }: { confirm: ProjectConfirm; onC
   const server = useServerError(text.fail);
   const { project, action } = confirm;
   return (
-    <Modal
+    <ConfirmModal
       open
       onClose={onClose}
-      title={text.title}
+      title={text.title(project.name)}
       description={
         action === "stop" && (project.activeRequestCount ?? 0) > 0
           ? `진행 중인 요청이 ${project.activeRequestCount}건 있습니다. 요청을 완료하거나 담당자와 정리한 뒤 중지하세요.`
           : text.description
       }
-      okLabel={text.ok}
-      okVariant="warn"
-      onOk={async () => {
+      confirmLabel={text.ok}
+      onConfirm={async () => {
         try {
           await (action === "stop" ? projectApi.update(project.id, { active: false }) : projectApi.remove(project.id));
         } catch (error) {

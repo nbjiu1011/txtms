@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "@/shared/ui";
-import { Field, Modal, Textarea } from "@/shared/common";
+import { ConfirmModal, Field, Modal, Textarea } from "@/shared/common";
 import { requestApi, type RequestDetail } from "@/entities/request";
 import { firstMissing } from "../model/assignment-form";
 import { handleWorkflowError, modalResult } from "../model/workflow-error";
@@ -30,14 +30,13 @@ export function RecallDialog(props: RecallDialogProps) {
 function RecallBody({ onClose, request: r, rowVersion, onDone, onStale, primaryName }: RecallDialogProps) {
   const [reason, setReason] = useState("");
   return (
-    <Modal
+    <ConfirmModal
       open
       onClose={onClose}
-      title="회수를 요청할까요?"
+      title={`${r.id} 요청의 회수를 요청할까요?`}
       description={`주담당 검수자 ${primaryName}님이 승인하면 작성 중으로 돌아갑니다. 처리 전까지는 편집할 수 없습니다.`}
-      okLabel="회수 요청"
-      okVariant="warn"
-      onOk={async () => {
+      confirmLabel="회수 요청"
+      onConfirm={async () => {
         const problem = firstMissing([[reason, "회수 사유"]]);
         if (problem) {
           toast(problem);
@@ -54,7 +53,7 @@ function RecallBody({ onClose, request: r, rowVersion, onDone, onStale, primaryN
       <Field label="회수 사유" required htmlFor="recall-why">
         <Textarea id="recall-why" rows={3} className={styles.ta} value={reason} onChange={(e) => setReason(e.target.value)} />
       </Field>
-    </Modal>
+    </ConfirmModal>
   );
 }
 

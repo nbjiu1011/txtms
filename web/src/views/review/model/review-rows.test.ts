@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { RequestSummary } from "@/entities/request";
 import { request101U2, request107U2 } from "@fixtures/api-snapshot";
-import { assignQueueMeta, reviewSubTabs, toMyReviewRow } from "./review-rows";
+import { reviewSubTabs, toAssignQueueRow, toMyReviewRow } from "./review-rows";
 
 const summary = (over: Partial<RequestSummary>): RequestSummary => ({ ...request101U2, ...over });
 
@@ -42,8 +42,14 @@ describe("review screen rows", () => {
     expect(toMyReviewRow(summary({ title: "" }), 2).title).toBe("제목 없는 요청");
   });
 
-  it("배정 관리 meta line: id, requester, hope and due dates, urgency", () => {
-    const r = summary({ id: "REQ-9", hopeDueDate: "2026-10-10", dueDate: null, urgency: "URGENT" });
-    expect(assignQueueMeta(r, "김서연")).toBe("REQ-9  김서연  희망 10월 10일  확정 -  긴급");
+  it("배정 관리 row: id, hope and due dates, urgency, untitled name", () => {
+    const r = summary({ id: "REQ-9", title: "", hopeDueDate: "2026-10-10", dueDate: null, urgency: "URGENT" });
+    expect(toAssignQueueRow(r)).toMatchObject({
+      id: "REQ-9",
+      title: "제목 없는 요청",
+      hope: "10월 10일",
+      due: "-",
+      urgency: "긴급",
+    });
   });
 });

@@ -7,7 +7,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { chromium, expect } from "@playwright/test";
-import { pick, reportConsole, selectValueIs, watchConsole } from "./helpers.mjs";
+import { pick, pickDate, reportConsole, selectValueIs, watchConsole } from "./helpers.mjs";
 
 const BASE = process.env.BASE ?? "http://localhost:4246";
 const FILES = process.env.FILES ?? "e2e/real/files";
@@ -76,7 +76,8 @@ await step("submit with missing fields lists them", async () => {
 });
 
 await step("fix info", async () => {
-  await main.getByLabel("희망 납기").fill("2026-10-30");
+  await pickDate(main.getByLabel("희망 납기"), "2026-10-30");
+  await expect(main.getByLabel("희망 납기")).toHaveAttribute("data-value", "2026-10-30");
   await main.getByLabel("대상 고객").fill("카드 보유 고객");
   await main.getByLabel("배경").fill("M1 점검용 배경");
   await saved();
@@ -164,7 +165,7 @@ await step("submit", async () => {
 
 await step("cancel", async () => {
   await page.getByRole("button", { name: "요청 취소" }).click();
-  const dlg = page.getByRole("dialog", { name: "검수 요청을 취소할까요?" });
+  const dlg = page.getByRole("dialog", { name: `${id} 검수 요청을 취소할까요?` });
   await dlg.getByRole("button", { name: "요청 취소" }).click();
   await expect(main.getByText("검수 요청 전입니다")).toBeVisible();
 });
@@ -210,6 +211,8 @@ await step("freeform draft: type change + uploads", async () => {
   log(`downloaded ${(await download).suggestedFilename()}`);
   await shot("10-freeform");
   await main.getByRole("button", { name: "notes.txt 삭제" }).click();
+  // attachment 삭제 asks first
+  await page.getByRole("dialog", { name: "첨부파일 「notes.txt」을(를) 삭제할까요?" }).getByRole("button", { name: "삭제" }).click();
   await expect(main.getByRole("button", { name: "notes.txt 삭제" })).toHaveCount(0);
 });
 

@@ -65,11 +65,15 @@ export function AdminNoticeDetailView({ tab, context, openTab, setTitle }: WorkV
         actions={
           <div className={styles.actions}>
             {back}
-            {sameCustomer && n.deleted ? <Button onClick={() => void quick(n, "restore")}>복원</Button> : null}
+            {sameCustomer && n.deleted ? (
+              <Button variant="pri" onClick={() => void quick(n, "restore")}>
+                복원
+              </Button>
+            ) : null}
             {editable ? (
               <>
                 {n.published ? (
-                  <Button variant="ghost" onClick={() => setConfirm({ notice: n, action: "unpublish" })}>
+                  <Button variant="warn" onClick={() => setConfirm({ notice: n, action: "unpublish" })}>
                     게시 중지
                   </Button>
                 ) : (
@@ -78,7 +82,7 @@ export function AdminNoticeDetailView({ tab, context, openTab, setTitle }: WorkV
                   </Button>
                 )}
                 <Button onClick={() => setEditing(true)}>수정</Button>
-                <Button variant="ghost" onClick={() => setConfirm({ notice: n, action: "delete" })}>
+                <Button variant="warn" onClick={() => setConfirm({ notice: n, action: "delete" })}>
                   삭제
                 </Button>
               </>

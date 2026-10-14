@@ -104,7 +104,7 @@ export interface DeactivateCustomerDialogProps {
   customer: OpsCustomer | null;
 }
 
-/** `{고객사} 비활성화` (reference `opsCustDeact`): impact, required reason, refusal while work remains. */
+/** `고객사 「…」를 비활성화할까요?` (reference `opsCustDeact`): impact, required reason, refusal while work remains. */
 export function DeactivateCustomerDialog(props: DeactivateCustomerDialogProps) {
   if (!props.open || !props.customer) return null;
   return <DeactivateBody {...props} customer={props.customer} />;
@@ -137,7 +137,7 @@ function DeactivateBody({ onClose, customer }: DeactivateCustomerDialogProps & {
     <Modal
       open
       onClose={onClose}
-      title={`${customer.name} 비활성화`}
+      title={`고객사 「${customer.name}」를 비활성화할까요?`}
       description="물리 삭제는 1차 범위가 아닙니다. 이력과 완료본은 비활성 상태로 보존합니다."
       okLabel="비활성화"
       okVariant="warn"

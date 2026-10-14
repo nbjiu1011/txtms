@@ -82,10 +82,14 @@ describe("AdminUserDetailView", () => {
     expect(screen.getByText("콘텐츠검수팀")).toBeTruthy();
     expect(screen.getByText("new@hanbitcard.co.kr")).toBeTruthy();
     expect(screen.getByText("검수자, 대표 검수자")).toBeTruthy();
-    expect(screen.getByText("검수 중 1건")).toBeTruthy();
+    expect(screen.getByText("검수 중 1건 · 요청 중 0건 · 대표 검수자: 카드 혜택 알림")).toBeTruthy();
+    expect(screen.getByRole("row", { name: /카드 혜택 알림/ })).toBeTruthy();
     await waitFor(() => expect(props.setTitle).toHaveBeenCalledWith("박지훈"));
     fireEvent.click(screen.getByRole("button", { name: /REQ-2610-121/ }));
     expect(props.openTab).toHaveBeenCalledWith({ route: "request", params: { id: "REQ-2610-121" } });
+    // a row click opens the request too
+    fireEvent.click(within(screen.getByRole("row", { name: /REQ-2610-121/ })).getAllByRole("cell")[1]);
+    expect(props.openTab).toHaveBeenCalledTimes(2);
     fireEvent.click(screen.getByRole("button", { name: "목록" }));
     expect(props.openTab).toHaveBeenCalledWith({ route: "adminUsers", params: {} });
   });
@@ -129,6 +133,12 @@ describe("AdminUserDetailView", () => {
     expect(screen.queryByRole("button", { name: "비활성화" })).toBeNull();
     expect(screen.queryByRole("button", { name: "관리자 지정" })).toBeNull();
     expect(screen.queryByText("진행 업무")).toBeNull();
+  });
+
+  it("the destructive account actions use the warn look", () => {
+    setup(member({ admin: true }));
+    expect(screen.getByRole("button", { name: "비활성화" }).className).toContain("text-danger");
+    expect(screen.getByRole("button", { name: "관리자 해제" }).className).toContain("text-danger");
   });
 
   it("an inactive user can be reactivated", () => {

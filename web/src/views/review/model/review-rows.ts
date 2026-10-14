@@ -38,7 +38,27 @@ export function toMyReviewRow(r: RequestSummary, meId: number): MyReviewRow {
   };
 }
 
-/** Meta line of a 배정 관리 item: `{id}  {요청자}  희망 {날짜}  확정 {날짜}  {긴급도}`. */
-export function assignQueueMeta(r: RequestSummary, requesterName: string): string {
-  return `${r.id}  ${requesterName}  희망 ${formatDate(r.hopeDueDate)}  확정 ${formatDate(r.dueDate)}  ${URGENCY_LABEL[r.urgency]}`;
+/** One row of a 배정 관리 queue (배정 대기 / 지연 / 납기 임박). */
+export interface AssignQueueRow {
+  id: string;
+  title: string;
+  status: RequestSummary["status"];
+  requesterId: number;
+  hope: string;
+  due: string;
+  urgency: string;
+  reviewerIds: number[];
+}
+
+export function toAssignQueueRow(r: RequestSummary): AssignQueueRow {
+  return {
+    id: r.id,
+    title: r.title || "제목 없는 요청",
+    status: r.status,
+    requesterId: r.requesterId,
+    hope: formatDate(r.hopeDueDate),
+    due: formatDate(r.dueDate),
+    urgency: URGENCY_LABEL[r.urgency],
+    reviewerIds: r.reviewerIds,
+  };
 }

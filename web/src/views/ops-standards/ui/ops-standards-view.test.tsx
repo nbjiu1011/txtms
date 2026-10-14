@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useViewIntent } from "@/shared/lib";
 import { useToastStore } from "@/shared/ui";
@@ -81,6 +81,7 @@ function setup() {
     assignment(2, "ALIMTALK", 2, true),
   ]);
   client.setQueryData(opsKeys.contentTypes(), types);
+  for (const d of datasets) client.setQueryData(opsKeys.dataset(d.id), { ...d, rules: [] });
   // keep the seeded lists after the post-write invalidation (no network in tests)
   vi.spyOn(client, "invalidateQueries").mockResolvedValue();
   const props: WorkViewProps = {
@@ -184,5 +185,25 @@ describe("유형 관리", () => {
     fireEvent.click(screen.getByRole("tab", { name: "유형 관리" }));
     fireEvent.click(screen.getByRole("checkbox", { name: "문자 사용" }));
     await waitFor(() => expect(setActive).toHaveBeenCalledWith("SMS", false));
+  });
+});
+
+describe("데이터셋 시드", () => {
+  it("lists the registered versions and opens the rules dialog from a row (no separate button)", () => {
+    setup();
+    fireEvent.click(screen.getByRole("tab", { name: "데이터셋 시드" }));
+    expect(screen.getByRole("heading", { level: 1, name: "교정 데이터셋" })).toBeTruthy();
+    expect(screen.queryByText("규칙 보기")).toBeNull();
+    // a click elsewhere on the row opens the rules
+    const row = screen.getByRole("button", { name: "알림톡 v2 규칙 보기" }).closest<HTMLElement>('[role="row"]')!;
+    fireEvent.click(within(row).getAllByRole("cell")[1]);
+    expect(screen.getByRole("dialog", { name: "알림톡 v2 규칙" })).toBeTruthy();
+  });
+
+  it("opens the rules from the version name by keyboard", () => {
+    setup();
+    fireEvent.click(screen.getByRole("tab", { name: "데이터셋 시드" }));
+    fireEvent.click(screen.getByRole("button", { name: "문자 v1 규칙 보기" }));
+    expect(screen.getByRole("dialog", { name: "문자 v1 규칙" })).toBeTruthy();
   });
 });

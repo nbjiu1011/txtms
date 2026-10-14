@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Customer } from "@/entities/customer";
 import { useSessionStore, type Me } from "@/entities/me";
@@ -99,6 +99,13 @@ describe("ProfileView", () => {
     const roles = screen.getByRole("heading", { name: "소속과 역할" }).closest("section") as HTMLElement;
     expect(within(roles).getByText("관리 권한").nextElementSibling?.textContent).toBe("솔루션 운영 담당자");
     expect(within(roles).getByText("고객사").nextElementSibling?.textContent).toBe("-");
+
+    // 시연 데이터 초기화 is destructive: warn trigger, then a question with a warn 초기화
+    const reset = screen.getByRole("button", { name: "시연 데이터 초기화" });
+    expect(reset.className).toContain("text-danger");
+    fireEvent.click(reset);
+    const d = screen.getByRole("dialog", { name: "샘플 고객사의 시연 데이터를 초기화할까요?" });
+    expect(within(d).getByRole("button", { name: "초기화" }).className).toContain("text-danger");
   });
 });
 

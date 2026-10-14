@@ -9,6 +9,26 @@ if (typeof Element !== "undefined") {
   Element.prototype.scrollIntoView ??= () => {};
 }
 
+// react-data-table-component reads the viewport width (matchMedia) and watches its size (ResizeObserver).
+if (typeof window !== "undefined") {
+  window.matchMedia ??= (query: string) =>
+    ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }) as MediaQueryList;
+  window.ResizeObserver ??= class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+}
+
 afterEach(() => {
   cleanup();
 });

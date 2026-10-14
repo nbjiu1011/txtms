@@ -9,7 +9,7 @@ import { AssignDialog } from "./assign-dialog";
 import { CompleteDialog } from "./complete-dialog";
 import { RecallDecisionDialog } from "./recall-dialogs";
 import type { ReviewerCandidate } from "./reviewer-picker";
-import { chooseValue } from "@/shared/common/testing";
+import { chooseValue, pickDate } from "@/shared/common/testing";
 
 vi.mock("@/shared/ui", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/shared/ui")>()),
@@ -60,12 +60,17 @@ describe("AssignDialog", () => {
     fireEvent.click(within(dialog).getByRole("checkbox", { name: /박지훈/ }));
     fireEvent.click(within(dialog).getByRole("radio", { name: "박지훈" }));
     chooseValue(within(dialog).getByLabelText("긴급도"), "URGENT");
+    // 확정 납기 is a calendar field (required: no 지우기)
+    const due = within(dialog).getByLabelText("확정 납기");
+    expect(due.getAttribute("data-value")).toBe("2026-10-10");
+    pickDate(due, "2026-10-12");
+    expect(due.getAttribute("data-value")).toBe("2026-10-12");
     fireEvent.click(within(dialog).getByRole("button", { name: "배정" }));
     await waitFor(() => expect(common.onDone).toHaveBeenCalled());
     expect(assign).toHaveBeenCalledWith(waiting.id, 9, {
       reviewerIds: [2, 6],
       primaryReviewerId: 2,
-      dueDate: "2026-10-10",
+      dueDate: "2026-10-12",
       urgency: "URGENT",
     });
   });

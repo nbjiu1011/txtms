@@ -17,6 +17,7 @@ describe("DeleteRequestDialog", () => {
     const remove = vi.spyOn(requestApi, "remove").mockResolvedValue(undefined);
     const onDeleted = vi.fn();
     render(<DeleteRequestDialog open onClose={vi.fn()} requestId="REQ-1" onDeleted={onDeleted} onStale={vi.fn()} />);
+    expect(screen.getByRole("dialog", { name: "REQ-1 요청을 삭제할까요?" })).toBeTruthy();
     expect(screen.getByText("삭제한 요청은 되돌릴 수 없습니다. 콘텐츠와 첨부파일도 함께 삭제됩니다.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "삭제" }));
     await waitFor(() => expect(onDeleted).toHaveBeenCalled());

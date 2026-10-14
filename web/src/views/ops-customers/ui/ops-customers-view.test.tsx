@@ -1,9 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { http } from "@/shared/api";
 import type { Me } from "@/entities/me";
-import { opsKeys, type OpsCustomer } from "@/entities/ops";
+import { opsApi, opsKeys, type OpsCustomer } from "@/entities/ops";
 import type { Project } from "@/entities/project";
 import type { Member } from "@/entities/user";
 import type { WorkViewProps } from "@/widgets/app-shell";
@@ -85,24 +85,30 @@ afterEach(() => {
 });
 
 describe("고객사 관리 list", () => {
-  it("shows one server page, opens the detail tab from a name and asks the server for the next page", async () => {
+  it("shows one server page, opens the detail tab from a row or its name and asks the server for the next page", async () => {
     const client = newClient();
-    const first = Array.from({ length: 20 }, (_, i) => customer(i + 1, `고객사${i + 1}`));
+    const first = Array.from({ length: 20 }, (_, i) => customer(i + 1, `고객사${i + 1}`, { active: i !== 4 }));
     client.setQueryData(opsKeys.customers(0, 20), pageOf(first, 0, 2, 21));
     client.setQueryData(opsKeys.customerOptions(), first);
     const get = vi.spyOn(http, "get").mockResolvedValue(pageOf([customer(21, "마지막고객사")], 1, 2, 21));
     const p = props("opsCustomers");
     renderWith(client, <OpsCustomersView {...p} />);
 
-    expect(screen.getAllByRole("button", { name: /상세 보기$/ })).toHaveLength(20);
-    fireEvent.click(screen.getByRole("button", { name: "고객사3 상세 보기" }));
+    expect(screen.getAllByRole("button", { name: /열기$/ })).toHaveLength(20);
+    fireEvent.click(screen.getByRole("button", { name: "고객사3 열기" }));
     expect(p.openTab).toHaveBeenCalledWith({ route: "opsCustomer", params: { id: "3" } });
+    // a click on another cell of the row opens it too
+    const row = screen.getByRole("button", { name: "고객사7 열기" }).closest<HTMLElement>('[role="row"]')!;
+    fireEvent.click(within(row).getAllByRole("cell")[1]);
+    expect(p.openTab).toHaveBeenCalledWith({ route: "opsCustomer", params: { id: "7" } });
+    // status actions live on the detail page only
+    expect(screen.queryByRole("button", { name: /^(상세|비활성|비활성화|사용 재개)$/ })).toBeNull();
 
-    expect(screen.getByText("1 / 2")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "다음" }));
     expect(await screen.findByText("마지막고객사")).toBeTruthy();
     expect(get).toHaveBeenCalledWith("/ops/customers", { query: { page: 1, size: 20 } });
-    expect(screen.getByText("2 / 2")).toBeTruthy();
+    // the first pager is the customer list (the 운영 이력 below has its own)
+    expect(screen.getAllByRole("button", { name: "2 페이지" })[0].getAttribute("aria-current")).toBe("page");
   });
 });
 
@@ -150,10 +156,24 @@ describe("고객사 상세", () => {
     expect(p.openTab).toHaveBeenCalledWith({ route: "opsCustomers", params: {} });
   });
 
-  it("offers 사용 재개 for an inactive customer", () => {
+  it("asks before 비활성화 with a question naming the customer and a warn OK", () => {
+    setupDetail(customer(3, "새봄은행"));
+    expect(screen.queryByRole("button", { name: "사용 재개" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "비활성화" }));
+    const d = screen.getByRole("dialog", { name: "고객사 「새봄은행」를 비활성화할까요?" });
+    expect(within(d).getByLabelText(/비활성 사유/)).toBeTruthy();
+    expect(within(d).getByRole("button", { name: "비활성화" }).className).toContain("text-danger");
+  });
+
+  it("offers 사용 재개 for an inactive customer and runs it at once", async () => {
+    const reactivate = vi.spyOn(opsApi, "reactivateCustomer").mockResolvedValue(customer(3, "새봄은행"));
+    // the refresh after the write stays pending (no network in tests)
+    vi.spyOn(http, "get").mockReturnValue(new Promise(() => {}));
     setupDetail(customer(3, "새봄은행", { active: false, deactivationReason: "계약 종료" }));
-    expect(screen.getByRole("button", { name: "사용 재개" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "비활성화" })).toBeNull();
     expect(screen.getByText(/계약 종료/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "사용 재개" }));
+    await waitFor(() => expect(reactivate).toHaveBeenCalledWith(3));
   });
 
   it("reports a missing customer", () => {

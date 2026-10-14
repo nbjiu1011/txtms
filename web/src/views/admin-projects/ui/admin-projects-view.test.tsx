@@ -74,32 +74,43 @@ function setup() {
   );
 }
 
-const row = (name: string) => screen.getByRole("button", { name: `${name} 정보` }).closest("tr") as HTMLElement;
+const row = (name: string) =>
+  screen.getByRole("button", { name: `${name} 정보` }).closest('[role="row"]') as HTMLElement;
+const openInfo = async (name: string) => {
+  fireEvent.click(screen.getByRole("button", { name: `${name} 정보` }));
+  return screen.findByRole("dialog", { name });
+};
 
 afterEach(() => vi.restoreAllMocks());
 
 describe("AdminProjectsView", () => {
-  it("offers the actions that fit each project", () => {
+  it("keeps only 구성원 on the row; the information modal offers the actions that fit each project", async () => {
     setup();
     const live = within(row("프로젝트 1"));
-    expect(live.getByRole("button", { name: "수정" })).toBeTruthy();
-    expect(live.getByRole("button", { name: "구성원" })).toBeTruthy();
-    expect(live.getByRole("button", { name: "사용 중지" })).toBeTruthy();
-    expect(live.queryByRole("button", { name: "삭제" })).toBeNull();
-    const stopped = within(row("프로젝트 2"));
-    expect(stopped.getByText("중지")).toBeTruthy();
-    expect(stopped.getByRole("button", { name: "사용" })).toBeTruthy();
-    expect(stopped.getByRole("button", { name: "삭제" })).toBeTruthy();
+    expect(live.getAllByRole("button").map((b) => b.textContent)).toEqual(["프로젝트 1", "구성원"]);
+    const info = within(await openInfo("프로젝트 1"));
+    expect(info.getByRole("button", { name: "수정" })).toBeTruthy();
+    expect(info.getByRole("button", { name: "구성원" })).toBeTruthy();
+    expect(info.getByRole("button", { name: "사용 중지" }).className).toContain("text-danger");
+    expect(info.queryByRole("button", { name: "삭제" })).toBeNull();
   });
 
-  it("shows the project information and moves on to 구성원 관리", async () => {
+  it("a stopped project without history offers 사용 and 삭제", async () => {
     setup();
-    fireEvent.click(screen.getByRole("button", { name: "프로젝트 1 정보" }));
+    expect(within(row("프로젝트 2")).getByText("중지")).toBeTruthy();
+    const info = within(await openInfo("프로젝트 2"));
+    expect(info.getByRole("button", { name: "사용" })).toBeTruthy();
+    expect(info.getByRole("button", { name: "삭제" }).className).toContain("text-danger");
+  });
+
+  it("opens the information from a row click and moves on to 구성원", async () => {
+    setup();
+    fireEvent.click(within(row("프로젝트 1")).getAllByRole("cell")[1]);
     const info = await screen.findByRole("dialog", { name: "프로젝트 1" });
     expect(within(info).getByText("2건")).toBeTruthy();
     expect(within(info).getByText("포인트 적립 안내 (HB_POINT_01)")).toBeTruthy();
     expect(within(info).getByText("대표 검수자, 검수자")).toBeTruthy();
-    fireEvent.click(within(info).getByRole("button", { name: "구성원 관리" }));
+    fireEvent.click(within(info).getByRole("button", { name: "구성원" }));
     expect(await screen.findByRole("dialog", { name: "프로젝트 1 구성원" })).toBeTruthy();
   });
 
@@ -131,23 +142,24 @@ describe("AdminProjectsView", () => {
     const update = vi.spyOn(projectApi, "update").mockResolvedValue(project(1, { active: false }));
     const remove = vi.spyOn(projectApi, "remove").mockResolvedValue(undefined);
     setup();
-    fireEvent.click(within(row("프로젝트 1")).getByRole("button", { name: "사용 중지" }));
-    const stop = await screen.findByRole("dialog", { name: "프로젝트를 사용 중지할까요?" });
+    fireEvent.click(within(await openInfo("프로젝트 1")).getByRole("button", { name: "사용 중지" }));
+    const stop = await screen.findByRole("dialog", { name: "「프로젝트 1」 프로젝트를 사용 중지할까요?" });
     expect(within(stop).getByText(/진행 중인 요청이 2건 있습니다/)).toBeTruthy();
     fireEvent.click(within(stop).getByRole("button", { name: "사용 중지" }));
     await waitFor(() => expect(update).toHaveBeenCalledWith(1, { active: false }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 
-    fireEvent.click(within(row("프로젝트 2")).getByRole("button", { name: "삭제" }));
-    const del = await screen.findByRole("dialog", { name: "프로젝트를 삭제할까요?" });
+    fireEvent.click(within(await openInfo("프로젝트 2")).getByRole("button", { name: "삭제" }));
+    const del = await screen.findByRole("dialog", { name: "「프로젝트 2」 프로젝트를 삭제할까요?" });
     fireEvent.click(within(del).getByRole("button", { name: "삭제" }));
     await waitFor(() => expect(remove).toHaveBeenCalledWith(2));
     await waitFor(() => expect(lastToast()).toBe("프로젝트를 삭제했습니다"));
   });
 
-  it("resumes a stopped project at once", async () => {
+  it("resumes a stopped project at once from its information", async () => {
     const update = vi.spyOn(projectApi, "update").mockResolvedValue(project(2, {}));
     setup();
-    fireEvent.click(within(row("프로젝트 2")).getByRole("button", { name: "사용" }));
+    fireEvent.click(within(await openInfo("프로젝트 2")).getByRole("button", { name: "사용" }));
     await waitFor(() => expect(update).toHaveBeenCalledWith(2, { active: true }));
   });
 });

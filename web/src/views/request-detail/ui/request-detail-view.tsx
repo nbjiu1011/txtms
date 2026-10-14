@@ -6,7 +6,8 @@ import { Empty, Page, Panel, RoundBadge } from "@/shared/ui";
 import { Button } from "@/shared/common";
 import { projectRoles } from "@/entities/me";
 import { RequestStatusChip } from "@/entities/request";
-import { AccessDenied, type WorkViewProps } from "@/widgets/app-shell";
+import { AccessDenied, ensureTabRoom, type WorkViewProps } from "@/widgets/app-shell";
+import { useRequestCreate } from "@/features/request-create";
 import { UnlockDialog } from "@/features/request-workflow";
 import { useDraftEditing, type DraftEditing } from "../model/use-draft-editing";
 import { useRequestPage, type RequestPage } from "../model/use-request-page";
@@ -182,6 +183,9 @@ function ContentTabBody({ page, meId, openTab, contentKey, editing, revision, ti
   const openContent = (key: string) => openTab({ route: "content", params: { id: r.id, key } });
   const correction = useRequestCorrection({ page, meId, editing, revision, ownKey: contentKey, onOpenContent: openContent });
   const content = r.contents.find((c) => c.key === contentKey);
+  // 후속 요청 of this content (completed requests; lists such as 콘텐츠 and 완료 결과 open this tab).
+  const { followUp } = useRequestCreate((id) => openTab({ route: "request", params: { id } }), ensureTabRoom);
+  const canFollowUp = !!content && workflow.performable.has("FOLLOW_UP");
   return (
     <>
       <SaveFailureBanner editing={editing} />
@@ -202,6 +206,16 @@ function ContentTabBody({ page, meId, openTab, contentKey, editing, revision, ti
           <h1>{content ? title : ""}</h1>
           <RequestStatusChip status={r.status} />
           <RoundBadge>{r.round}차</RoundBadge>
+          {canFollowUp ? (
+            <>
+              <div className={header.sp} />
+              <div className={header.acts}>
+                <Button variant="ghost" onClick={() => void followUp(r.id, contentKey)}>
+                  후속 요청 작성
+                </Button>
+              </div>
+            </>
+          ) : null}
         </div>
       </div>
       <div className={header.reqBody}>

@@ -190,7 +190,7 @@ describe("ChangeEmailDialog", () => {
 });
 
 describe("RoleEditDialog", () => {
-  it("disables requester while reviewer is checked (and back) and keeps the lead's reviewer", async () => {
+  it("switches requester and reviewer with one click and keeps the lead's boxes locked", async () => {
     const save = vi.spyOn(memberApi, "setProjectRoles").mockResolvedValue(member(2, []));
     const m = member(3, [{ projectId: 1, roles: ["REVIEWER"], lead: true }]);
     wrap(
@@ -203,12 +203,14 @@ describe("RoleEditDialog", () => {
     const row = screen.getByRole("row", { name: /카드 혜택 알림/ });
     expect(within(row).getByText("예")).toBeTruthy();
 
+    // ticking one of the pair clears the other; neither box is ever disabled for a non-lead
     fireEvent.click(box("리스크 고지 문자 검수자"));
-    expect(box("리스크 고지 문자 요청자").disabled).toBe(true);
-    fireEvent.click(box("리스크 고지 문자 검수자"));
+    expect(box("리스크 고지 문자 검수자").checked).toBe(true);
     expect(box("리스크 고지 문자 요청자").disabled).toBe(false);
     fireEvent.click(box("리스크 고지 문자 요청자"));
-    expect(box("리스크 고지 문자 검수자").disabled).toBe(true);
+    expect(box("리스크 고지 문자 요청자").checked).toBe(true);
+    expect(box("리스크 고지 문자 검수자").checked).toBe(false);
+    expect(box("리스크 고지 문자 검수자").disabled).toBe(false);
 
     fireEvent.click(screen.getByRole("button", { name: "저장" }));
     await waitFor(() => expect(save).toHaveBeenCalledWith(1, 3, [{ projectId: 2, roles: ["REQUESTER"] }]));
@@ -246,7 +248,7 @@ describe("DeactivateUserDialog", () => {
   it("without handover: impact rows only, deactivates with no substitute", async () => {
     const deactivate = vi.spyOn(memberApi, "deactivate").mockResolvedValue(undefined);
     open(impact());
-    expect(screen.getByRole("heading", { name: "사용자6 비활성화" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "사용자6님을 비활성화할까요?" })).toBeTruthy();
     expect(screen.getAllByText("없음")).toHaveLength(3);
     expect(screen.queryByLabelText(/대체자/)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "비활성화" }));
@@ -372,6 +374,7 @@ describe("Notice edit, publish and delete", { timeout: 20_000 }, () => {
       .mockResolvedValueOnce({ ...notice, published: false });
     const onClose = vi.fn();
     wrap(<NoticeConfirmDialog confirm={{ notice, action: "unpublish" }} onClose={onClose} />);
+    expect(screen.getByRole("dialog", { name: "「점검 안내」 공지의 게시를 중지할까요?" })).toBeTruthy();
     expect(screen.getByText("공지 목록과 대시보드에서 사라집니다. 언제든 다시 게시할 수 있습니다.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "게시 중지" }));
     await waitFor(() => expect(lastToast()).toBe("게시 중인 공지가 아닙니다"));
@@ -386,7 +389,8 @@ describe("Notice edit, publish and delete", { timeout: 20_000 }, () => {
     const remove = vi.spyOn(noticeApi, "remove").mockResolvedValue(undefined);
     const onClose = vi.fn();
     wrap(<NoticeConfirmDialog confirm={{ notice, action: "delete" }} onClose={onClose} />);
-    expect(screen.getByRole("dialog", { name: "공지를 삭제할까요?" })).toBeTruthy();
+    expect(screen.getByRole("dialog", { name: "「점검 안내」 공지를 삭제할까요?" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "삭제" }).className).toContain("text-danger");
     fireEvent.click(screen.getByRole("button", { name: "삭제" }));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(remove).toHaveBeenCalledWith(5);

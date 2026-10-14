@@ -4,7 +4,6 @@ import { useState } from "react";
 import { formatDateTime } from "@/shared/lib";
 import { Avatar, Banner, Empty, KeyValueList, Page, PageHeader, Panel, PanelBody, PanelHeader, Tag } from "@/shared/ui";
 import { Button } from "@/shared/common";
-import { LEAD_ROLE_LABEL, PROJECT_ROLE_LABEL } from "@/entities/project";
 import type { DeactivationImpact, Member } from "@/entities/user";
 import {
   AdminRightDialog,
@@ -16,6 +15,7 @@ import {
 } from "@/features/customer-admin";
 import type { WorkViewProps } from "@/widgets/app-shell";
 import { useUserTab } from "../model/use-user-tab";
+import { UserRoles } from "./user-roles";
 import { UserWork } from "./user-work";
 import styles from "./user-detail.module.css";
 
@@ -65,7 +65,6 @@ export function AdminUserDetailView({ tab, context, openTab, setTitle }: WorkVie
   const m = member.data;
   const accepted = !m.pending;
   const busy = actions.busyId === m.user.id;
-  const projectName = (id: number) => projects.find((p) => p.id === id)?.name ?? `프로젝트 ${id}`;
 
   return (
     <Page aria-busy={member.isFetching}>
@@ -120,7 +119,7 @@ export function AdminUserDetailView({ tab, context, openTab, setTitle }: WorkVie
               역할 관리
             </Button>
             {m.admin || (accepted && m.user.active) ? (
-              <Button size="sm" onClick={() => setDialog({ kind: "admin" })}>
+              <Button size="sm" variant={m.admin ? "warn" : "default"} onClick={() => setDialog({ kind: "admin" })}>
                 {m.admin ? "관리자 해제" : "관리자 지정"}
               </Button>
             ) : null}
@@ -135,21 +134,8 @@ export function AdminUserDetailView({ tab, context, openTab, setTitle }: WorkVie
               },
             ]}
           />
-          {m.projects.length ? (
-            <ul className={styles.roles}>
-              {m.projects.map((p) => (
-                <li key={p.projectId}>
-                  <b>{projectName(p.projectId)}</b>
-                  <span>
-                    {[...p.roles.map((r) => PROJECT_ROLE_LABEL[r]), ...(p.lead ? [LEAD_ROLE_LABEL] : [])].join(", ")}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className={styles.faint}>참여 중인 프로젝트가 없습니다. 역할 관리에서 지정하세요.</p>
-          )}
         </PanelBody>
+        <UserRoles member={m} projects={projects} />
       </Panel>
 
       {accepted && m.user.active ? <UserWork customerId={customerId} userId={m.user.id} openTab={openTab} /> : null}
@@ -159,11 +145,12 @@ export function AdminUserDetailView({ tab, context, openTab, setTitle }: WorkVie
         <PanelBody>
           <div className={styles.actions}>
             {m.pending ? (
-              <Button disabled={busy} onClick={() => void actions.reissue(m)}>
+              <Button size="sm" disabled={busy} onClick={() => void actions.reissue(m)}>
                 초대 재발급
               </Button>
             ) : m.user.active ? (
               <Button
+                size="sm"
                 variant="warn"
                 disabled={busy}
                 onClick={async () => {
@@ -174,7 +161,7 @@ export function AdminUserDetailView({ tab, context, openTab, setTitle }: WorkVie
                 비활성화
               </Button>
             ) : (
-              <Button disabled={busy} onClick={() => void actions.reactivate(m)}>
+              <Button size="sm" disabled={busy} onClick={() => void actions.reactivate(m)}>
                 재활성화
               </Button>
             )}

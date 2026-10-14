@@ -30,8 +30,10 @@ import {
 } from "@/features/ops-admin";
 import type { WorkViewProps } from "@/widgets/app-shell";
 import { setupSteps } from "../model/setup-steps";
-import { RuleSeedPanel, SetupStepsPanel, TemplatePanel } from "./setup-panels";
-import { OpsOutboxPanel, SamplePanel, SeedLogPanel } from "./setup-records";
+import { OpsOutboxPanel } from "./outbox-panel";
+import { RuleSeedPanel, SetupStepsPanel } from "./setup-panels";
+import { SamplePanel, SeedLogPanel } from "./setup-records";
+import { TemplatePanel } from "./template-panel";
 import styles from "./ops-setup.module.css";
 
 type Dialog =

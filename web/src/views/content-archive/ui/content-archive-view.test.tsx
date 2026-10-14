@@ -36,6 +36,8 @@ function fakeServer() {
   });
 }
 
+const openTab = vi.fn();
+
 function setup() {
   const snap = API_SNAPSHOT[1];
   const customers = snap["/customers"] as Customer[];
@@ -56,7 +58,7 @@ function setup() {
     },
     setDirty: vi.fn(),
     setTitle: vi.fn(),
-    openTab: vi.fn(),
+    openTab,
   };
   render(
     <QueryClientProvider client={client}>
@@ -67,16 +69,17 @@ function setup() {
 
 const lastQuery = (get: ReturnType<typeof fakeServer>) =>
   get.mock.calls.filter(([p]) => p === "/archive/contents").at(-1)?.[1]?.query as Query;
-const line = (n: number) => screen.queryByRole("listitem", { name: `보관 콘텐츠 ${n} v1` });
+const line = (n: number) => screen.queryByRole("button", { name: `보관 콘텐츠 ${n} v1 열기` });
+const dataRows = () => screen.getAllByRole("button", { name: /^보관 콘텐츠 \d+ v1 열기$/ });
 
 afterEach(() => vi.restoreAllMocks());
 
 describe("ContentArchiveView paging", () => {
-  it("shows 20 lines per page with page numbers instead of 더 보기", async () => {
+  it("shows 20 lines per page with page numbers instead of 더 보기; a row opens the content tab", async () => {
     const get = fakeServer();
     setup();
     await waitFor(() => expect(line(1)).toBeTruthy());
-    expect(screen.getAllByRole("listitem")).toHaveLength(20);
+    expect(dataRows()).toHaveLength(20);
     expect(lastQuery(get)).toMatchObject({ projectId: 1, page: 0, size: 20 });
     expect(screen.getByText("1 / 3")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "더 보기" })).toBeNull();
@@ -87,6 +90,10 @@ describe("ContentArchiveView paging", () => {
     expect(line(1)).toBeNull();
     expect(screen.getByText("2 / 3")).toBeTruthy();
     expect(lastQuery(get)).toMatchObject({ page: 1, size: 20 });
+
+    fireEvent.click(line(21)!);
+    const { requestId, contentKey } = archiveContentsU1.content[0].latest;
+    expect(openTab).toHaveBeenCalledWith({ route: "content", params: { id: requestId, key: contentKey } });
   });
 
   it("goes back to the first page when a filter changes", async () => {
@@ -97,7 +104,7 @@ describe("ContentArchiveView paging", () => {
     await screen.findByText("2 / 3");
     chooseValue(screen.getByLabelText("유형"), "SMS");
     await waitFor(() => expect(lastQuery(get)).toMatchObject({ type: "SMS", page: 0, size: 20 }));
-    await waitFor(() => expect(screen.getAllByRole("listitem")).toHaveLength(3));
+    await waitFor(() => expect(dataRows()).toHaveLength(3));
     expect(screen.queryByRole("button", { name: "다음" })).toBeNull();
   });
 });

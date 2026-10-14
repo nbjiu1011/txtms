@@ -550,7 +550,11 @@ tailwind-merge, so a caller's `className` wins over the component default). Inte
   `onChange(e => e.target.checked)`) · SubTabs (radix Tabs, tab list only) · Seg (radix ToggleGroup, `role=radio`) ·
   Modal (radix Dialog: focus trap + return, Escape, scrim, busy-safe async `onOk`, 560/900, ok variant
   default/pri/ok/warn) · Drawer (non-modal radix Dialog) · Popover (radix Popover on an `anchor` element,
-  + header/body/section/item) · FilterBar/FilterField/DateRangeFilter (+ `filterClasses`) · Pager (이전 / 다음) ·
+  + header/body/section/item) · FilterBar/FilterField/DateRangeFilter (+ `filterClasses`) · Pager (이전 · page numbers ·
+  다음) · DataTable (react-data-table-component v8: every screen list; row click opens the detail, `RowLink` for
+  keyboard users, `rowAction` columns for the single row button, server paging through Pager) · DatePicker /
+  DateRangePicker (calendar popover; range with 오늘·이번 주·이번 달·최근 7일·최근 30일) · ConfirmModal (every
+  delete-like action: a question naming the target, the verb on a warn button) ·
   `useServerError` (modal refusals: toast, field messages cleared on edit, details). Test helpers for the radix
   controls (`chooseValue`, `chooseOption`, `selectValue`, `optionLabels`) are in `shared/common/testing.ts`;
   end-to-end scripts use `pick()` / `selectValueIs()` from `e2e/real/helpers.mjs`.

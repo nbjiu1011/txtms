@@ -79,9 +79,6 @@ p.faintSmall {
 .faint {
   color: var(--faint);
 }
-.num {
-  font-variant-numeric: tabular-nums;
-}
 /* data set page header: title with the 배정표 button next to it */
 .dsHead {
   display: flex;
@@ -98,12 +95,4 @@ p.faintSmall {
 }
 .lead {
   margin: 0 0 14px;
-}
-.sr {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
 }

@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ErrorDetails, KeyValueList, toast } from "@/shared/ui";
-import { Button, Field, Modal, Select, useServerError } from "@/shared/common";
+import { Button, ConfirmModal, Field, Modal, Select, useServerError } from "@/shared/common";
 import { opsApi } from "@/entities/ops";
 import type { Project } from "@/entities/project";
 import { CONTENT_TYPE_LABEL, type ContentType, type ContentTypeSetting } from "@/entities/request";
@@ -92,7 +92,7 @@ export interface ClearSamplesDialogProps {
   realCount: number;
 }
 
-/** 샘플 데이터만 초기화할까요? (reference `seedClear`): deletes the customer's sample requests only. */
+/** `{고객사}의 샘플 데이터만 초기화할까요?` (reference `seedClear`): deletes the customer's sample requests only. */
 export function ClearSamplesDialog({ open, onClose, customer, sampleCount, realCount }: ClearSamplesDialogProps) {
   const client = useQueryClient();
   const server = useServerError("샘플을 지우지 못했습니다");
@@ -112,7 +112,7 @@ export function ClearSamplesDialog({ open, onClose, customer, sampleCount, realC
     <Modal
       open
       onClose={onClose}
-      title="샘플 데이터만 초기화할까요?"
+      title={`${customer.name}의 샘플 데이터만 초기화할까요?`}
       description="실제 운영 요청, 완료 묶음, 업무 이력은 지우지 않습니다."
       okLabel="샘플 초기화"
       okVariant="warn"
@@ -131,7 +131,7 @@ export function ClearSamplesDialog({ open, onClose, customer, sampleCount, realC
 
 /**
  * 시연 데이터 초기화 (reference J:219, profile): resets the requests of the sample customers to the demo
- * seed. Real customers are not touched.
+ * seed after a confirm (warn trigger and OK). Real customers are not touched.
  */
 export function SampleResetButton() {
   const [open, setOpen] = useState(false);
@@ -150,20 +150,22 @@ export function SampleResetButton() {
   };
   return (
     <>
-      <Button onClick={() => setOpen(true)}>시연 데이터 초기화</Button>
-      <Modal
+      <Button variant="warn" onClick={() => setOpen(true)}>
+        시연 데이터 초기화
+      </Button>
+      <ConfirmModal
         open={open}
         onClose={() => {
           server.clear();
           setOpen(false);
         }}
-        title="샘플 고객사 데이터 초기화"
-        okLabel="초기화"
-        onOk={submit}
+        title="샘플 고객사의 시연 데이터를 초기화할까요?"
+        description="기본 체험 고객사의 시연 요청만 초기화합니다. 실제 고객사 데이터는 유지됩니다."
+        confirmLabel="초기화"
+        onConfirm={submit}
       >
-        <p>기본 체험 고객사의 시연 요청만 초기화합니다. 실제 고객사 데이터는 유지됩니다.</p>
         <ErrorDetails message={server.inline.message} items={server.inline.items} />
-      </Modal>
+      </ConfirmModal>
     </>
   );
 }

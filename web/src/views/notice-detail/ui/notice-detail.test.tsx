@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { http } from "@/shared/api";
@@ -96,25 +96,28 @@ describe("NoticeDetailView", () => {
 describe("AdminNoticeDetailView", () => {
   it("shows the state, body and change history with the previous body on demand", () => {
     setup((p) => <AdminNoticeDetailView {...p} />, notice(), { adminCustomerIds: [1] });
-    expect(screen.getAllByText("게시")).toHaveLength(2); // 게시 시각 label and the state tag
+    expect(screen.getAllByText("게시")).toHaveLength(2);
+    expect(screen.getByRole("row", { name: /점검 안내/ })).toBeTruthy(); // 게시 시각 label and the state tag
     expect(screen.getByText("점검 안내")).toBeTruthy();
     expect(screen.getByText("고객사 전체")).toBeTruthy();
     expect(screen.queryByText("이전 본문")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "보기" }));
-    expect(screen.getByText("이전 본문")).toBeTruthy();
+    const previous = screen.getByRole("dialog", { name: "이전 내용" });
+    expect(previous.textContent).toContain("이전 본문");
+    fireEvent.click(within(previous).getAllByRole("button", { name: "닫기" })[0]);
     expect(screen.getByRole("button", { name: "수정" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "게시 중지" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "삭제" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "게시 중지" }).className).toContain("text-danger");
+    expect(screen.getByRole("button", { name: "삭제" }).className).toContain("text-danger");
     expect(screen.queryByRole("button", { name: "게시" })).toBeNull();
   });
 
   it("opens the edit, 게시 중지 and 삭제 dialogs", async () => {
     setup((p) => <AdminNoticeDetailView {...p} />, notice(), { adminCustomerIds: [1] });
     fireEvent.click(screen.getByRole("button", { name: "게시 중지" }));
-    expect(await screen.findByRole("dialog", { name: "게시를 중지할까요?" })).toBeTruthy();
+    expect(await screen.findByRole("dialog", { name: "「정기 점검 안내」 공지의 게시를 중지할까요?" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "취소" }));
     fireEvent.click(screen.getByRole("button", { name: "삭제" }));
-    expect(await screen.findByRole("dialog", { name: "공지를 삭제할까요?" })).toBeTruthy();
+    expect(await screen.findByRole("dialog", { name: "「정기 점검 안내」 공지를 삭제할까요?" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "취소" }));
     fireEvent.click(screen.getByRole("button", { name: "수정" }));
     expect(await screen.findByRole("dialog", { name: "공지 수정" })).toBeTruthy();

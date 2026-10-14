@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useId } from "react";
 import { formatDate } from "@/shared/lib";
 import { KeyValueList, Panel, PanelBody, PanelHeader, SaveIndicator } from "@/shared/ui";
-import { Button, Field, Input, Select, Textarea } from "@/shared/common";
+import { Button, DatePicker, Field, Input, Select, Textarea } from "@/shared/common";
 import {
   CONTENT_TYPE_LABEL,
   RequestStatusChip,
@@ -85,7 +85,7 @@ export function InfoTab({ page, activeTypes, onOpenRequest, editing, onTypeChang
               </Select>
             </Field>
             <Field label="희망 납기" required htmlFor={`${id}-hopeDueDate`} error={err("hopeDueDate")}>
-              <Input type="date" {...field("hopeDueDate")} />
+              <HopeDueField {...field("hopeDueDate")} />
             </Field>
           </div>
           <Field label="목적" required htmlFor={`${id}-purpose`} error={err("purpose")}>
@@ -157,4 +157,18 @@ export function InfoTab({ page, activeTypes, onOpenRequest, editing, onTypeChang
       </div>
     </div>
   );
+}
+
+interface HopeDueFieldProps {
+  id: string;
+  value: string;
+  disabled: boolean;
+  readOnly: boolean;
+  "aria-invalid"?: boolean;
+  onChange: (e: { target: { value: string } }) => void;
+}
+
+/** 희망 납기: required date with a calendar (read-only outside the draft's editing). */
+function HopeDueField({ onChange, ...rest }: HopeDueFieldProps) {
+  return <DatePicker required {...rest} onChange={(value) => onChange({ target: { value } })} />;
 }
